@@ -1,0 +1,17 @@
+[project]
+name = "revolve"
+version = "0.1.0"
+description = "AI rest"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "python-dotenv",
+    "openai-agents"
+]
+
+[project.scripts]
+revolve = "revolve:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
