@@ -175,7 +175,7 @@ def main() -> None:
     2. Create crud operations with python foreach table and save them. Example: table_name_crud.py
     3. Write tests for each table and save them. Example: test_table_name.py
     4. DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT are the environment variables to connect to the database.
-    5. Save a detailed report in markdown format.
+    5. Save two report what have you found (db_report.md) and what have you achieved (progress_report.md) in markdown format.
     """
     result = Runner.run_sync(main_agent, input=Instructions, context=ctx)
     print(result.final_output)
