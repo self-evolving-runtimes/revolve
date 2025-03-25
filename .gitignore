@@ -8,5 +8,5 @@ wheels/
 
 # Virtual environments
 .venv
-
+.env
 src/revolve/.env
