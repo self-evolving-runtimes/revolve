@@ -171,7 +171,7 @@ main_agent = Agent[DbDetailsContext](name="Db Manager", instructions="You are sp
 def main() -> None:
     ctx = RunContextWrapper(DbDetailsContext())
     Instructions = """" \
-    1. Get the tables in db and create a report with details 
+    1. Get the tables and their details from postgres db
     2. Create crud operations with python foreach table and save them. Example: table_name_crud.py
     3. Write tests for each table and save them. Example: test_table_name.py
     4. DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT are the environment variables to connect to the database.
