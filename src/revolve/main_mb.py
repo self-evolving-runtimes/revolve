@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import json
 
-#utils
+# Utils
 def log(method_name, description):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{method_name:<20} - {timestamp:<20} - {description:<30}")
@@ -26,7 +26,8 @@ def connect_db():
     )
     return conn
 
-#data models
+
+# Data models
 class ColumnDetail(BaseModel):
     column_name: str = ""
     data_type: str = ""
@@ -46,7 +47,7 @@ class FunctionResponse(BaseModel):
     
 
 
-#Functions
+# Functions
 @function_tool
 def get_table_names(context: RunContextWrapper[DbDetailsContext]):
     """
@@ -122,15 +123,62 @@ def get_table_details(context: RunContextWrapper[DbDetailsContext], table_name: 
         data={"table_name": table_name, "columns": column_details}
     )
 
-#Agents
-main_agent = Agent[DbDetailsContext](name="Db Manager", instructions="You are specialized in managing a postgres database.", tools=[get_table_names, get_table_details])
+@function_tool
+def save_python_code(context: RunContextWrapper[DbDetailsContext], method_code:str, file_name:str):
+    """
+    Save the python code to a file in generated_code folder.
+    """
+    if not os.path.exists("generated_code"):
+        os.makedirs("generated_code")
 
+    file_path = os.path.join("generated_code", file_name) 
+
+    log("save_python_code", f"Saving python code to file {file_name}")
+    with open(file_path, "w") as file:
+        file.write(method_code)
+    log("save_python_code", f"Python code saved to file {file_name}")
+
+    return FunctionResponse(
+        function_name="save_python_code",
+        response_text=f"Python code saved to file {file_name}",
+        status=True
+    )
+
+@function_tool
+def save_report_md(context: RunContextWrapper[DbDetailsContext], report_md:str, file_name:str):
+    """
+    Save the report to a file in reports folder in markdown format.
+    """
+    if not os.path.exists("reports"):
+        os.makedirs("reports")
+
+    file_path = os.path.join("reports", file_name) 
+
+    log("save_report_md", f"Saving report to file {file_name}")
+    with open(file_path, "w") as file:
+        file.write(report_md)
+    log("save_report_md", f"Report saved to file {file_name}")
+
+    return FunctionResponse(
+        function_name="save_report_md",
+        response_text=f"Report saved to file {file_name}",
+        status=True
+    )
+
+#Agents
+main_agent = Agent[DbDetailsContext](name="Db Manager", instructions="You are specialized in managing a postgres database.", tools=[get_table_names, get_table_details, save_python_code, save_report_md])
 
 def main() -> None:
     ctx = RunContextWrapper(DbDetailsContext())
-    result = Runner.run_sync(main_agent, input="Get the tables in db and create a report with details", context=ctx)
+    Instructions = """" \
+    1. Get the tables in db and create a report with details 
+    2. Create crud operations with python foreach table and save them. Example: table_name_crud.py
+    3. Write tests for each table and save them. Example: test_table_name.py
+    4. DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT are the environment variables to connect to the database.
+    5. Save a detailed report in markdown format.
+    """
+    result = Runner.run_sync(main_agent, input=Instructions, context=ctx)
     print(result.final_output)
-
 
 if __name__ == '__main__':
     main()
