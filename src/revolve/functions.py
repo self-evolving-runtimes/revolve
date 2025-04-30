@@ -55,6 +55,63 @@ def run_query_on_db(query: str) -> str:
     # log("run_query_on_db", f"Result: {result}")
     return json.dumps(result)
 
+def save_python_code(python_code: str, file_name: str) -> str:
+    """
+    This functions saves the generated python code.
+    Args:
+        python_code (str): Python code to be saved.
+        file_name (str): The name of the file to be saved.
+    """
+
+    #create the directory if it doesn't exist
+    os.makedirs("src/revolve/source_generated", exist_ok=True)
+
+    # log("save_python_code", f"Saving python code to file: {file_name}")
+    python_code = python_code.encode("utf-8").decode("unicode_escape")
+    try:
+        with open(f"src/revolve/source_generated/{file_name}", "w") as f:
+            f.write(python_code)
+    except Exception as e:
+        log("save_python_code", f"Error saving python code: {e}")
+        return f"Error saving python code: {e}"
+
+    # log("save_python_code", f"Python code saved successfully to {file_name}.")
+    return f"Python code saved to {file_name} successfully."
+
+def read_python_code(file_name: str) -> str:
+    """
+    This function returns the generated python code from the given file name.
+    Args:
+        file_name (str): The name of the file to be read.
+    """
+    # log("get_python_code", f"Getting python code from file: {file_name}")
+    try:
+        with open(f"src/revolve/source_generated/{file_name}", "r") as f:
+            python_code = f.read()
+    except Exception as e:
+        log("get_python_code", f"Error getting python code: {e}")
+        return f"Error getting python code: {e}"
+
+    # log("get_python_code", f"Python code retrieved successfully.")
+    return python_code
+
+def read_python_code_template(file_name: str) -> str:
+    """
+    " This function reads the template python code from the given file name.
+     Args:
+         file_path (str): The path to the template file.
+    """
+    # log("read_python_code_template", f"Getting python code from file: {file_name}")
+    try:
+        with open(f"src/revolve/source_template/{file_name}", "r") as f:
+            python_code = f.read()
+    except Exception as e:
+        log("read_python_code_template", f"Error getting python code: {e}")
+        return f"Error getting python code: {e}"
+
+    # log("read_python_code_template", f"Python code retrieved successfully.")
+    return python_code
+
 
 # if __name__ =="__main__":
 #     result = run_query_on_db("""SELECT jsonb_object_agg(
