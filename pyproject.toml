@@ -6,7 +6,10 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "python-dotenv",
-    "langgraph"
+    "langgraph",
+    "psycopg2",
+    "pytest",
+    "falcon",
 ]
 
 [project.scripts]
