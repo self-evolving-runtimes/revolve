@@ -75,7 +75,7 @@ def save_python_code(python_code: str, file_name: str) -> str:
         log("save_python_code", f"Error saving python code: {e}")
         return f"Error saving python code: {e}"
 
-    # log("save_python_code", f"Python code saved successfully to {file_name}.")
+    log("save_python_code", f"Python code saved successfully to {file_name}.")
     return f"Python code saved to {file_name} successfully."
 
 def read_python_code(file_name: str) -> str:
