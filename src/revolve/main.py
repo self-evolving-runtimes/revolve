@@ -6,7 +6,7 @@ from IPython.display import Image, display
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode
 from langchain_openai import ChatOpenAI
-from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code
+from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code, log
 from src.revolve.prompts import get_simple_prompt
 from datetime import datetime
 from langgraph.constants import Send
@@ -18,7 +18,6 @@ llm_table_extractor = llm.with_structured_output(DBSchema)
 llm_resource_generator = llm.with_structured_output(Resource)
 
 def router_node(state: State):
-    
     # ---------------------------------------
     # ROUTE with LLM Decisions like an Agent, we can use the LLM to decide the next step
     # messages = [
@@ -41,10 +40,12 @@ def router_node(state: State):
     # Route placeholder
     next_node = state.get("next_node", None)
     if not next_node:
+        log("router_node", "defaulting to generate_prompt_for_code_generation")
         return {
             "next_node": "generate_prompt_for_code_generation",
         }
     else:
+        log("router_node", f"Routing to {next_node}")
         return {
             "next_node": "__end__",
         }
@@ -56,8 +57,7 @@ def do_other_stuff(state: State):
     return {}
 
 def generate_prompt_for_code_generation(state: State):
-
-
+    log("generate_prompt_for_code_generation", "Started")
     last_message_content = state["messages"][-1].content
     schemas = run_query_on_db("""SELECT jsonb_object_agg(
             table_name,
@@ -99,6 +99,8 @@ def generate_prompt_for_code_generation(state: State):
         "trace_timestamp": datetime.now()
     })
 
+    log("generate_prompt_for_code_generation", "Completed")
+
     return {
         "DBSchema": structured_db_response,
         "trace": trace,
@@ -106,6 +108,7 @@ def generate_prompt_for_code_generation(state: State):
 
 def process_table(table_state:Table):
     table_name = table_state["table_name"]
+    log("process_table", f"Processing table: {table_name}")
     columns = table_state["columns"]
     # print(f"Table: {table_name}")
     # print("User Prompt: ", table_state["individual_prompt"])
@@ -154,7 +157,7 @@ def process_table(table_state:Table):
         }
     ]
     structured_resource_response = llm_resource_generator.invoke(messages)
-
+    log("process_table", f"Resource generated for  {table_name}")
     save_python_code(
         structured_resource_response["resource_code"],
         structured_resource_response["resource_file_name"],
@@ -175,6 +178,7 @@ def process_table(table_state:Table):
     }
 
 def generate_api(state:State):
+    log("generate_api", "Started")
     resources = state.get("resources", [])
     if resources:
         api_template = read_python_code_template("api.py")
@@ -236,7 +240,8 @@ graph.add_edge("do_other_stuff", "router_node")
 workflow = graph.compile()
 
 #Running the workflow
-task = "Create crud operations for the tables related to the hospital"
+#task = "Create crud operations for all of the tables in db"
+task = "Created crud operations for the tables related to the hospital"
 result_state = workflow.invoke({"messages": [HumanMessage(task)]})
 
 display(Image(workflow.get_graph().draw_mermaid_png(output_file_path="workflow.png")))
