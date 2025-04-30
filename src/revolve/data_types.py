@@ -32,12 +32,17 @@ class Table(TypedDict):
 class DBSchema(TypedDict):
     tables: list[Table]
 
+class ApiRoute(TypedDict):
+    uri: str
+    resource_object: str
+
 class Resource(TypedDict):
-    file_name: str
-    code:str
+    resource_file_name: str
+    resource_code:str
+    api_route: List[ApiRoute]
 
 class NextNode(BaseModel):
-    name:Literal["get_table_makeup_from_prompt", "do_stuff", "do_other_stuff", "__end__"] = Field(
+    name:Literal["generate_prompt_for_code_generation", "do_stuff", "do_other_stuff", "__end__"] = Field(
         None, description="The next step in the routing process"
     )
 
