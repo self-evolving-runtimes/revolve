@@ -1,0 +1,55 @@
+from typing_extensions import TypedDict, Literal
+from langchain_core.messages import AnyMessage
+from datetime import datetime
+from typing import Annotated, List
+import operator
+from pydantic import BaseModel, Field
+
+
+
+class Trace(TypedDict):
+    node_name: str
+    node_type: str
+    node_input:str
+    node_output:str
+    trace_timestamp:datetime
+
+
+class Column(TypedDict):
+    column: str
+    type: str
+    is_primary_key: bool
+    is_foreign_key: bool
+    is_unique: bool
+    is_nullable: bool
+    is_uid: str
+
+class Table(TypedDict):
+    individual_prompt: str
+    table_name: str
+    columns: list[Column]
+
+class DBSchema(TypedDict):
+    tables: list[Table]
+
+class Resource(TypedDict):
+    file_name: str
+    code:str
+
+class NextNode(BaseModel):
+    name:Literal["get_table_makeup_from_prompt", "do_stuff", "do_other_stuff", "__end__"] = Field(
+        None, description="The next step in the routing process"
+    )
+
+class State(TypedDict):
+    messages: Annotated[list[AnyMessage], operator.add]
+    trace:Annotated[list, operator.add]
+    resources:Annotated[list[Resource], operator.add]
+    DBSchema:DBSchema
+    next_node:str
+
+
+if __name__ == "__main__":
+    pass
+
+
