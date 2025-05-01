@@ -4,12 +4,13 @@ from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, START, END
 from IPython.display import Image, display
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode
+from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode, GeneratedCode, RevisedCode
 from langchain_openai import ChatOpenAI
-from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code, log
+from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code, log, save_state, retrieve_state, run_pytest
 from src.revolve.prompts import get_simple_prompt
 from datetime import datetime
 from langgraph.constants import Send
+import pickle
 
 #OPENAI
 llm  = ChatOpenAI(model="gpt-4o", temperature=0.1, max_tokens=16000)
@@ -25,6 +26,8 @@ llm  = ChatOpenAI(model="gpt-4o", temperature=0.1, max_tokens=16000)
 llm_router = llm.with_structured_output(NextNode)
 llm_table_extractor = llm.with_structured_output(DBSchema)
 llm_resource_generator = llm.with_structured_output(Resource)
+llm_test_generator = llm.with_structured_output(GeneratedCode)
+llm_test_and_code_reviser = llm.with_structured_output(RevisedCode)
 
 def router_node(state: State):
     # ---------------------------------------
@@ -48,10 +51,32 @@ def router_node(state: State):
 
     # Route placeholder
     next_node = state.get("next_node", None)
+    test_status = state.get("test_status", None)
+    resources = state.get("resources", None)
+    dbSchema = state.get("DBSchema", None)
     if not next_node:
         log("router_node", "defaulting to generate_prompt_for_code_generation")
         return {
             "next_node": "generate_prompt_for_code_generation",
+        }
+    elif not test_status and resources and dbSchema:
+        test_status = []
+        dbSchema = state.get("DBSchema")
+        for res, table_object in zip(resources,dbSchema.get("tables")):
+            new_test = {}
+            new_test["resource_file_name"] = res["resource_file_name"]
+            new_test["resource_code"] = res["resource_code"]
+            new_test["status"] = "in_progress"
+            new_test["messages"] = []
+            new_test["code_history"] = [res["resource_code"]]
+            new_test["iteration_count"] = 0
+            new_test["table"] = table_object
+            test_status.append(new_test)
+                    
+        log("router_node", f"Routing to test_node")
+        return {
+            "next_node": "test_node",
+            "test_status": test_status
         }
     else:
         log("router_node", f"Routing to {next_node}")
@@ -59,7 +84,101 @@ def router_node(state: State):
             "next_node": "__end__",
         }
 
-def do_stuff(state: State):
+
+
+def test_node(state: State):
+    test_example = read_python_code_template("test_api.py")
+    api_code = read_python_code("api.py")
+    for test_item in state["test_status"]:
+        resouce_file = read_python_code(test_item["resource_file_name"])
+        test_file_name = "test_"+test_item["resource_file_name"]
+        table_name = test_item["table"]["table_name"]
+        schema = str(test_item["table"]["columns"])
+        system_message = f"""You are responsible for writing the test cases for the given code.
+        Follow the same pattern as the example test file. Do not add any extarnal libraries.
+        Always print the response content in the test for better debugging.
+        Be careful with non-nullable columns when generating tests.
+        Make sure generating unique ids or getting ids from db. Use the same id for the other test cases.
+        Do not use placeholder values, everything should be ready to use.
+        Example test file should be like this:
+        {test_example}"""
+        
+        user_message = f"""Here is my api code for the endpoints.
+        {api_code}
+        Here are the schema of the table ({table_name}) is used in the api:
+        {schema}
+        Write test methods foreach function in the resource code:
+        {resouce_file}"""
+
+        messages = [
+            {
+                "role": "system",
+                "content": system_message
+            },
+            {
+                "role": "user",
+                "content": user_message
+            }
+        ]
+
+        structured_test_response = llm_test_generator.invoke(messages)
+        messages.append(
+            {
+                "role": "assistant",
+                "content": structured_test_response["full_test_code"]
+            }
+        )
+        test_item["test_code"] = structured_test_response["full_test_code"]
+        test_item["test_file_name"] = test_file_name
+        save_python_code(
+            structured_test_response["full_test_code"],
+            test_file_name
+        )
+
+        for i in range(5):
+            pytest_response  = run_pytest(test_file_name)
+            if pytest_response["status"]!= "success":
+                new_user_message = f"""Some tests are failing. 
+                Please fix the test or the resource code, which one is needed.
+                Do it quickly. I only need the code, do not add any other comments or explanations.
+                Here is the report of the failing tests:
+                {pytest_response}"""
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": new_user_message
+                    }
+                )
+                test_item["iteration_count"] += 1
+                new_test_code_response = llm_test_and_code_reviser.invoke(messages)
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": str(new_test_code_response)
+                    }
+                )
+                # if "code_type" in new_test_code_response:
+                if new_test_code_response.code_type == "resource":
+                    file_name_to_revise = test_item["resource_file_name"]
+                else:
+                    file_name_to_revise = test_file_name
+
+                save_python_code(
+                    new_test_code_response.new_code,
+                    file_name_to_revise
+                )
+                # else:
+                #     messages.append(
+                #         {
+                #             "role": "user",
+                #             "content": "Your output is not valid. Please follow the json format."
+                #         }
+                #     )
+                        
+            else:
+                break
+                
+
     return {}
 
 def do_other_stuff(state: State):
@@ -186,8 +305,8 @@ def process_table(table_state:Table):
 
 
 def _process_table(state:State):
-    traces = state.get("trace", [])
-    resources = state.get("resources", [])
+    traces = []
+    resources = []
     for table_state in state["DBSchema"]["tables"]:
         table_name = table_state["table_name"]
         log("process_table", f"Processing table: {table_name}")
@@ -303,14 +422,14 @@ graph.add_node("process_table", process_table)
 graph.add_node("_process_table", _process_table)
 graph.add_node("generate_api", generate_api)
 
-graph.add_node("do_stuff", do_stuff)
+graph.add_node("test_node", test_node)
 graph.add_node("do_other_stuff", do_other_stuff)
 
 
 #workflow logic
 graph.add_edge(START, "router_node")
 graph.add_conditional_edges(
-    "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "do_stuff": "do_stuff", "do_other_stuff": "do_other_stuff", "__end__":END}
+    "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "do_other_stuff": "do_other_stuff", "__end__":END}
 )
 # graph.add_conditional_edges(
 #     "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
@@ -318,17 +437,27 @@ graph.add_conditional_edges(
 graph.add_edge("generate_prompt_for_code_generation", "_process_table")
 graph.add_edge("_process_table", "generate_api")
 graph.add_edge("generate_api", "router_node")
-graph.add_edge("do_stuff", "router_node")
+graph.add_edge("test_node", "router_node")
 graph.add_edge("do_other_stuff", "router_node")
 
 
 #Compiling the graph
 workflow = graph.compile()
 
-#Running the workflow
+#Running the workflow:
 #task = "Create crud operations for all of the tables in db"
 task = "Created crud operations for the tables for doctors and patients"
 result_state = workflow.invoke({"messages": [HumanMessage(task)]})
+
+#Running workflow with a state
+# result_state = workflow.invoke(retrieve_state())
+
+save_state(result_state)
+
+
+
+
+
 
 display(Image(workflow.get_graph().draw_mermaid_png(output_file_path="workflow.png")))
 
