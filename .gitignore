@@ -11,3 +11,4 @@ wheels/
 .env
 src/revolve/.env
 src/revolve/source_generated
+states

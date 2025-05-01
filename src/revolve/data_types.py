@@ -46,12 +46,33 @@ class NextNode(BaseModel):
         None, description="The next step in the routing process"
     )
 
+
+class TestStatus(TypedDict):
+    resource_file_name:str
+    resource_code:str
+    test_file_name: str
+    status: str # success, failed, fixed, in_progress
+    messages: list[AnyMessage]
+    code_history:list[str]
+    iteration_count: int
+    test_code:str
+    table:Table
+ 
+class GeneratedCode(TypedDict):
+    full_test_code:str
+    test_case_count:int
+
+class RevisedCode(BaseModel):
+    new_code:str
+    code_type:Literal["resource", "test"]
+    
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], operator.add]
     trace:Annotated[list, operator.add]
     resources:Annotated[list[Resource], operator.add]
     DBSchema:DBSchema
     next_node:str
+    test_status:list[TestStatus]
 
 
 if __name__ == "__main__":
