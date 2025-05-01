@@ -11,7 +11,16 @@ from src.revolve.prompts import get_simple_prompt
 from datetime import datetime
 from langgraph.constants import Send
 
+#OPENAI
 llm  = ChatOpenAI(model="gpt-4o", temperature=0.1, max_tokens=16000)
+
+# LLM - RUNPOD
+# llm  = ChatOpenAI(model="Qwen/Qwen3-30B-A3B", temperature=0.1, max_tokens=16000, base_url="http://localhost:8000/v1/", api_key="no_needed")
+
+# LLM - Local Ollama
+# llm  = ChatOpenAI(model="qwen3:30b-a3b", temperature=0.1, max_tokens=7000, base_url="http://localhost:11434/v1/", api_key="ollama")
+
+
 
 llm_router = llm.with_structured_output(NextNode)
 llm_table_extractor = llm.with_structured_output(DBSchema)
@@ -115,9 +124,7 @@ def process_table(table_state:Table):
     # for col in columns:
     #     print(f"Table Name : {table_name}, Column: {col['column']}, Type: {col['type']}, Is Nullable: {col['is_nullable']}")
 
-    api_template = read_python_code_template("api.py")
     code_template = read_python_code_template("service.py")
-    test_template = read_python_code_template("test_api.py")
 
     system_prompt = f"""Generate resource code according to the user request.
     Make sure that you write production quality code that can be maintained by developers.
@@ -177,6 +184,83 @@ def process_table(table_state:Table):
         "trace": [new_trace]
     }
 
+
+def _process_table(state:State):
+    traces = state.get("trace", [])
+    resources = state.get("resources", [])
+    for table_state in state["DBSchema"]["tables"]:
+        table_name = table_state["table_name"]
+        log("process_table", f"Processing table: {table_name}")
+        columns = table_state["columns"]
+        # print(f"Table: {table_name}")
+        # print("User Prompt: ", table_state["individual_prompt"])
+        # for col in columns:
+        #     print(f"Table Name : {table_name}, Column: {col['column']}, Type: {col['type']}, Is Nullable: {col['is_nullable']}")
+
+        code_template = read_python_code_template("service.py")
+
+        system_prompt = f"""Generate resource code according to the user request.
+        Make sure that you write production quality code that can be maintained by developers.
+        Requests should be trackable with logs in INFO mode. Double check the imports.
+        Make sure that you check whether data is serializable and convert data when needed.
+        Guard against SQL injection attacks. Always sanitize inputs before sending it to database.
+        While creating List functionality, provide functionality to sort, order by and filter based on
+        key columns. If the search filter is a date field, provide functionality to match greater than,
+        less than and equal to date. Filter may not be specified - handle those cases as well.
+        There could be multiple endpoints for the same resource.
+        Here are the templates for the generation:
+        for the example api route 'app.add_route("/hello_db", HelloDBResource())'
+        output should be like this:
+        uri: /hello_db
+        resource_object: HelloDBResource()
+        resource_file_name: hellodb.py
+        resouce_code : {code_template} 
+    """
+        
+        schemas = str(columns)
+
+        # add schemas and individual prompt to the user prompt
+        user_prompt = f"""
+        Task : {table_state["individual_prompt"]}
+        Table Name : {table_name}
+        Schema : {schemas}
+        """
+
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": user_prompt
+            }
+        ]
+        structured_resource_response = llm_resource_generator.invoke(messages)
+        log("process_table", f"Resource generated for  {table_name}")
+        save_python_code(
+            structured_resource_response["resource_code"],
+            structured_resource_response["resource_file_name"],
+
+        )
+
+        new_trace = {
+            "node_name": "process_table",
+            "node_type": "process",
+            "node_input": table_state,
+            "node_output": structured_resource_response,
+            "trace_timestamp": datetime.now()
+        }
+
+        traces.append(new_trace)
+        resources.append(structured_resource_response)
+
+    return {
+        "resources":resources,
+        "trace": traces
+    }
+
+
 def generate_api(state:State):
     log("generate_api", "Started")
     resources = state.get("resources", [])
@@ -216,6 +300,7 @@ graph.add_node("router_node", router_node)
 
 graph.add_node("generate_prompt_for_code_generation", generate_prompt_for_code_generation)
 graph.add_node("process_table", process_table)
+graph.add_node("_process_table", _process_table)
 graph.add_node("generate_api", generate_api)
 
 graph.add_node("do_stuff", do_stuff)
@@ -227,10 +312,11 @@ graph.add_edge(START, "router_node")
 graph.add_conditional_edges(
     "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "do_stuff": "do_stuff", "do_other_stuff": "do_other_stuff", "__end__":END}
 )
-graph.add_conditional_edges(
-    "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
-)
-graph.add_edge("process_table", "generate_api")
+# graph.add_conditional_edges(
+#     "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
+# )
+graph.add_edge("generate_prompt_for_code_generation", "_process_table")
+graph.add_edge("_process_table", "generate_api")
 graph.add_edge("generate_api", "router_node")
 graph.add_edge("do_stuff", "router_node")
 graph.add_edge("do_other_stuff", "router_node")
@@ -241,7 +327,7 @@ workflow = graph.compile()
 
 #Running the workflow
 #task = "Create crud operations for all of the tables in db"
-task = "Created crud operations for the tables related to the hospital"
+task = "Created crud operations for the tables for doctors and patients"
 result_state = workflow.invoke({"messages": [HumanMessage(task)]})
 
 display(Image(workflow.get_graph().draw_mermaid_png(output_file_path="workflow.png")))
