@@ -11,6 +11,7 @@ from src.revolve.prompts import get_simple_prompt
 from datetime import datetime
 from langgraph.constants import Send
 import pickle
+from src.revolve.utils_git import *
 
 #OPENAI
 llm  = ChatOpenAI(model="gpt-4o", temperature=0.1, max_tokens=16000)
@@ -23,11 +24,11 @@ llm  = ChatOpenAI(model="gpt-4o", temperature=0.1, max_tokens=16000)
 
 
 
-llm_router = llm.with_structured_output(NextNode)
-llm_table_extractor = llm.with_structured_output(DBSchema)
-llm_resource_generator = llm.with_structured_output(Resource)
-llm_test_generator = llm.with_structured_output(GeneratedCode)
-llm_test_and_code_reviser = llm.with_structured_output(RevisedCode)
+llm_router = llm.with_structured_output(NextNode, method="function_calling")
+llm_table_extractor = llm.with_structured_output(DBSchema, method="function_calling")
+llm_resource_generator = llm.with_structured_output(Resource, method="function_calling")
+llm_test_generator = llm.with_structured_output(GeneratedCode, method="function_calling")
+llm_test_and_code_reviser = llm.with_structured_output(RevisedCode, method="function_calling")
 
 def router_node(state: State):
     # ---------------------------------------
@@ -55,11 +56,13 @@ def router_node(state: State):
     resources = state.get("resources", None)
     dbSchema = state.get("DBSchema", None)
     if not next_node:
+        start_over_repo()
         log("router_node", "defaulting to generate_prompt_for_code_generation")
         return {
             "next_node": "generate_prompt_for_code_generation",
         }
     elif not test_status and resources and dbSchema:
+        save_state(state, "after_generation")
         test_status = []
         dbSchema = state.get("DBSchema")
         for res, table_object in zip(resources,dbSchema.get("tables")):
@@ -79,6 +82,7 @@ def router_node(state: State):
             "test_status": test_status
         }
     else:
+        save_state(state, "after_test")
         log("router_node", f"Routing to {next_node}")
         return {
             "next_node": "__end__",
@@ -134,13 +138,18 @@ def test_node(state: State):
             structured_test_response["full_test_code"],
             test_file_name
         )
+        commit_changes(
+            message=f"Test code generated for {test_item['resource_file_name']}"
+        )
 
-        for i in range(5):
+        for i in range(10):
+            test_item["status"] = "in_progress"
             pytest_response  = run_pytest(test_file_name)
             if pytest_response["status"]!= "success":
+                test_item["status"] = "failed"
                 new_user_message = f"""Some tests are failing. 
                 Please fix the test or the resource code, which one is needed.
-                Do it quickly. I only need the code, do not add any other comments or explanations.
+                I only need the code, do not add any other comments or explanations.
                 Here is the report of the failing tests:
                 {pytest_response}"""
                 messages.append(
@@ -167,6 +176,12 @@ def test_node(state: State):
                     new_test_code_response.new_code,
                     file_name_to_revise
                 )
+                commit_changes(
+                    message=f"Test code revised for {test_item['resource_file_name']}"
+                )
+                
+                test_item["code_history"].append(new_test_code_response.new_code)
+           
                 # else:
                 #     messages.append(
                 #         {
@@ -176,10 +191,12 @@ def test_node(state: State):
                 #     )
                         
             else:
+                test_item["status"] = "success"
                 break
-                
 
-    return {}
+        test_item["messages"] = messages   
+
+    return {"test_status": state["test_status"]}
 
 def do_other_stuff(state: State):
     return {}
@@ -402,6 +419,9 @@ def generate_api(state:State):
         api_template,
         "api.py"
     )
+    commit_changes(
+        message="Codes and api generated."
+    )
     new_trace = {
         "node_name": "generate_api",
         "node_type": "process",
@@ -419,7 +439,7 @@ graph.add_node("router_node", router_node)
 
 graph.add_node("generate_prompt_for_code_generation", generate_prompt_for_code_generation)
 graph.add_node("process_table", process_table)
-graph.add_node("_process_table", _process_table)
+# graph.add_node("_process_table", _process_table)
 graph.add_node("generate_api", generate_api)
 
 graph.add_node("test_node", test_node)
@@ -431,11 +451,11 @@ graph.add_edge(START, "router_node")
 graph.add_conditional_edges(
     "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "do_other_stuff": "do_other_stuff", "__end__":END}
 )
-# graph.add_conditional_edges(
-#     "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
-# )
-graph.add_edge("generate_prompt_for_code_generation", "_process_table")
-graph.add_edge("_process_table", "generate_api")
+graph.add_conditional_edges(
+    "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
+)
+# graph.add_edge("generate_prompt_for_code_generation", "_process_table")
+graph.add_edge("process_table", "generate_api")
 graph.add_edge("generate_api", "router_node")
 graph.add_edge("test_node", "router_node")
 graph.add_edge("do_other_stuff", "router_node")
@@ -451,12 +471,6 @@ result_state = workflow.invoke({"messages": [HumanMessage(task)]})
 
 #Running workflow with a state
 # result_state = workflow.invoke(retrieve_state())
-
-save_state(result_state)
-
-
-
-
 
 
 display(Image(workflow.get_graph().draw_mermaid_png(output_file_path="workflow.png")))

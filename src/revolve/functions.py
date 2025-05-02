@@ -22,9 +22,9 @@ def log(method_name, description):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{method_name:<20} - {timestamp:<20} - {description:<30}")
 
-def save_state(state):
+def save_state(state, state_name="state"):
     time_stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    file_name = f"states/state_{time_stamp}.pkl"
+    file_name = f"states/{state_name}_{time_stamp}.pkl"
     with open(file_name, "wb") as f:
         pickle.dump(state, f)
 
