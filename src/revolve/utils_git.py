@@ -8,6 +8,7 @@ def run_git_command(args, cwd):
     result = subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"Git error: {result.stderr.strip()}")
+        print(result.stdout.strip())
     return result
 
 
@@ -26,23 +27,39 @@ def init_git_repo_if_needed(target_dir="src/revolve/source_generated"):
 
 def commit_changes(
     target_dir="src/revolve/source_generated",
-    message=None,
+    message: str = None,
+    description: str = None,
 ):
+    """
+    Commit any changed .py files in `target_dir`.
+    - `message`: the commit’s subject line.
+    - `description`: optional body text.
+    """
     init_git_repo_if_needed(target_dir)
+
+    # Stage all .py files
     run_git_command(["add", "*.py"], cwd=target_dir)
 
-    # Check if there is anything to commit
+    # Nothing to commit?
     status = run_git_command(["status", "--porcelain"], cwd=target_dir)
     if not status.stdout.strip():
         print("No changes to commit.")
         return
 
+    # Fallback subject line if none provided
     if not message:
-        message = f"Auto commit at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        message = f"Auto commit at {datetime.now():%Y-%m-%d %H:%M:%S}"
 
-    run_git_command(["commit", "-m", message], cwd=target_dir)
+    # Build the commit command
+    commit_args = ["commit", "-m", message]
+    if description:
+        commit_args += ["-m", description]
+
+    # Run it
+    run_git_command(commit_args, cwd=target_dir)
     print("Committed:", message)
-
+    if description:
+        print("Description:", description)
 
 def reset_repo(target_dir="src/revolve/source_generated"):
     git_path = os.path.join(target_dir, ".git")
