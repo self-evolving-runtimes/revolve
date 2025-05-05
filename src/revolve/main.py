@@ -102,7 +102,7 @@ def test_node(state: State):
         Follow the same pattern as the example test file. Do not add any extarnal libraries.
         Always print the response content in the test for better debugging.
         Be careful with non-nullable columns when generating tests.
-        Make sure generating unique ids by uuid for the operations. Don't assume any id is already in the database.
+        Don't assume any id is already in the database.
         Do not use placeholder values, everything should be ready to use.
         Example test file should be like this:
         {test_example}"""
@@ -148,15 +148,25 @@ def test_node(state: State):
             if pytest_response["status"]!= "success":
                 test_item["status"] = "failed"
                 new_system_message = f"""You are responsible for fixing the errors.
-                Fix the test or the source code according to the test report provided by user."""
+                Fix the test or the source code according to the test report provided by user.
+                You are responsible for writing the test cases for the given code.
+                Do not add any extarnal libraries.
+                Always print the response content in the test for better debugging.
+                Be careful with non-nullable columns when generating tests.
+                Don't assume any id is already in the database.
+                Do not use placeholder values, everything should be ready to use."""
+                individual_prompt = test_item["table"]["individual_prompt"]
                 source_code = read_python_code(test_item["resource_file_name"])
                 test_code = read_python_code(test_file_name)
-
-                new_user_message = f"""Some tests are failing. 
+                example_resource_code = read_python_code_template("service.py")
+                new_user_message = f"""My initial goal was {individual_prompt}.
+                However some tests are failing. 
                 Please fix the test or the resource code, which one is needed.
                 I only need the code, do not add any other comments or explanations.
                 Here is the resource code :
                 {source_code}
+                This is the example resource code in case you need to refer:
+                {example_resource_code}
                 Here is the test code:
                 {test_code}
                 The api and routes are here:
@@ -429,20 +439,22 @@ def _process_table(state:State):
 def generate_api(state:State):
     log("generate_api", "Started")
     resources = state.get("resources", [])
+    added_sources = []
     if resources:
         api_template = read_python_code_template("api.py")
         for resource in resources:
             api_routes = resource["api_route"]
-            import_counter = 0
             for route in api_routes:
                 uri = route["uri"]
                 resource_object = route["resource_object"]
                 module_name = resource["resource_file_name"].replace(".py","")
                 library_name = resource_object.replace("()","")
-                if import_counter==0:
+                if module_name+"."+library_name not in added_sources:
                     api_template = api_template.replace("###IMPORTS###", f"###IMPORTS###\nfrom {module_name} import {library_name}")
-                import_counter += 1
-                api_template = api_template.replace("###ENDPOINTS###", f"""###ENDPOINTS###\napp.add_route("{uri}", {resource_object})""")
+                    added_sources.append(module_name+"."+library_name)
+                if uri+"."+resource_object not in added_sources:
+                    api_template = api_template.replace("###ENDPOINTS###", f"""###ENDPOINTS###\napp.add_route("{uri}", {resource_object})""")
+                    added_sources.append(uri+"."+resource_object)
 
     save_python_code(
         api_template,
@@ -494,8 +506,8 @@ graph.add_edge("do_other_stuff", "router_node")
 workflow = graph.compile()
 
 #Running the workflow:
-#task = "Create crud operations for all of the tables in db"
-task = "Created crud operations for the watch history table"
+task = "Create crud operations for all of the tables in db"
+#task = "Created crud operations for the owners and watch history table"
 result_state = workflow.invoke({"messages": [HumanMessage(task)]})
 
 #Running workflow with a state
