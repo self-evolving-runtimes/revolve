@@ -268,5 +268,14 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
 
 
 if __name__ =="__main__":
-    print(run_pytest("test_patients.py"))
+    # print(run_pytest("test_patients.py"))
+    # print(run_pytest("test_doctors.py"))
+    # print(run_pytest("test_appointments.py"))
+    # print(run_pytest("test_courses.py"))
+    # print(run_pytest("test_movies.py"))
+    # print(run_pytest("test_users.py"))
+    # print(run_pytest("test_customers.py"))
+    # print(run_pytest("test_owners.py"))
+    # print(run_pytest("test_students.py"))
+    print(run_pytest("test_watch_history.py"))
 
