@@ -12,13 +12,20 @@ import falcon
 
 def debug_error_serializer(req, resp, exception):
     resp.content_type = falcon.MEDIA_JSON
+    # Format traceback directly from the exception if possible
+    tb = getattr(exception, '__traceback__', None)
+    if tb:
+        tb_str = ''.join(traceback.format_exception(type(exception), exception, tb))
+    else:
+        tb_str = 'Traceback unavailable'
+
     resp.text = json.dumps({
         'title': str(exception),
         'description': getattr(exception, 'description', None),
-        'traceback': traceback.format_exc()
+        'traceback': tb_str
     })
 
-LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+LOGLEVEL = os.environ.get("LOGLEVEL", "DEBUG").upper()
 logging.basicConfig(level=LOGLEVEL)
 logger = logging.getLogger(__name__)
 app = falcon.App()
