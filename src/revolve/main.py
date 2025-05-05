@@ -14,7 +14,7 @@ import pickle
 from src.revolve.utils_git import *
 
 #OPENAI
-llm  = ChatOpenAI(model="gpt-4o", temperature=0.1, max_tokens=16000)
+llm  = ChatOpenAI(model="gpt-4.1", temperature=0.2, max_tokens=16000)
 
 # LLM - RUNPOD
 # llm  = ChatOpenAI(model="Qwen/Qwen3-30B-A3B", temperature=0.1, max_tokens=16000, base_url="http://localhost:8000/v1/", api_key="no_needed")
@@ -83,7 +83,7 @@ def router_node(state: State):
         }
     else:
         save_state(state, "after_test")
-        log("router_node", f"Routing to {next_node}")
+        log("router_node", f"routing to END")
         return {
             "next_node": "__end__",
         }
@@ -102,7 +102,7 @@ def test_node(state: State):
         Follow the same pattern as the example test file. Do not add any extarnal libraries.
         Always print the response content in the test for better debugging.
         Be careful with non-nullable columns when generating tests.
-        Make sure generating unique ids or getting ids from db. Use the same id for the other test cases.
+        Make sure generating unique ids by uuid for the operations. Don't assume any id is already in the database.
         Do not use placeholder values, everything should be ready to use.
         Example test file should be like this:
         {test_example}"""
@@ -147,19 +147,45 @@ def test_node(state: State):
             pytest_response  = run_pytest(test_file_name)
             if pytest_response["status"]!= "success":
                 test_item["status"] = "failed"
+                new_system_message = f"""You are responsible for fixing the errors.
+                Fix the test or the source code according to the test report provided by user."""
+                source_code = read_python_code(test_item["resource_file_name"])
+                test_code = read_python_code(test_file_name)
+
                 new_user_message = f"""Some tests are failing. 
                 Please fix the test or the resource code, which one is needed.
                 I only need the code, do not add any other comments or explanations.
-                Here is the report of the failing tests:
+                Here is the resource code :
+                {source_code}
+                Here is the test code:
+                {test_code}
+                The api and routes are here:
+                {api_code}
+                The schema of the related {table_name} table is:
+                {schema}
+                And Here is the report of the failing tests:
                 {pytest_response}"""
-                messages.append(
+                
+                # messages.append(
+                #     {
+                #         "role": "user",
+                #         "content": new_user_message
+                #     }
+                # )
+
+                new_messages = [
+                    {
+                        "role": "system",
+                        "content": new_system_message
+                    },
                     {
                         "role": "user",
                         "content": new_user_message
                     }
-                )
+                ]
+
                 test_item["iteration_count"] += 1
-                new_test_code_response = llm_test_and_code_reviser.invoke(messages)
+                new_test_code_response = llm_test_and_code_reviser.invoke(new_messages)
                 messages.append(
                     {
                         "role": "assistant",
@@ -169,15 +195,18 @@ def test_node(state: State):
                 # if "code_type" in new_test_code_response:
                 if new_test_code_response.code_type == "resource":
                     file_name_to_revise = test_item["resource_file_name"]
-                else:
+                elif new_test_code_response.code_type == "test":
                     file_name_to_revise = test_file_name
+                else:
+                    file_name_to_revise = "api.py"
 
                 save_python_code(
                     new_test_code_response.new_code,
                     file_name_to_revise
                 )
                 commit_changes(
-                    message=f"Test code revised for {test_item['resource_file_name']}"
+                    message=f"Code revised for {file_name_to_revise}",
+                    description=new_test_code_response.what_fixed
                 )
                 
                 test_item["code_history"].append(new_test_code_response.new_code)
@@ -466,7 +495,7 @@ workflow = graph.compile()
 
 #Running the workflow:
 #task = "Create crud operations for all of the tables in db"
-task = "Created crud operations for the tables for doctors and patients"
+task = "Created crud operations for the watch history table"
 result_state = workflow.invoke({"messages": [HumanMessage(task)]})
 
 #Running workflow with a state
