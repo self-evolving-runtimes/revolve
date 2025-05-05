@@ -219,6 +219,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
                         "phase": phase,
                         "longrepr": longrepr,
                         "stdout": stdout,
+                        "stderr": details.get("stderr", ""),
                         "logs": logs,
                     }
                 )
@@ -237,7 +238,8 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
                             "longrepr": collector.get(
                                 "longrepr", "Unknown error during collection."
                             ),
-                            "stdout": "",
+                            "stdout": collector.get("stdout", ""),
+                            "stderr": collector.get("stderr", ""),
                             "logs": [],
                         }
                     )
