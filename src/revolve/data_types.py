@@ -64,7 +64,8 @@ class GeneratedCode(TypedDict):
 
 class RevisedCode(BaseModel):
     new_code:str
-    code_type:Literal["resource", "test"]
+    what_fixed:str
+    code_type:Literal["resource", "test", "api"]
     
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], operator.add]
