@@ -2,7 +2,7 @@ import ast
 from langchain_core.messages import AnyMessage
 from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, START, END
-from IPython.display import Image, display
+# from IPython.display import Image, display
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode, GeneratedCode, RevisedCode
 from langchain_openai import ChatOpenAI
@@ -56,7 +56,11 @@ def router_node(state: State):
     resources = state.get("resources", None)
     dbSchema = state.get("DBSchema", None)
     if not next_node:
-        start_over_repo()
+
+        init_or_attach_git_repo()
+        branch_name = create_branch_with_timestamp()
+        log("router_node", f"Branch created: {branch_name}")
+
         log("router_node", "defaulting to generate_prompt_for_code_generation")
         return {
             "next_node": "generate_prompt_for_code_generation",
@@ -138,7 +142,7 @@ def test_node(state: State):
             structured_test_response["full_test_code"],
             test_file_name
         )
-        commit_changes(
+        commit_and_push_changes(
             message=f"Test code generated for {test_item['resource_file_name']}"
         )
 
@@ -214,7 +218,7 @@ def test_node(state: State):
                     new_test_code_response.new_code,
                     file_name_to_revise
                 )
-                commit_changes(
+                commit_and_push_changes(
                     message=f"Code revised for {file_name_to_revise}",
                     description=new_test_code_response.what_fixed
                 )
@@ -460,7 +464,7 @@ def generate_api(state:State):
         api_template,
         "api.py"
     )
-    commit_changes(
+    commit_and_push_changes(
         message="Codes and api generated."
     )
     new_trace = {
@@ -473,46 +477,49 @@ def generate_api(state:State):
     return {
         "trace": [new_trace]
     }
-graph = StateGraph(State)
 
-# nodes
-graph.add_node("router_node", router_node)
+if __name__== "__main__":
 
-graph.add_node("generate_prompt_for_code_generation", generate_prompt_for_code_generation)
-graph.add_node("process_table", process_table)
-# graph.add_node("_process_table", _process_table)
-graph.add_node("generate_api", generate_api)
+    graph = StateGraph(State)
 
-graph.add_node("test_node", test_node)
-graph.add_node("do_other_stuff", do_other_stuff)
+    # nodes
+    graph.add_node("router_node", router_node)
 
+    graph.add_node("generate_prompt_for_code_generation", generate_prompt_for_code_generation)
+    graph.add_node("process_table", process_table)
+    # graph.add_node("_process_table", _process_table)
+    graph.add_node("generate_api", generate_api)
 
-#workflow logic
-graph.add_edge(START, "router_node")
-graph.add_conditional_edges(
-    "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "do_other_stuff": "do_other_stuff", "__end__":END}
-)
-graph.add_conditional_edges(
-    "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
-)
-# graph.add_edge("generate_prompt_for_code_generation", "_process_table")
-graph.add_edge("process_table", "generate_api")
-graph.add_edge("generate_api", "router_node")
-graph.add_edge("test_node", "router_node")
-graph.add_edge("do_other_stuff", "router_node")
+    graph.add_node("test_node", test_node)
+    graph.add_node("do_other_stuff", do_other_stuff)
 
 
-#Compiling the graph
-workflow = graph.compile()
+    #workflow logic
+    graph.add_edge(START, "router_node")
+    graph.add_conditional_edges(
+        "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "do_other_stuff": "do_other_stuff", "__end__":END}
+    )
+    graph.add_conditional_edges(
+        "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
+    )
+    # graph.add_edge("generate_prompt_for_code_generation", "_process_table")
+    graph.add_edge("process_table", "generate_api")
+    graph.add_edge("generate_api", "router_node")
+    graph.add_edge("test_node", "router_node")
+    graph.add_edge("do_other_stuff", "router_node")
 
-#Running the workflow:
-task = "Create crud operations for all of the tables in db"
-#task = "Created crud operations for the owners and watch history table"
-result_state = workflow.invoke({"messages": [HumanMessage(task)]})
 
-#Running workflow with a state
-# result_state = workflow.invoke(retrieve_state())
+    #Compiling the graph
+    workflow = graph.compile()
+
+    #Running the workflow:
+    # task = "Create crud operations for all the tables in db"
+    task = "Created crud operations for the owners and watch history table"
+    result_state = workflow.invoke({"messages": [HumanMessage(task)]})
+
+    #Running workflow with a state
+    # result_state = workflow.invoke(retrieve_state())
 
 
-display(Image(workflow.get_graph().draw_mermaid_png(output_file_path="workflow.png")))
+    # display(Image(workflow.get_graph().draw_mermaid_png(output_file_path="workflow.png")))
 
