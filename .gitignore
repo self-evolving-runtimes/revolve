@@ -16,3 +16,4 @@ states
 .webui_secret_key
 report.json
 test.py
+.DS_Store

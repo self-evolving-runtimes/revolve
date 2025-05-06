@@ -46,27 +46,34 @@ class NextNode(BaseModel):
         None, description="The next step in the routing process"
     )
 
+class CodeHistoryMessage(BaseModel):
+    new_code:str
+    what_was_the_problem:str
+    what_is_fixed:str
+    code_type:Literal["resource", "test", "api"]
+
+class CodeHistory(TypedDict):
+    history_type:str # generation, revision
+    code:CodeHistoryMessage
+    test_report_before_revising: str
+    test_report_after_revising:str
+    iteration_index:int
 
 class TestStatus(TypedDict):
     resource_file_name:str
     resource_code:str
     test_file_name: str
+    test_code:str
     status: str # success, failed, fixed, in_progress
     messages: list[AnyMessage]
-    code_history:list[str]
+    code_history:list[CodeHistory]
     iteration_count: int
-    test_code:str
     table:Table
  
 class GeneratedCode(TypedDict):
     full_test_code:str
     test_case_count:int
-
-class RevisedCode(BaseModel):
-    new_code:str
-    what_fixed:str
-    code_type:Literal["resource", "test", "api"]
-    
+ 
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], operator.add]
     trace:Annotated[list, operator.add]
