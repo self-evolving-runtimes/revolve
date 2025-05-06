@@ -218,10 +218,9 @@ def test_node(state: State):
                     new_test_code_response.new_code,
                     file_name_to_revise
                 )
-                commit_description = f"""
-                What was the problem: {new_test_code_response.what_was_the_problem}
-                What is fixed: {new_test_code_response.what_is_fixed}
-                """
+                commit_description = f"""What was the problem: {new_test_code_response.what_was_the_problem}
+What is fixed: {new_test_code_response.what_is_fixed}
+"""
                 commit_and_push_changes(
                     message=f"Code revised for {file_name_to_revise}",
                     description=commit_description
