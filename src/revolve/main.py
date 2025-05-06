@@ -4,7 +4,7 @@ from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, START, END
 # from IPython.display import Image, display
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode, GeneratedCode, RevisedCode
+from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode, GeneratedCode, CodeHistoryMessage
 from langchain_openai import ChatOpenAI
 from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code, log, save_state, retrieve_state, run_pytest
 from src.revolve.prompts import get_simple_prompt
@@ -12,6 +12,7 @@ from datetime import datetime
 from langgraph.constants import Send
 import pickle
 from src.revolve.utils_git import *
+from src.revolve.utils import make_serializable, create_test_report
 
 #OPENAI
 llm  = ChatOpenAI(model="gpt-4.1", temperature=0.2, max_tokens=16000)
@@ -28,7 +29,7 @@ llm_router = llm.with_structured_output(NextNode, method="function_calling")
 llm_table_extractor = llm.with_structured_output(DBSchema, method="function_calling")
 llm_resource_generator = llm.with_structured_output(Resource, method="function_calling")
 llm_test_generator = llm.with_structured_output(GeneratedCode, method="function_calling")
-llm_test_and_code_reviser = llm.with_structured_output(RevisedCode, method="function_calling")
+llm_test_and_code_reviser = llm.with_structured_output(CodeHistoryMessage, method="function_calling")
 
 def router_node(state: State):
     # ---------------------------------------
@@ -75,7 +76,6 @@ def router_node(state: State):
             new_test["resource_code"] = res["resource_code"]
             new_test["status"] = "in_progress"
             new_test["messages"] = []
-            new_test["code_history"] = [res["resource_code"]]
             new_test["iteration_count"] = 0
             new_test["table"] = table_object
             test_status.append(new_test)
@@ -149,6 +149,12 @@ def test_node(state: State):
         for i in range(10):
             test_item["status"] = "in_progress"
             pytest_response  = run_pytest(test_file_name)
+            test_item["status"] = pytest_response["status"]
+            #get the previous code history and add pytest_response to the test_report_after_revising
+            test_item["code_history"] = test_item.get("code_history", [])
+            if test_item["code_history"] and test_item["code_history"][-1]["test_report_after_revising"] is None:
+                test_item["code_history"][-1]["test_report_after_revising"] = pytest_response
+
             if pytest_response["status"]!= "success":
                 test_item["status"] = "failed"
                 new_system_message = f"""You are responsible for fixing the errors.
@@ -179,13 +185,7 @@ def test_node(state: State):
                 {schema}
                 And Here is the report of the failing tests:
                 {pytest_response}"""
-                
-                # messages.append(
-                #     {
-                #         "role": "user",
-                #         "content": new_user_message
-                #     }
-                # )
+
 
                 new_messages = [
                     {
@@ -218,12 +218,31 @@ def test_node(state: State):
                     new_test_code_response.new_code,
                     file_name_to_revise
                 )
+                commit_description = f"""
+                What was the problem: {new_test_code_response.what_was_the_problem}
+                What is fixed: {new_test_code_response.what_is_fixed}
+                """
                 commit_and_push_changes(
                     message=f"Code revised for {file_name_to_revise}",
-                    description=new_test_code_response.what_fixed
+                    description=commit_description
                 )
+
+                code_history_item = {
+                    "history_type": "revision",
+                    "code": {
+                        "new_code": new_test_code_response.new_code,
+                        "what_was_the_problem": new_test_code_response.what_was_the_problem,
+                        "what_is_fixed": new_test_code_response.what_is_fixed,
+                        "code_type": new_test_code_response.code_type
+                    },
+                    "test_report_before_revising": pytest_response,
+                    "test_report_after_revising": None,
+                    "iteration_index": test_item["iteration_count"]
+                }
+
+                test_item["code_history"].append(code_history_item)
                 
-                test_item["code_history"].append(new_test_code_response.new_code)
+                # test_item["code_history"].append(new_test_code_response.new_code)
            
                 # else:
                 #     messages.append(
@@ -234,10 +253,9 @@ def test_node(state: State):
                 #     )
                         
             else:
-                test_item["status"] = "success"
                 break
 
-        test_item["messages"] = messages   
+        
 
     return {"test_status": state["test_status"]}
 
@@ -514,9 +532,15 @@ if __name__== "__main__":
 
     #Running the workflow:
     # task = "Create crud operations for all the tables in db"
-    task = "Created crud operations for the owners and watch history table"
+    task = "Created crud operations for owners and watch history tables"
     result_state = workflow.invoke({"messages": [HumanMessage(task)]})
+    test_report = create_test_report(task, result_state)
+    commit_and_push_changes(
+        message="Test report created.",
+        description=""
+    )
 
+    pass
     #Running workflow with a state
     # result_state = workflow.invoke(retrieve_state())
 
