@@ -247,7 +247,8 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
         if not test_results:
             log("run_pytest", "All tests passed.")
             return {"status":"success","message": "All tests passed.", "test_results": []}
-
+        print("*" * 20)
+        print("-- Test Results --")
         pprint(test_results)
         return {
             "status":"failed",
