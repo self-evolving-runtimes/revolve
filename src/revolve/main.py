@@ -340,6 +340,35 @@ def report_node(state: State):
         description=""
     )
 
+    routes = set()
+    for item in state["resources"]:
+        module_name = item["resource_file_name"].replace(".py","")
+        routes.add(module_name)
+    
+    schemas_service = read_python_code_template("schemas.py")
+    for route in routes:
+        schemas_service = schemas_service.replace("## Routes", f'## Routes\n"{route}",')
+    
+    save_python_code(
+        schemas_service,
+        "schemas.py"
+    )
+
+    api_code = read_python_code("api.py")
+    api_code = api_code.replace("###IMPORTS###", f"###IMPORTS###\nfrom schemas import SchemasResource")
+    api_code = api_code.replace("###ENDPOINTS###", f"###ENDPOINTS###\napp.add_route('/schemas', SchemasResource())")
+    save_python_code(
+        api_code,
+        "api.py"
+    )
+    commit_and_push_changes(
+        message="Schemas created.",
+        description=str(routes)
+    )
+
+
+
+
     new_trace = {
         "node_name": "report_node",
         "node_type": "report",
