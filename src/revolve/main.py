@@ -6,7 +6,7 @@ from langgraph.graph import StateGraph, START, END
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode, GeneratedCode, CodeHistoryMessage, Readme
 from langchain_openai import ChatOpenAI
-from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code, log, save_state, retrieve_state, run_pytest
+from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code, log, save_state, retrieve_state, run_pytest, test_db
 from src.revolve.prompts import get_simple_prompt
 from datetime import datetime
 from langgraph.constants import Send
@@ -35,7 +35,6 @@ parallel = True
 # llm  = ChatOpenAI(model="qwen3:30b-a3b", temperature=0.1, max_tokens=7000, base_url="http://localhost:11434/v1/", api_key="ollama")
 # parallel = False
 # --------------------------
-
 
 llm_router = llm.with_structured_output(NextNode, method=parse_method)
 llm_table_extractor = llm.with_structured_output(DBSchema, method=parse_method)
@@ -74,10 +73,18 @@ def router_node(state: State):
         init_or_attach_git_repo()
         branch_name = create_branch_with_timestamp()
         log("router_node", f"Branch created: {branch_name}")
-
         log("router_node", "defaulting to generate_prompt_for_code_generation")
+        new_trace = {
+            "node_name": "router_node",
+            "node_type": "router",
+            "node_input": None,
+            "node_output": None,
+            "trace_timestamp": datetime.now(),
+            "description": "Routing to generate_prompt_for_code_generation"
+        }
         return {
             "next_node": "generate_prompt_for_code_generation",
+            "trace": [new_trace],
         }
     elif not test_status and resources and dbSchema:
         save_state(state, "after_generation")
@@ -94,15 +101,33 @@ def router_node(state: State):
             test_status.append(new_test)
                     
         log("router_node", f"Routing to test_node")
+        new_trace = {
+            "node_name": "router_node",
+            "node_type": "router",
+            "node_input": None,
+            "node_output": None,
+            "trace_timestamp": datetime.now(),
+            "description": "Routing to test_node"
+        }
         return {
             "next_node": "test_node",
-            "test_status": test_status
+            "test_status": test_status,
+            "trace": [new_trace],
         }
     elif next_node == "test_node":
         next_node = "report_node"
         log("router_node", f"Routing to report_node")
+        new_trace = {
+            "node_name": "router_node",
+            "node_type": "router",
+            "node_input": None,
+            "node_output": None,
+            "trace_timestamp": datetime.now(),
+            "description": "Routing to report_node"
+        }
         return {
             "next_node": next_node,
+            "trace": [new_trace],
         }
 
     else:
@@ -111,8 +136,6 @@ def router_node(state: State):
         return {
             "next_node": "__end__",
         }
-
-
 
 def test_node(state: State):
     test_example = read_python_code_template("test_api.py")
@@ -165,8 +188,8 @@ def test_node(state: State):
         commit_and_push_changes(
             message=f"Test code generated for {test_item['resource_file_name']}"
         )
-        test_item["status"] = "in_progress"
         pytest_response  = run_pytest(test_file_name)
+        test_item["status"] = pytest_response["status"]
 
         for i in range(10):
 
@@ -273,8 +296,15 @@ What is fixed: {new_test_code_response.what_is_fixed}
                 break
 
         
-
-    return {"test_status": state["test_status"]}
+    new_trace = {
+        "node_name": "test_node",
+        "node_type": "test",
+        "node_input": state["test_status"],
+        "node_output": state["test_status"],
+        "trace_timestamp": datetime.now(),
+        "description": "Test cases generated and executed."
+    }
+    return {"test_status": state["test_status"], "trace": [new_trace]}
 
 def report_node(state: State):
     task = state["messages"][0].content
@@ -310,8 +340,18 @@ def report_node(state: State):
         description=""
     )
 
+    new_trace = {
+        "node_name": "report_node",
+        "node_type": "report",
+        "node_input": state["test_status"],
+        "node_output": state["test_status"],
+        "trace_timestamp": datetime.now(),
+        "description": "Test report created and README file generated."
+    }
 
-    return {}
+    return {
+        "trace": [new_trace]
+    }
 
 def generate_prompt_for_code_generation(state: State):
     log("generate_prompt_for_code_generation", "Started")
@@ -348,19 +388,20 @@ def generate_prompt_for_code_generation(state: State):
     
     structured_db_response = llm_table_extractor.invoke(messages)
     trace = state.get("trace", [])
-    trace.append({
+    new_trace = {
         "node_name": "generate_prompt_for_code_generation",
         "node_type": "db",
         "node_input": last_message_content,
         "node_output": "place_holder",
-        "trace_timestamp": datetime.now()
-    })
+        "trace_timestamp": datetime.now(),
+        "description": "Table schemas extracted from the database and prompts generated for each table."
+    }
 
     log("generate_prompt_for_code_generation", "Completed")
 
     return {
         "DBSchema": structured_db_response,
-        "trace": trace,
+        "trace": [new_trace],
     }
 
 def process_table(table_state:Table):
@@ -424,14 +465,14 @@ def process_table(table_state:Table):
         "node_type": "process",
         "node_input": table_state,
         "node_output": structured_resource_response,
-        "trace_timestamp": datetime.now()
+        "trace_timestamp": datetime.now(),
+        "description": f"Resource code generated for {table_name}."
     }
 
     return {
         "resources": [structured_resource_response],
         "trace": [new_trace]
     }
-
 
 def _process_table(state:State):
     traces = []
@@ -508,7 +549,6 @@ def _process_table(state:State):
         "trace": traces
     }
 
-
 def generate_api(state:State):
     log("generate_api", "Started")
     resources = state.get("resources", [])
@@ -541,13 +581,33 @@ def generate_api(state:State):
         "node_type": "process",
         "node_input": state["resources"],
         "node_output": api_template,
-        "trace_timestamp": datetime.now()
+        "trace_timestamp": datetime.now(),
+        "description": "API code generated."
     }
     return {
         "trace": [new_trace]
     }
 
-if __name__== "__main__":
+
+def run_workflow(task=None, db_config=None):
+
+    if db_config:
+        os.environ["DB_NAME"] = db_config["DB_NAME"]
+        os.environ["DB_USER"] = db_config["DB_USER"]
+        os.environ["DB_PASSWORD"] = db_config["DB_PASSWORD"]
+        os.environ["DB_HOST"] = db_config["DB_HOST"]
+        os.environ["DB_PORT"] = db_config["DB_PORT"]
+    
+    db_test_result = test_db(db_user=db_config["DB_USER"], db_password=db_config["DB_PASSWORD"], db_name=db_config["DB_NAME"], db_host=db_config["DB_HOST"], db_port=db_config["DB_PORT"])
+    if not db_test_result:
+        yield {
+            "yield": False,
+            "text": "Database connection failed. Please check your database configuration.",
+            "name": "Database Connection Error"
+        }
+        return 
+         
+        
 
     graph = StateGraph(State)
 
@@ -589,10 +649,30 @@ if __name__== "__main__":
     workflow = graph.compile()
 
     #Running the workflow:
-    # task = "Create crud operations for all the tables in db"
-    task = "Created crud operations for owners and watch history tables"
-    result_state = workflow.invoke({"messages": [HumanMessage(task)]})
-
+    if not task:
+        task = "Create crud operations for all the tables in db"
+    else:
+        task = task[-1]["content"]
+    # task = "Created crud operations for owners and watch history tables"
+    # result_state = workflow.invoke({"messages": [HumanMessage(task)]})
+    for event in workflow.stream({"messages": [HumanMessage(task)]}):
+        name = ""
+        text = ""
+        key = list(event.keys())[0]
+        if "trace" in event[key]:
+            if "description" in event[key]["trace"][-1]:
+                name = event[key]["trace"][-1]["node_name"]
+                text = event[key]["trace"][-1]["description"]
+                yield {
+                    "yield":True,
+                    "text":text,
+                    "name":name
+                }
+    yield {
+        "yield":False,
+        "text":"Task completed.",
+        "name":"Test Name"
+    }
     
     #Running workflow with a state
     # result_state = workflow.invoke(retrieve_state(reset_tests=False, state_file_name="after_test_2025-05-07_14-31-48.pkl"))
@@ -600,3 +680,6 @@ if __name__== "__main__":
 
     # display(Image(workflow.get_graph().draw_mermaid_png(output_file_path="workflow.png")))
 
+
+if __name__ == "__main__":
+    run_workflow()

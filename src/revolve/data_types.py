@@ -12,6 +12,7 @@ class Trace(TypedDict):
     node_type: str
     node_input:str
     node_output:str
+    description: str
     trace_timestamp:datetime
 
 
