@@ -9,6 +9,7 @@ import falcon
 
 ###IMPORTS###
 #from hellodb import HelloDBResource (just an example, not implemented)
+#from hellodb import HelloDBSchemaResource (just an example, not implemented)
 
 def debug_error_serializer(req, resp, exception):
     resp.content_type = falcon.MEDIA_JSON
@@ -34,6 +35,7 @@ app.set_error_serializer(debug_error_serializer)
 
 ###ENDPOINTS###
 #app.add_route("/hello_db", HelloDBResource()) (just an example, not implemented)
+#app.add_route/"hello_db/schema", HelloDBSchemaResource()) (just an example, not implemented)
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     pass
