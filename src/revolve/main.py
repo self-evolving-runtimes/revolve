@@ -14,15 +14,24 @@ import pickle
 from src.revolve.utils_git import *
 from src.revolve.utils import make_serializable, create_test_report
 
-#OPENAI
+### OPENAI
+### -------------------------- 
 llm  = ChatOpenAI(model="gpt-4.1", temperature=0.2, max_tokens=16000)
+parallel = True
+### --------------------------
 
-# LLM - RUNPOD
+
+### LLM - RUNPOD
+### -------------------------- ###
 # llm  = ChatOpenAI(model="Qwen/Qwen3-30B-A3B", temperature=0.1, max_tokens=16000, base_url="http://localhost:8000/v1/", api_key="no_needed")
+# parallel = False
+### -------------------------- ###
 
-# LLM - Local Ollama
+
+### LLM - Local Ollama
+# --------------------------
 # llm  = ChatOpenAI(model="qwen3:30b-a3b", temperature=0.1, max_tokens=7000, base_url="http://localhost:11434/v1/", api_key="ollama")
-
+# --------------------------
 
 
 llm_router = llm.with_structured_output(NextNode, method="function_calling")
@@ -503,7 +512,7 @@ if __name__== "__main__":
     graph.add_node("router_node", router_node)
 
     graph.add_node("generate_prompt_for_code_generation", generate_prompt_for_code_generation)
-    graph.add_node("process_table", process_table)
+    # graph.add_node("process_table", process_table)
     # graph.add_node("_process_table", _process_table)
     graph.add_node("generate_api", generate_api)
 
@@ -516,9 +525,16 @@ if __name__== "__main__":
     graph.add_conditional_edges(
         "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "do_other_stuff": "do_other_stuff", "__end__":END}
     )
-    graph.add_conditional_edges(
-        "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
-    )
+    if parallel:
+        graph.add_node("process_table", process_table)
+        graph.add_conditional_edges(
+            "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
+        )
+    else:
+        graph.add_node("process_table", _process_table)
+        graph.add_edge(
+            "generate_prompt_for_code_generation","process_table"
+        )
     # graph.add_edge("generate_prompt_for_code_generation", "_process_table")
     graph.add_edge("process_table", "generate_api")
     graph.add_edge("generate_api", "router_node")
