@@ -264,7 +264,34 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
                 "message": f"Error running pytest: {e}",
                 "test_results": [],
             }
-        
+
+def test_db(
+    db_name: str, db_user: str, db_password: str, db_host: str, db_port: str
+) -> str:
+    """
+    This function tests the database connection.
+    Args:
+        db_name (str): The name of the database.
+        db_user (str): The user of the database.
+        db_password (str): The password of the database.
+        db_host (str): The host of the database.
+        db_port (str): The port of the database.
+    """
+    log("test_db", f"Testing database connection...")
+    try:
+        conn = psycopg2.connect(
+            dbname=db_name,
+            user=db_user,
+            password=db_password,
+            host=db_host,
+            port=db_port,
+        )
+        conn.close()
+    except Exception as e:
+        return False
+
+    return True
+       
 
 
 
