@@ -417,6 +417,7 @@ def process_table(table_state:Table):
 
     system_prompt = f"""Generate resource code according to the user request.
     Make sure that you write production quality code that can be maintained by developers.
+    Include a /<resource>/schema endpoint to get the schema of the resource so that we can auto generate ui forms.
     Requests should be trackable with logs in INFO mode. Double check the imports.
     Make sure that you check whether data is serializable and convert data when needed.
     Guard against SQL injection attacks. Always sanitize inputs before sending it to database.
