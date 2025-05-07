@@ -63,8 +63,11 @@ def commit_and_push_changes(message: str, description: str = None):
     run_git_command(commit_args, cwd=repo_dir)
 
     current_branch = run_git_command(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_dir)
-    run_git_command(["push", "-u", "origin", current_branch], cwd=repo_dir)
-    print(f"Changes committed and pushed to branch: {current_branch}")
+    push_changes = os.environ.get("GIT_PUSH_CHANGES", "true").lower() == "true"
+    if push_changes:
+        run_git_command(["push", "-u", "origin", current_branch], cwd=repo_dir)
+        print(f"Changes committed and pushed to branch: {current_branch}")
+
 
 # def _run_git_command(args, cwd):
 #     result = subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True)
