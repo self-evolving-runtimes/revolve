@@ -4,7 +4,7 @@ from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, START, END
 # from IPython.display import Image, display
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode, GeneratedCode, CodeHistoryMessage
+from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode, GeneratedCode, CodeHistoryMessage, Readme
 from langchain_openai import ChatOpenAI
 from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code, log, save_state, retrieve_state, run_pytest
 from src.revolve.prompts import get_simple_prompt
@@ -42,6 +42,7 @@ llm_table_extractor = llm.with_structured_output(DBSchema, method=parse_method)
 llm_resource_generator = llm.with_structured_output(Resource, method=parse_method)
 llm_test_generator = llm.with_structured_output(GeneratedCode, method=parse_method)
 llm_test_and_code_reviser = llm.with_structured_output(CodeHistoryMessage, method=parse_method)
+llm_readme_generator = llm.with_structured_output(Readme, method=parse_method)
 
 def router_node(state: State):
     # ---------------------------------------
@@ -97,6 +98,13 @@ def router_node(state: State):
             "next_node": "test_node",
             "test_status": test_status
         }
+    elif next_node == "test_node":
+        next_node = "report_node"
+        log("router_node", f"Routing to report_node")
+        return {
+            "next_node": next_node,
+        }
+
     else:
         save_state(state, "after_test")
         log("router_node", f"routing to END")
@@ -268,7 +276,41 @@ What is fixed: {new_test_code_response.what_is_fixed}
 
     return {"test_status": state["test_status"]}
 
-def do_other_stuff(state: State):
+def report_node(state: State):
+    task = state["messages"][0].content
+    create_test_report(task, state)
+    commit_and_push_changes(
+        message="Test report created.",
+        description=""
+    )
+
+    api_code = read_python_code("api.py")
+
+    readme_result = llm_readme_generator.invoke(
+        [
+            {
+                "role": "system",
+                "content": "You are a software engineer. You are responsible for writing the README file for the project. The README file should be in markdown format."
+            },
+            {
+                "role": "user",
+                "content": f"Here is the api code:\n{api_code}"
+            }
+        ]
+    )
+
+    #save the readme file
+    save_python_code(
+        readme_result["md_content"],
+        "README.md"
+    )
+
+    commit_and_push_changes(
+        message="README file created.",
+        description=""
+    )
+
+
     return {}
 
 def generate_prompt_for_code_generation(state: State):
@@ -518,13 +560,13 @@ if __name__== "__main__":
     graph.add_node("generate_api", generate_api)
 
     graph.add_node("test_node", test_node)
-    graph.add_node("do_other_stuff", do_other_stuff)
+    graph.add_node("report_node", report_node)
 
 
     #workflow logic
     graph.add_edge(START, "router_node")
     graph.add_conditional_edges(
-        "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "do_other_stuff": "do_other_stuff", "__end__":END}
+        "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "report_node": "report_node", "__end__":END}
     )
     if parallel:
         graph.add_node("process_table", process_table)
@@ -540,7 +582,7 @@ if __name__== "__main__":
     graph.add_edge("process_table", "generate_api")
     graph.add_edge("generate_api", "router_node")
     graph.add_edge("test_node", "router_node")
-    graph.add_edge("do_other_stuff", "router_node")
+    graph.add_edge("report_node", "router_node")
 
 
     #Compiling the graph
@@ -550,15 +592,10 @@ if __name__== "__main__":
     # task = "Create crud operations for all the tables in db"
     task = "Created crud operations for owners and watch history tables"
     result_state = workflow.invoke({"messages": [HumanMessage(task)]})
-    test_report = create_test_report(task, result_state)
-    commit_and_push_changes(
-        message="Test report created.",
-        description=""
-    )
 
-    pass
+    
     #Running workflow with a state
-    # result_state = workflow.invoke(retrieve_state())
+    # result_state = workflow.invoke(retrieve_state(reset_tests=False, state_file_name="after_test_2025-05-07_14-31-48.pkl"))
 
 
     # display(Image(workflow.get_graph().draw_mermaid_png(output_file_path="workflow.png")))
