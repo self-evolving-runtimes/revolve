@@ -591,7 +591,6 @@ def generate_api(state:State):
 
 
 def run_workflow(task=None, db_config=None):
-
     if db_config:
         os.environ["DB_NAME"] = db_config["DB_NAME"]
         os.environ["DB_USER"] = db_config["DB_USER"]
@@ -599,7 +598,11 @@ def run_workflow(task=None, db_config=None):
         os.environ["DB_HOST"] = db_config["DB_HOST"]
         os.environ["DB_PORT"] = db_config["DB_PORT"]
     
-    db_test_result = test_db(db_user=db_config["DB_USER"], db_password=db_config["DB_PASSWORD"], db_name=db_config["DB_NAME"], db_host=db_config["DB_HOST"], db_port=db_config["DB_PORT"])
+    db_test_result = test_db(db_user=os.environ["DB_USER"],
+                             db_password=os.environ["DB_PASSWORD"],
+                             db_host=os.environ["DB_HOST"],
+                             db_port=os.environ["DB_PORT"],
+                             db_name=os.environ["DB_NAME"])
     if not db_test_result:
         yield {
             "yield": False,
@@ -608,8 +611,7 @@ def run_workflow(task=None, db_config=None):
         }
         return 
          
-        
-
+    
     graph = StateGraph(State)
 
     # nodes
@@ -651,7 +653,7 @@ def run_workflow(task=None, db_config=None):
 
     #Running the workflow:
     if not task:
-        task = "Create crud operations for all the tables in db"
+        task = "Created crud operations for owners and watch history tables"
     else:
         task = task[-1]["content"]
     # task = "Created crud operations for owners and watch history tables"
@@ -683,4 +685,5 @@ def run_workflow(task=None, db_config=None):
 
 
 if __name__ == "__main__":
-    run_workflow()
+    for result in run_workflow():
+        print(result)
