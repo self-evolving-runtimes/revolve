@@ -22,7 +22,7 @@ services:
     # but take into consideration that it will change the way
     # you are connecting to your database.
     ports:
-      - 5433:5432
+      - 5432:5432
 
     environment:
       POSTGRES_USER: postgres # The PostgreSQL user (useful to connect to the database)
