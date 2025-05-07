@@ -30,7 +30,7 @@ class HelloDBResource:
         try:
             with get_db_connection() as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                    cur.execute("SELECT * FROM table_name")
+                    cur.execute("SELECT * FROM helloDB")
                     results = cur.fetchall()
 
             # Serialize datetime columns to strings
@@ -56,3 +56,13 @@ class HelloDBResource:
         except Exception as e:
             resp.media = {"message": f"Server error: {str(e)}", "status": "error"}
             resp.status = falcon.HTTP_500
+
+class HelloDBSchemaResource:
+    def on_get(self, req, resp):
+        return [
+        {"field": "id", "headerName": "ID", "type": "number", "width": 70},
+        {"field": "name", "headerName": "Name", "type": "string", "width": 150},
+        {"field": "age", "headerName": "Age", "type": "number", "width": 100},
+        {"field": "email", "headerName": "Email", "type": "string", "width": 200},
+    ]
+
