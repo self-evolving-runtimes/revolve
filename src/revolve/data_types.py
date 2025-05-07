@@ -82,6 +82,8 @@ class State(TypedDict):
     next_node:str
     test_status:list[TestStatus]
 
+class Readme(TypedDict):
+    md_content:str
 
 if __name__ == "__main__":
     pass
