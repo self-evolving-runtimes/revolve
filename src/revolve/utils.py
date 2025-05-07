@@ -9,13 +9,17 @@ def make_serializable(obj):
     else:
         return obj
 
-def create_test_report(task,state):
+def create_report_json(state):
     test_status = state.get("test_status", {})
     test_status_json = make_serializable(test_status)
-    #save json into source_generated folder
     with open(f"src/revolve/source_generated/test_status_history.json", "w") as f:
         json.dump(test_status_json, f, indent=4)
     
+    return test_status, test_status_json    
+
+def create_test_report(task,state):
+
+    test_status, _ = create_report_json(state)
     output_path = "src/revolve/source_generated/test_status_report.md"
 
     with open(output_path, "w") as f:
