@@ -12,11 +12,12 @@ from datetime import datetime
 from langgraph.constants import Send
 import pickle
 from src.revolve.utils_git import *
-from src.revolve.utils import make_serializable, create_test_report
+from src.revolve.utils import create_test_report, create_report_json
 
 ### OPENAI
 ### -------------------------- 
 llm  = ChatOpenAI(model="gpt-4.1", temperature=0.2, max_tokens=16000)
+parse_method = "function_calling"
 parallel = True
 ### --------------------------
 
@@ -24,6 +25,7 @@ parallel = True
 ### LLM - RUNPOD
 ### -------------------------- ###
 # llm  = ChatOpenAI(model="Qwen/Qwen3-30B-A3B", temperature=0.1, max_tokens=16000, base_url="http://localhost:8000/v1/", api_key="no_needed")
+# parse_method = "function_calling"
 # parallel = False
 ### -------------------------- ###
 
@@ -31,14 +33,15 @@ parallel = True
 ### LLM - Local Ollama
 # --------------------------
 # llm  = ChatOpenAI(model="qwen3:30b-a3b", temperature=0.1, max_tokens=7000, base_url="http://localhost:11434/v1/", api_key="ollama")
+# parallel = False
 # --------------------------
 
 
-llm_router = llm.with_structured_output(NextNode, method="function_calling")
-llm_table_extractor = llm.with_structured_output(DBSchema, method="function_calling")
-llm_resource_generator = llm.with_structured_output(Resource, method="function_calling")
-llm_test_generator = llm.with_structured_output(GeneratedCode, method="function_calling")
-llm_test_and_code_reviser = llm.with_structured_output(CodeHistoryMessage, method="function_calling")
+llm_router = llm.with_structured_output(NextNode, method=parse_method)
+llm_table_extractor = llm.with_structured_output(DBSchema, method=parse_method)
+llm_resource_generator = llm.with_structured_output(Resource, method=parse_method)
+llm_test_generator = llm.with_structured_output(GeneratedCode, method=parse_method)
+llm_test_and_code_reviser = llm.with_structured_output(CodeHistoryMessage, method=parse_method)
 
 def router_node(state: State):
     # ---------------------------------------
@@ -154,15 +157,14 @@ def test_node(state: State):
         commit_and_push_changes(
             message=f"Test code generated for {test_item['resource_file_name']}"
         )
+        test_item["status"] = "in_progress"
+        pytest_response  = run_pytest(test_file_name)
 
         for i in range(10):
-            test_item["status"] = "in_progress"
-            pytest_response  = run_pytest(test_file_name)
-            test_item["status"] = pytest_response["status"]
+
             #get the previous code history and add pytest_response to the test_report_after_revising
             test_item["code_history"] = test_item.get("code_history", [])
-            if test_item["code_history"] and test_item["code_history"][-1]["test_report_after_revising"] is None:
-                test_item["code_history"][-1]["test_report_after_revising"] = pytest_response
+  
 
             if pytest_response["status"]!= "success":
                 test_item["status"] = "failed"
@@ -230,10 +232,7 @@ def test_node(state: State):
                 commit_description = f"""What was the problem: {new_test_code_response.what_was_the_problem}
 What is fixed: {new_test_code_response.what_is_fixed}
 """
-                commit_and_push_changes(
-                    message=f"Code revised for {file_name_to_revise}",
-                    description=commit_description
-                )
+               
 
                 code_history_item = {
                     "history_type": "revision",
@@ -248,17 +247,19 @@ What is fixed: {new_test_code_response.what_is_fixed}
                     "iteration_index": test_item["iteration_count"]
                 }
 
+                pytest_response  = run_pytest(test_file_name)
+                test_item["status"] = pytest_response["status"]
+
+
+                code_history_item["test_report_after_revising"] = pytest_response
+
                 test_item["code_history"].append(code_history_item)
+                create_report_json(state)
+                commit_and_push_changes(
+                    message=f"Code revised for {file_name_to_revise}",
+                    description=commit_description
+                )
                 
-                # test_item["code_history"].append(new_test_code_response.new_code)
-           
-                # else:
-                #     messages.append(
-                #         {
-                #             "role": "user",
-                #             "content": "Your output is not valid. Please follow the json format."
-                #         }
-                #     )
                         
             else:
                 break
