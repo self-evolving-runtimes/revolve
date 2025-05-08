@@ -451,7 +451,7 @@ def process_table(table_state:Table):
     Make sure that you check whether data is serializable and convert data when needed.
     Guard against SQL injection attacks. Always sanitize inputs before sending it to database.
     While creating List functionality, provide functionality to sort, order by and filter based on
-    key columns. If the search filter is a date field, provide functionality to match greater than,
+    key columns as well as skip , limit and total for pagination support. If the search filter is a date field, provide functionality to match greater than,
     less than and equal to date. Filter may not be specified - handle those cases as well.
     There could be multiple endpoints for the same resource.
     Here are the templates for the generation:
