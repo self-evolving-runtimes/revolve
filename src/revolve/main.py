@@ -14,6 +14,8 @@ import pickle
 from src.revolve.utils_git import *
 from src.revolve.utils import create_test_report, create_report_json
 
+
+
 ### OPENAI
 ### -------------------------- 
 llm  = ChatOpenAI(model="gpt-4.1", temperature=0.2, max_tokens=16000)
@@ -195,7 +197,7 @@ def test_node(state: State):
 
             #get the previous code history and add pytest_response to the test_report_after_revising
             test_item["code_history"] = test_item.get("code_history", [])
-  
+
 
             if pytest_response["status"]!= "success":
                 test_item["status"] = "failed"
@@ -239,9 +241,17 @@ def test_node(state: State):
                         "content": new_user_message
                     }
                 ]
+                
 
                 test_item["iteration_count"] += 1
-                new_test_code_response = llm_test_and_code_reviser.invoke(new_messages)
+                if i<5:
+                    new_test_code_response = llm_test_and_code_reviser.invoke(new_messages)
+                else:
+                    #will be refactored
+                    temp_llm = ChatOpenAI(model="gpt-4.1", temperature=i*0.1-0.2, max_tokens=16000)
+                    temp_llm_test_and_code_reviser = temp_llm.with_structured_output(CodeHistoryMessage, method=parse_method)
+                    new_test_code_response = temp_llm_test_and_code_reviser.invoke(new_messages)
+                
                 messages.append(
                     {
                         "role": "assistant",
@@ -692,11 +702,11 @@ def run_workflow(task=None, db_config=None):
 
     #Running the workflow:
     if not task:
-        task = "Created crud operations for owners and watch history tables"
+        task = "Created crud operations for all the tables"
+        #task = "Created crud operations for watch history table"
     else:
         task = task[-1]["content"]
-    # task = "Created crud operations for owners and watch history tables"
-    # result_state = workflow.invoke({"messages": [HumanMessage(task)]})
+
     for event in workflow.stream({"messages": [HumanMessage(task)]}):
         name = ""
         text = ""
