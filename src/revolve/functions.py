@@ -23,10 +23,15 @@ def log(method_name, description):
     print(f"{method_name:<20} - {timestamp:<20} - {description:<30}")
 
 def save_state(state, state_name="state"):
-    time_stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    file_name = f"states/{state_name}_{time_stamp}.pkl"
-    with open(file_name, "wb") as f:
-        pickle.dump(state, f)
+    try:
+        time_stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        file_name = f"states/{state_name}_{time_stamp}.pkl"
+        os.makedirs("states", exist_ok=True)
+        with open(file_name, "wb") as f:
+            pickle.dump(state, f)
+    except Exception as e:
+        log("save_state", f"Error saving state: {e}")
+        return f"Error saving state: {e}"
 
 def retrieve_state(state_file_name="state_2025-05-01_16-28-50.pkl", reset_tests=True):
     with open(f"states/{state_file_name}", "rb") as f:
