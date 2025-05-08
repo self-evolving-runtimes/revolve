@@ -314,31 +314,6 @@ def report_node(state: State):
         description=""
     )
 
-    api_code = read_python_code("api.py")
-
-    readme_result = llm_readme_generator.invoke(
-        [
-            {
-                "role": "system",
-                "content": "You are a software engineer. You are responsible for writing the README file for the project. The README file should be in markdown format."
-            },
-            {
-                "role": "user",
-                "content": f"Here is the api code:\n{api_code}"
-            }
-        ]
-    )
-
-    #save the readme file
-    save_python_code(
-        readme_result["md_content"],
-        "README.md"
-    )
-
-    commit_and_push_changes(
-        message="README file created.",
-        description=""
-    )
 
     routes = set()
     for item in state["resources"]:
@@ -365,10 +340,45 @@ def report_node(state: State):
         message="Schemas created.",
         description=str(routes)
     )
+    
+    env_file = open("src/revolve/source_generated/.env", "w")
+    env_file.write(f"DB_NAME={os.environ['DB_NAME']}\n")
+    env_file.write(f"DB_USER={os.environ['DB_USER']}\n")
+    env_file.write(f"DB_PASSWORD={os.environ['DB_PASSWORD']}\n")
+    env_file.write(f"DB_HOST={os.environ['DB_HOST']}\n")
+    env_file.write(f"DB_PORT={os.environ['DB_PORT']}\n")
+    env_file.close()
+    api_code = read_python_code("api.py")
 
+    readme_result = llm_readme_generator.invoke(
+        [
+            {
+                "role": "system",
+                "content": "You are a software engineer. You are responsible for writing the README file for the project. The README file should be in markdown format."
+            },
+            {
+                "role": "user",
+                "content": f"""Write a clean and concise README.md file for a Python API (api.py) built using the Falcon framework. The README should include:
+env variables must be set in the .env file ("DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT")
+"pip install falcon falcon-cors" should be installed
+Use the provided API code below as a reference when writing the README.
+Here is the API code:\n{api_code}"""
+            }
+        ]
+    )
 
+    #save the readme file
+    save_python_code(
+        readme_result["md_content"],
+        "README.md"
+    )
 
+    commit_and_push_changes(
+        message="README file created.",
+        description=""
+    )
 
+    
     new_trace = {
         "node_name": "report_node",
         "node_type": "report",

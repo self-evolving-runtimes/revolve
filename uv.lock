@@ -266,6 +266,15 @@ wheels = [
 ]
 
 [[package]]
+name = "falcon-cors"
+version = "1.1.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "falcon" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/27/92/494602f8221b8875b8b88d89c1571d3361f99ce4facc1883b30bba3f765e/falcon-cors-1.1.7.tar.gz", hash = "sha256:1788ec5c31b5a39240f7979a7c7170a33ea4952dc97e151858a82dcde1a9fe8a", size = 6267 }
+
+[[package]]
 name = "gitdb"
 version = "4.0.12"
 source = { registry = "https://pypi.org/simple" }
@@ -1409,6 +1418,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "falcon" },
+    { name = "falcon-cors" },
     { name = "ipython" },
     { name = "langchain-openai" },
     { name = "langgraph" },
@@ -1423,6 +1433,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "falcon" },
+    { name = "falcon-cors", specifier = ">=1.1.7" },
     { name = "ipython", specifier = ">=9.2.0" },
     { name = "langchain-openai", specifier = ">=0.3.15" },
     { name = "langgraph" },
