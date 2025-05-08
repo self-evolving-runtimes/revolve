@@ -8,7 +8,7 @@ import os
 code_dir = "src/revolve/source_generated"
 
 predefined_prompts = [
-    "Create CRUD operations for all of the tables",
+    "Create CRUD operations for all the tables",
     "Generate API endpoints for the user table",
     "Check the code and refactor it",
     "Run the tests and fix the errors",
