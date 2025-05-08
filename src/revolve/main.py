@@ -370,7 +370,7 @@ def report_node(state: State):
                 "role": "user",
                 "content": f"""Write a clean and concise README.md file for a Python API (api.py) built using the Falcon framework. The README should include:
 env variables must be set in the .env file ("DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT")
-"pip install falcon falcon-cors" should be installed
+"pip install falcon falcon-cors psycopg2" should be installed
 Use the provided API code below as a reference when writing the README.
 Here is the API code:\n{api_code}"""
             }
