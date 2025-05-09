@@ -254,6 +254,7 @@ if prompt:
                     st.session_state.messages.append(
                         {"role": "assistant", "content": response_text}
                     )
+
                     # Check if the response is "Task completed."
                     if "Task completed." in response_text:
                         st.session_state.show_preview = True
@@ -282,3 +283,15 @@ if prompt:
 
                 md = "\n\n".join(function_messages)
                 status_function_placeholder.markdown(md)
+
+                # if "generate_api" == func:
+                #     with st.chat_message("assistant"):
+                #         st.session_state.messages.append(
+                #             {"role": "assistant",
+                #              "content":  text
+                #              }
+                #         )
+                #         st.write(
+                #             text
+                #            )
+
