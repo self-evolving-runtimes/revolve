@@ -7,6 +7,7 @@ import traceback
 import json
 import falcon
 import falcon_cors
+from static import StaticResource
 
 cors = falcon_cors.CORS(
     allow_all_origins=True,
@@ -40,9 +41,20 @@ app = falcon.App(middleware=[cors.middleware])
 
 app.set_error_serializer(debug_error_serializer)
 
+# Instantiate StaticResource with the static directory
+if os.environ.get("STATIC_DIR") != "-":
+    static_resource = StaticResource(os.environ.get("STATIC_DIR"))
+    # Route handling:
+    app.add_route("/{filepath:path}", static_resource)
+    app.add_route("/", static_resource)
+
+
 ###ENDPOINTS###
 #app.add_route("/hello_db", HelloDBResource()) (just an example, not implemented)
 #app.add_route/"hello_db/schema", HelloDBSchemaResource()) (just an example, not implemented)
+
+
+
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     pass
