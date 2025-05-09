@@ -170,6 +170,9 @@ def test_node(state: State):
         Do not introduce external libraries beyond standard testing libraries such as unittest, pytest, and requests.
         The test code should be modular, reusable, and structured for easy maintenance and readability.
         Minimize hard-coded values and prefer parameterized test cases.
+        For fields like created_at / updated_at that are determined by the database / server - do not assert in tests.
+        When sending data to simulate use json.dumps to convert py objects into valid json
+        Pay attention to datatypes such as text array when making payloads and send the right form of it.
 
         Example test file should be like this:
         {test_example}"""
@@ -334,24 +337,16 @@ What is fixed: {new_test_code_response.what_is_fixed}
     }
     return {"test_status": state["test_status"], "trace": [new_trace]}
 
-def report_node(state: State):
-    task = state["messages"][0].content
-    create_test_report(task, state)
-    commit_and_push_changes(
-        message="Test report created.",
-        description=""
-    )
-
-
+def create_schemas_endpoint(state: State):
     routes = set()
     for item in state["resources"]:
-        module_name = item["resource_file_name"].replace(".py","")
+        module_name = item["resource_file_name"].replace(".py", "")
         routes.add(module_name)
-    
+
     schemas_service = read_python_code_template("schemas.py")
     for route in routes:
         schemas_service = schemas_service.replace("## Routes", f'## Routes\n"{route}",')
-    
+
     save_python_code(
         schemas_service,
         "schemas.py"
@@ -364,9 +359,18 @@ def report_node(state: State):
         api_code,
         "api.py"
     )
+
+def report_node(state: State):
+    task = state["messages"][0].content
+    create_test_report(task, state)
     commit_and_push_changes(
-        message="Schemas created.",
-        description=str(routes)
+        message="Test report created.",
+        description=""
+    )
+
+    commit_and_push_changes(
+        message="All done",
+        description="All done"
     )
     
     env_file = open("src/revolve/source_generated/.env", "w")
@@ -655,12 +659,15 @@ def generate_api(state:State):
         api_template,
         "api.py"
     )
-    commit_and_push_changes(
-        message="Codes and api generated."
-    )
+
     #somehow do this once
     static = read_python_code_template("static.py")
     save_python_code(static, "static.py")
+    create_schemas_endpoint(state)
+    commit_and_push_changes(
+        message="Codes and api generated."
+    )
+
 
     new_trace = {
         "node_name": "generate_api",
@@ -668,8 +675,9 @@ def generate_api(state:State):
         "node_input": state["resources"],
         "node_output": api_template,
         "trace_timestamp": datetime.now(),
-        "description": "API code generated."
+        "description": "APIs are generated. You can take a look by clicking Start under Server Controls (on the left). I am still going to run tests."
     }
+
     return {
         "trace": [new_trace]
     }
