@@ -226,6 +226,10 @@ if prompt:
                     st.session_state.messages.append(
                         {"role": "assistant", "content": response_text}
                     )
+                    # Check if the response is "Task completed."
+                    if "Task completed." in response_text:
+                        st.session_state.show_preview = True
+
                     py_files = [f for f in os.listdir(code_dir) if f.endswith(".py")]
                     if py_files:
                         st.session_state.show_file_viewer = True
@@ -251,16 +255,18 @@ if prompt:
                 md = "\n\n".join(function_messages)
                 status_function_placeholder.markdown(md)
 
-# Standalone Fixture - Positioned Separately
-st.markdown("<hr style='margin-top: 20px; margin-bottom: 20px;'>", unsafe_allow_html=True)
-st.subheader("Preview Changes")
+# Only show the preview section if "Task completed." was received
+if st.session_state.get("show_preview", False):
+    # Standalone Fixture - Positioned Separately
+    st.markdown("<hr style='margin-top: 20px; margin-bottom: 20px;'>", unsafe_allow_html=True)
+    st.subheader("Preview Changes")
 
-col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns([1, 1])
 
-with col1:
-    if st.button("Start Server", key="start_server"):
-        start_process()
+    with col1:
+        if st.button("Start Server", key="start_server"):
+            start_process()
 
-with col2:
-    if st.button("Stop Server", key="stop_server"):
-        stop_process()
+    with col2:
+        if st.button("Stop Server", key="stop_server"):
+            stop_process()
