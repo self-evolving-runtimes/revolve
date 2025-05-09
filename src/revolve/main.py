@@ -140,6 +140,7 @@ def router_node(state: State):
         }
 
 def test_node(state: State):
+    MAX_TEST_ITERATIONS = 3
     test_example = read_python_code_template("test_api.py")
     api_code = read_python_code("api.py")
     for test_item in state["test_status"]:
@@ -147,12 +148,29 @@ def test_node(state: State):
         test_file_name = "test_"+test_item["resource_file_name"]
         table_name = test_item["table"]["table_name"]
         schema = str(test_item["table"]["columns"])
-        system_message = f"""You are responsible for writing the test cases for the given code.
-        Follow the same pattern as the example test file. Do not add any extarnal libraries.
-        Always print the response content in the test for better debugging.
-        Be careful with non-nullable columns when generating tests.
-        Don't assume any id is already in the database.
-        Do not use placeholder values, everything should be ready to use.
+        system_message = f"""
+        Generate comprehensive test cases for a Python API that implements CRUD (Create, Read, Update, Delete) and LIST operations based on the provided schema. The schema may include unique constraints, data types (e.g., UUID, JSONB, timestamps), and nullable fields. The tests must adhere to the following guidelines:
+        Data Integrity:
+        Validate unique constraints effectively to prevent false positives.
+        Ensure test data is dynamically generated to avoid conflicts, particularly for fields marked as unique.
+        Data Types and Validation:
+        Handle UUIDs, JSONB, and timestamp fields with proper parsing and formatting.
+        Include edge cases such as null values, missing fields, and incorrect data types.
+        CRUD Operations:
+        Verify CRUD functionality, ensuring that data is created, read, updated, and deleted as expected.
+        Include tests for partial updates and soft deletes if applicable.
+        LIST Operations:
+        Test pagination, filtering, and sorting behavior.
+        Validate list responses for consistency, ensuring correct data types and structures.
+        Error Handling:
+        Confirm that appropriate error messages are returned for invalid data, missing parameters, and constraint violations.
+        Idempotency and State Management:
+        Ensure that multiple test runs do not interfere with each other, maintaining test isolation and data consistency.
+        Implementation Constraints:
+        Do not introduce external libraries beyond standard testing libraries such as unittest, pytest, and requests.
+        The test code should be modular, reusable, and structured for easy maintenance and readability.
+        Minimize hard-coded values and prefer parameterized test cases.
+
         Example test file should be like this:
         {test_example}"""
         
@@ -193,7 +211,7 @@ def test_node(state: State):
         pytest_response  = run_pytest(test_file_name)
         test_item["status"] = pytest_response["status"]
 
-        for i in range(10):
+        for i in range(MAX_TEST_ITERATIONS):
 
             #get the previous code history and add pytest_response to the test_report_after_revising
             test_item["code_history"] = test_item.get("code_history", [])
@@ -204,7 +222,7 @@ def test_node(state: State):
                 new_system_message = f"""You are responsible for fixing the errors.
                 Fix the test or the source code according to the test report provided by user.
                 You are responsible for writing the test cases for the given code.
-                Do not add any extarnal libraries.
+                Do not add any external libraries.
                 Always print the response content in the test for better debugging.
                 Be careful with non-nullable columns when generating tests.
                 Don't assume any id is already in the database.
@@ -467,7 +485,9 @@ def process_table(table_state:Table):
     system_prompt = f"""Generate resource code according to the user request.
     Make sure that you write production quality code that can be maintained by developers.
     Include a /<resource>/schema endpoint to get the schema of the resource so that we can auto generate ui forms.
+    We are using falcon 4.02 for http - so only use parameters available from that version 
     Requests should be trackable with logs in INFO mode. Double check the imports.
+    when using default values to sanitize input pl used `default` keyword in the method req.get_param('order',default='asc').lower()
     Make sure that you check whether data is serializable and convert data when needed.
     Guard against SQL injection attacks. Always sanitize inputs before sending it to database.
     While creating List functionality, provide functionality to sort, order by and filter based on
@@ -539,14 +559,26 @@ def _process_table(state:State):
         code_template = read_python_code_template("service.py")
 
         system_prompt = f"""Generate resource code according to the user request.
-        Make sure that you write production quality code that can be maintained by developers.
-        Requests should be trackable with logs in INFO mode. Double check the imports.
-        Make sure that you check whether data is serializable and convert data when needed.
-        Guard against SQL injection attacks. Always sanitize inputs before sending it to database.
-        While creating List functionality, provide functionality to sort, order by and filter based on
-        key columns. If the search filter is a date field, provide functionality to match greater than,
-        less than and equal to date. Filter may not be specified - handle those cases as well.
-        There could be multiple endpoints for the same resource.
+        Generate Falcon 4.x resource code for a Python API implementing CRUD (Create, Read, Update, Delete) and LIST operations based on the provided schema. The schema may include unique constraints, data types (e.g., UUID, JSONB, timestamps), and nullable fields. The code must adhere to the following guidelines:
+        Framework Compliance:
+        Use Falcon 4.x with falcon.asgi.App for asynchronous support.
+        Utilize the latest Falcon request/response structures, avoiding deprecated attributes (req, resp).
+        Data Handling and Serialization:
+        Implement data validation and serialization checks.
+        Ensure all output data is JSON-serializable, handling complex types (e.g., UUID, JSONB) appropriately.
+        Security and Input Sanitization:
+        Apply input sanitization to guard against SQL injection.
+        Enforce data validation for fields with unique constraints to prevent false positives.
+        Error Handling and Logging:
+        Implement structured error handling using Falcon’s HTTPError.
+        Enable logging for all key operations, including CRUD actions and filtering operations.
+        LIST Operations and Filtering:
+        Implement LIST operations with sorting, ordering, and filtering capabilities.
+        If a field is a date, include comparison operators (eq, lt, gt) for filtering.
+        Ensure pagination support for large datasets.
+        Endpoint Structure and Consistency:
+        Define separate endpoints for CRUD and LIST operations to maintain clarity.
+        Ensure all routes are named clearly and consistently, e.g., /users for LIST, /users/{user_id} for CRUD.
         Here are the templates for the generation:
         for the example api route 'app.add_route("/hello_db", HelloDBResource())'
         output should be like this:
