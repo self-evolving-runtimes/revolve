@@ -164,10 +164,32 @@ with st.sidebar.expander("📝 System Messages"):
         st.markdown(md)
     status_function_placeholder = st.empty()
 
+def render_sidebar_controls(code_dir):
+    """Renders server controls in the sidebar."""
+
+    py_files = [f for f in os.listdir(code_dir) if f.endswith(".py")] if os.path.isdir(code_dir) else []
+    code_available = len(py_files) > 0
+
+    with st.sidebar.expander("⚡ Server Controls", expanded=True):
+        col1, col2 = st.columns([1, 1])
+
+        with col1:
+            st.button("Start", key="start_server", on_click=start_process)
+
+        with col2:
+            st.button("Stop", key="stop_server", on_click=stop_process)
+
+        # Show server status
+        pid = st.session_state.get("process_pid")
+        if pid:
+            st.success(f"Server up {st.session_state.get('process_link')})")
+        else:
+            st.warning("Server is not running")
 
 def start_process():
     if "process_pid" not in st.session_state:
         st.session_state["process_pid"] = None
+        st.session_state["process_started"] = False
 
     COMMAND = ["python", "api.py"]
     env_vars = os.environ.copy()
@@ -176,11 +198,13 @@ def start_process():
     try:
         process = subprocess.Popen(COMMAND, cwd=code_dir, env=env_vars)
         st.session_state["process_pid"] = process.pid
+        st.session_state["process_started"] = True
         link = f"http://localhost:{env_vars['PORT']}"
-        st.success(f"Server started : {link}")
+        st.session_state["process_link"] =  link
 
     except Exception as e:
-        st.error(f"Error starting the server: {e}")
+        print(f"Error starting the server: {e}")
+        return None
 
 def stop_process():
     pid = st.session_state.get("process_pid")
@@ -188,6 +212,7 @@ def stop_process():
         os.kill(pid, 9)
         st.success(f"Process with PID {pid} stopped")
         st.session_state["process_pid"] = None
+        st.session_state["link"] = None
     else:
         st.warning("No process is running")
 
@@ -209,6 +234,9 @@ if chat_input:
     st.session_state.pending_prompt = chat_input
     st.session_state.show_ribbon = False
     st.rerun()
+
+# Execute the sidebar controls function
+render_sidebar_controls(code_dir)
 
 prompt = st.session_state.get("pending_prompt")
 if prompt:
@@ -254,19 +282,3 @@ if prompt:
 
                 md = "\n\n".join(function_messages)
                 status_function_placeholder.markdown(md)
-
-# Only show the preview section if "Task completed." was received
-if st.session_state.get("show_preview", False):
-    # Standalone Fixture - Positioned Separately
-    st.markdown("<hr style='margin-top: 20px; margin-bottom: 20px;'>", unsafe_allow_html=True)
-    st.subheader("Preview Changes")
-
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
-        if st.button("Start Server", key="start_server"):
-            start_process()
-
-    with col2:
-        if st.button("Stop Server", key="stop_server"):
-            stop_process()
