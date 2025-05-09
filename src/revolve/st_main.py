@@ -1,3 +1,5 @@
+import subprocess
+
 import streamlit as st
 import random
 import time
@@ -163,6 +165,33 @@ with st.sidebar.expander("📝 System Messages"):
     status_function_placeholder = st.empty()
 
 
+def start_process():
+    if "process_pid" not in st.session_state:
+        st.session_state["process_pid"] = None
+
+    COMMAND = ["python", "api.py"]
+    env_vars = os.environ.copy()
+    env_vars["PORT"] = os.environ.get("PORT", str(random.randint(1024, 65535)))
+    env_vars["STATIC_DIR"] = os.environ.get("STATIC_DIR", "-")
+    try:
+        process = subprocess.Popen(COMMAND, cwd=code_dir, env=env_vars)
+        st.session_state["process_pid"] = process.pid
+        link = f"http://localhost:{env_vars['PORT']}"
+        st.success(f"Server started : {link}")
+
+    except Exception as e:
+        st.error(f"Error starting the server: {e}")
+
+def stop_process():
+    pid = st.session_state.get("process_pid")
+    if pid:
+        os.kill(pid, 9)
+        st.success(f"Process with PID {pid} stopped")
+        st.session_state["process_pid"] = None
+    else:
+        st.warning("No process is running")
+
+
 def response_generator(prompt):
     db_config = {
         "DB_NAME": db_name,
@@ -221,3 +250,17 @@ if prompt:
 
                 md = "\n\n".join(function_messages)
                 status_function_placeholder.markdown(md)
+
+# Standalone Fixture - Positioned Separately
+st.markdown("<hr style='margin-top: 20px; margin-bottom: 20px;'>", unsafe_allow_html=True)
+st.subheader("Preview Changes")
+
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    if st.button("Start Server", key="start_server"):
+        start_process()
+
+with col2:
+    if st.button("Stop Server", key="stop_server"):
+        stop_process()
