@@ -162,6 +162,7 @@ def test_node(state: State):
         LIST Operations:
         Test pagination, filtering, and sorting behavior.
         Validate list responses for consistency, ensuring correct data types and structures.
+        For lists since we are connecting to the database, do not test cases such as ones where you need the latest entries created or anything unreasonable like that which are not expected in real world. Provide filters for such cases such as ids to get data expected.        
         Error Handling:
         Confirm that appropriate error messages are returned for invalid data, missing parameters, and constraint violations.
         Idempotency and State Management:
