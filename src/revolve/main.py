@@ -626,6 +626,10 @@ def generate_api(state:State):
     commit_and_push_changes(
         message="Codes and api generated."
     )
+    #somehow do this once
+    static = read_python_code_template("static.py")
+    save_python_code(static, "static.py")
+
     new_trace = {
         "node_name": "generate_api",
         "node_type": "process",
