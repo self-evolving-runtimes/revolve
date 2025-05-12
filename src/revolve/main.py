@@ -70,8 +70,6 @@ def router_node(state: State):
     test_status = state.get("test_status", None)
     resources = state.get("resources", None)
     dbSchema = state.get("DBSchema", None)
-
-
     if not next_node:
 
         init_or_attach_git_repo()
