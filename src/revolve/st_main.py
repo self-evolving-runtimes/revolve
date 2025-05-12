@@ -247,7 +247,7 @@ if chat_input:
     st.rerun()
 
 # Execute the sidebar controls function
-# render_sidebar_controls(code_dir)
+render_sidebar_controls(code_dir)
 
 prompt = st.session_state.get("pending_prompt")
 if prompt:
@@ -258,24 +258,23 @@ if prompt:
         with st.chat_message("user"):
             st.markdown(prompt)
         for response_object in response_generator(st.session_state.messages):
-            if True: #response_object["yield"] == False:
+            if response_object["yield"] == False:
                 with st.chat_message("assistant"):
-                    if response_object["yield"] == False:
-                        response_text = response_object["text"]
-                    else:
-                        response_text = response_object["name"] +" -> "+ response_object["text"]
-
+                    response_text = response_object["text"]
                     st.write(response_text)
                     st.session_state.messages.append(
                         {"role": "assistant", "content": response_text}
                     )
 
+                    # Check if the response is "Task completed."
+                    if "Task completed." in response_text:
+                        st.session_state.show_preview = True
+
                     py_files = [f for f in os.listdir(code_dir) if f.endswith(".py")]
                     if py_files:
                         st.session_state.show_file_viewer = True
-                    # st.rerun()
+                    st.rerun()
             else:
-                pass
                 now = time.time()
                 if (now - last_status_update > status_update_interval) or (
                     current_status_message is None
