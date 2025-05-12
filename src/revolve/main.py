@@ -237,7 +237,7 @@ def test_node(state: State):
                 example_resource_code = read_python_code_template("service.py")
                 new_user_message = f"""My initial goal was {individual_prompt}.
                 However some tests are failing. 
-                Please fix the test, api or the resource code, which one is needed.
+                Please fix the test or the resource code, which one is needed.
                 I only need the code, do not add any other comments or explanations.
                 Here is the resource code :
                 {source_code}
@@ -583,7 +583,7 @@ def _process_table(state:State):
         Ensure pagination support for large datasets.
         Endpoint Structure and Consistency:
         Define separate endpoints for CRUD and LIST operations to maintain clarity.
-        Ensure all routes are named clearly and consistently, e.g., /users for LIST, /users/{{user_id}} for CRUD.
+        Ensure all routes are named clearly and consistently, e.g., /users for LIST, /users/{user_id} for CRUD.
         Here are the templates for the generation:
         for the example api route 'app.add_route("/hello_db", HelloDBResource())'
         output should be like this:
