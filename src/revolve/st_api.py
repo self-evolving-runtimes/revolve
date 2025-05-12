@@ -78,7 +78,6 @@ def check_api_file():
     return os.path.exists(api_file_path)
 
 while not check_api_file():
-    st.write("Waiting for api.py to be generated...")
     time.sleep(3)
     st.rerun()
 
