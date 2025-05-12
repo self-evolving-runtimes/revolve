@@ -7,16 +7,6 @@ from src.revolve.main import run_workflow
 from src.revolve.functions import test_db
 import os
 
-# to hide streamlit menu
-hide_streamlit_style = """
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
 code_dir = "src/revolve/source_generated"
 
 predefined_prompts = [
@@ -168,34 +158,33 @@ current_status_message = None
 if "system_logs" not in st.session_state:
     st.session_state.system_logs = []
 
-# with st.sidebar.expander("📝 System Messages"):
-    
-#     # if len(st.session_state.system_logs) > 0:
-#     #     md = "\n\n".join(st.session_state.system_logs)
-# #     #     st.markdown(md)
-# status_function_placeholder = st.empty()
+with st.sidebar.expander("📝 System Messages"):
+    if len(st.session_state.system_logs) > 0:
+        md = "\n\n".join(st.session_state.system_logs)
+        st.markdown(md)
+    status_function_placeholder = st.empty()
 
 def render_sidebar_controls(code_dir):
     """Renders server controls in the sidebar."""
 
-    # py_files = [f for f in os.listdir(code_dir) if f.endswith(".py")] if os.path.isdir(code_dir) else []
-    # code_available = len(py_files) > 0
+    py_files = [f for f in os.listdir(code_dir) if f.endswith(".py")] if os.path.isdir(code_dir) else []
+    code_available = len(py_files) > 0
 
-    # with st.sidebar.expander("⚡ Server Controls", expanded=True):
-    #     col1, col2 = st.columns([1, 1])
+    with st.sidebar.expander("⚡ Server Controls", expanded=True):
+        col1, col2 = st.columns([1, 1])
 
-    #     with col1:
-    #         st.button("Start", key="start_server", on_click=start_process)
+        with col1:
+            st.button("Start", key="start_server", on_click=start_process)
 
-    #     with col2:
-    #         st.button("Stop", key="stop_server", on_click=stop_process)
+        with col2:
+            st.button("Stop", key="stop_server", on_click=stop_process)
 
-    #     # Show server status
-    #     pid = st.session_state.get("process_pid")
-    #     if pid:
-    #         st.success(f"Server up {st.session_state.get('process_link')})")
-    #     else:
-    #         st.warning("Server is not running")
+        # Show server status
+        pid = st.session_state.get("process_pid")
+        if pid:
+            st.success(f"Server up {st.session_state.get('process_link')})")
+        else:
+            st.warning("Server is not running")
 
 def start_process():
     if "process_pid" not in st.session_state:
@@ -293,7 +282,7 @@ if prompt:
                 st.session_state.system_logs.append(new_log)
 
                 md = "\n\n".join(function_messages)
-                #status_function_placeholder.markdown(md) - will be checked
+                status_function_placeholder.markdown(md)
 
                 # if "generate_api" == func:
                 #     with st.chat_message("assistant"):
