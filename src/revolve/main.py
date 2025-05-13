@@ -566,7 +566,6 @@ def process_table(table_state:Table):
             "content": user_prompt
         }
     ]
-    structured_resource_response = llm_resource_generator.invoke(messages)
 
     i = 0
     while i < 3:
