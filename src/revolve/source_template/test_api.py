@@ -6,12 +6,11 @@ import pytest
 from falcon import testing
 
 from api import app
-
+from utils import get_unique_id
 
 @pytest.fixture
 def client():
     return testing.TestClient(app)
-
 
 def test_hello_db(client):
     response = client.simulate_get("/hello_db")
