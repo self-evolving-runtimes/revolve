@@ -3,27 +3,8 @@ import os
 import psycopg2
 import psycopg2.extras
 from datetime import datetime, date
-
-
-def get_db_connection():
-    try:
-        return psycopg2.connect(
-            dbname=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            host=os.getenv("DB_HOST"),
-            port=os.getenv("DB_PORT"),
-        )
-    except psycopg2.Error as e:
-        raise Exception(f"Database connection error: {e}")
-
-
-def json_serial(obj):
-    """Helper function to convert datetime objects into strings."""
-    if isinstance(obj, (datetime, date)):
-        return obj.isoformat()
-    raise TypeError(f"Type {type(obj)} not serializable")
-
+from utils import get_db_connection, json_serial
+import json
 
 class HelloDBResource:
     def on_get(self, req, resp):
