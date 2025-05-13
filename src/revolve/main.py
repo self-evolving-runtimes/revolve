@@ -147,8 +147,9 @@ def router_node(state: State):
         }
 
 def test_node(state: State):
-    MAX_TEST_ITERATIONS = 1
+    MAX_TEST_ITERATIONS = 3
     test_example = read_python_code_template("test_api.py")
+    utils = read_python_code_template("utils.py")
     api_code = read_python_code("api.py")
     for test_item in state["test_status"]:
         resouce_file = read_python_code(test_item["resource_file_name"])
@@ -189,6 +190,8 @@ def test_node(state: State):
         {api_code}
         Here are the schema of the table ({table_name}) is used in the api:
         {schema}
+        Here is the utils file (import methods from utils if needed):
+        {utils}
         Write test methods foreach function in the resource code:
         {resouce_file}"""
 
@@ -266,12 +269,12 @@ def test_node(state: State):
                 {test_code}
                 The api and routes are here:
                 {api_code}
+                The utils file is here (import methods from utils if needed):
+                {utils}
                 The schema of the related {table_name} table is:
                 {schema}
                 And Here is the report of the failing tests:
                 {pytest_response}"""
-
-
                 new_messages = [
                     {
                         "role": "system",
@@ -498,6 +501,7 @@ def process_table(table_state:Table):
     #     print(f"Table Name : {table_name}, Column: {col['column']}, Type: {col['type']}, Is Nullable: {col['is_nullable']}")
 
     code_template = read_python_code_template("service.py")
+    utils_template = read_python_code_template("utils.py")
 
     system_prompt = f"""Generate resource code according to the user request.
     Make sure that you write production quality code that can be maintained by developers.
@@ -511,6 +515,8 @@ def process_table(table_state:Table):
     key columns as well as skip , limit and total for pagination support. If the search filter is a date field, provide functionality to match greater than,
     less than and equal to date. Filter may not be specified - handle those cases as well.
     There could be multiple endpoints for the same resource.
+    Use methods from utils if needed. Here is the utils.py file:
+    {utils_template}
     Here are the templates for the generation:
     for the example api route 'app.add_route("/hello_db", HelloDBResource())'
     output should be like this:
@@ -675,7 +681,9 @@ def generate_api(state:State):
 
     #somehow do this once
     static = read_python_code_template("static.py")
+    utils = read_python_code_template("utils.py")
     save_python_code(static, "static.py")
+    save_python_code(utils, "utils.py")
     create_schemas_endpoint(state)
     commit_and_push_changes(
         message="Codes and api generated."
