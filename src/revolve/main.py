@@ -147,30 +147,32 @@ def router_node(state: State):
         }
 
 def test_node(state: State):
-    MAX_TEST_ITERATIONS = 3
+    MAX_TEST_ITERATIONS = 5
     test_example = read_python_code_template("test_api.py")
     utils = read_python_code_template("utils.py")
     api_code = read_python_code("api.py")
     for test_item in state["test_status"]:
         resouce_file = read_python_code(test_item["resource_file_name"])
         test_file_name = "test_"+test_item["resource_file_name"]
+        log("test_node", f"Creating and testing for {test_file_name}")
         table_name = test_item["table"]["table_name"]
         schema = str(test_item["table"]["columns"])
         system_message = f"""
-        Generate comprehensive test cases for a Python API that implements CRUD (Create, Read, Update, Delete) and LIST operations based on the provided schema. The schema may include unique constraints, data types (e.g., UUID, JSONB, timestamps), and nullable fields. The tests must adhere to the following guidelines:
+        Generate comprehensive test cases (max:10) for a Python API that implements CRUD (Create, Read, Update, Delete) and LIST operations based on the provided schema. The schema may include unique constraints, data types (e.g., UUID, JSONB, timestamps), and nullable fields. The tests must adhere to the following guidelines:
         Data Integrity:
         Validate unique constraints effectively to prevent false positives.
         Ensure test data is dynamically generated to avoid conflicts, particularly for fields marked as unique.
         Data Types and Validation:
         Handle UUIDs, JSONB, and timestamp fields with proper parsing and formatting.
-        Include edge cases such as null values, missing fields, and incorrect data types.
         CRUD Operations:
         Verify CRUD functionality, ensuring that data is created, read, updated, and deleted as expected.
+        Focus on testing CRUD and LIST operations using realistic scenarios.
+        Do not create tests for unrealistic and edge cases such as missing fields or invalid data types.        
         Include tests for partial updates and soft deletes if applicable.
         LIST Operations:
         Test pagination, filtering, and sorting behavior.
         Validate list responses for consistency, ensuring correct data types and structures.
-        For lists since we are connecting to the database, do not test cases such as ones where you need the latest entries created or anything unreasonable like that which are not expected in real world. Provide filters for such cases such as ids to get data expected.        
+        For lists since we are connecting to the database, do not test cases such as ones where you need the latest entries created or anything unreasonable like that which are not expected in real world. Provide filters for such cases such as ids to get data expected.  
         Error Handling:
         Confirm that appropriate error messages are returned for invalid data, missing parameters, and constraint violations.
         Idempotency and State Management:
@@ -337,6 +339,10 @@ What is fixed: {new_test_code_response.what_is_fixed}
                     message=f"Code revised for {file_name_to_revise}",
                     description=commit_description
                 )
+
+                if code_history_item["test_report_after_revising"]["summary"]==code_history_item["test_report_before_revising"]["summary"]:
+                    log("test_node", f"Test success is not changing, stopping the iteration :"+test_item["iteration_count"])
+                    break
                 
                         
             else:
@@ -768,7 +774,7 @@ def run_workflow(task=None, db_config=None):
     #Running the workflow:
     if not task:
         #task = "Created crud operations users table"
-        task = "Created crud operations for doctors,users and watch_history tables"
+        task = "Created crud operations for all the tables"
     else:
         task = task[-1]["content"]
     # state = retrieve_state(state_file_name="after_test_2025-05-13_15-05-39.pkl", reset_tests=False)
