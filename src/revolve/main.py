@@ -23,6 +23,13 @@ parse_method = "function_calling"
 parallel = True
 ### --------------------------
 
+### GOOGLE - GEMINI
+### -------------------------- 
+# llm  = ChatOpenAI(model="gemini-2.5-pro-preview-05-06", temperature=0.2, max_tokens=16000, api_key=os.getenv("GEMINI_KEY"), base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
+# parse_method = "function_calling"
+# parallel = True
+### --------------------------
+
 
 ### LLM - RUNPOD
 ### -------------------------- ###
