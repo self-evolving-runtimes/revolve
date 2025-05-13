@@ -193,6 +193,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
 
         # Retrieve tests; support both list and dict formats.
         tests = report_data.get("tests", [])
+        summary = report_data.get("summary", {})
         if not isinstance(tests, list):
             tests = list(tests.values())
 
@@ -251,14 +252,30 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
 
         if not test_results:
             log("run_pytest", "All tests passed.")
-            return {"status":"success","message": "All tests passed.", "test_results": []}
-        print("*" * 50)
+            report = {"status":"success","message": "All tests passed.", "test_results": [], "summary": summary}
+            pprint(report)
+            return report
+        print("*" * 100)
         print("-- Test Results --")
         pprint(test_results)
+        print("-- Summary --")
+
+
+        failed_tests = [test["name"] for test in test_results]
+        passed_percentage = (
+            round(1 - len(failed_tests) / len(tests),2)
+            if len(tests) > 0
+            else 0
+        )
+        summary["passed_percentage"] = passed_percentage
+        summary["failed_tests"] = failed_tests
+        pprint(summary)
+        print("*" * 100)
         return {
             "status":"failed",
             "message": "Some tests failed.",
             "test_results": test_results,
+            "summary": summary,
         }
 
     except Exception as e:
@@ -268,6 +285,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
                 "status": "error",
                 "message": f"Error running pytest: {e}",
                 "test_results": [],
+                "summary": {},
             }
 
 def test_db(

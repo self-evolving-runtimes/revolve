@@ -147,7 +147,7 @@ def router_node(state: State):
         }
 
 def test_node(state: State):
-    MAX_TEST_ITERATIONS = 3
+    MAX_TEST_ITERATIONS = 1
     test_example = read_python_code_template("test_api.py")
     api_code = read_python_code("api.py")
     for test_item in state["test_status"]:
@@ -222,12 +222,24 @@ def test_node(state: State):
         pytest_response  = run_pytest(test_file_name)
         test_item["status"] = pytest_response["status"]
 
+        test_item["code_history"] = test_item.get("code_history", [])
+        code_history_item = {
+            "history_type": "creation",
+            "code": {
+                "new_code": "N/A",
+                "what_was_the_problem": "N/A",
+                "what_is_fixed": "N/A",
+                "code_type": "N/A"
+            },
+            "test_report_before_revising": None,
+            "test_report_after_revising": pytest_response,
+            "iteration_index": 0
+        }
+        test_item["code_history"].append(code_history_item)
+
         for i in range(MAX_TEST_ITERATIONS):
 
             #get the previous code history and add pytest_response to the test_report_after_revising
-            test_item["code_history"] = test_item.get("code_history", [])
-
-
             if pytest_response["status"]!= "success":
                 test_item["status"] = "failed"
                 new_system_message = f"""You are responsible for fixing the errors.
@@ -747,12 +759,12 @@ def run_workflow(task=None, db_config=None):
 
     #Running the workflow:
     if not task:
-        task = "Created crud operations for all the tables"
-        #task = "Created crud operations for watch history table"
+        #task = "Created crud operations users table"
+        task = "Created crud operations for doctors,users and watch_history tables"
     else:
         task = task[-1]["content"]
-
-    for event in workflow.stream({"messages": [HumanMessage(task)]}):
+    # state = retrieve_state(state_file_name="after_test_2025-05-13_15-05-39.pkl", reset_tests=False)
+    for event in workflow.stream({"messages": [HumanMessage(task)]}): #workflow.stream(state):
         name = ""
         text = ""
         key = list(event.keys())[0]
