@@ -210,7 +210,20 @@ def test_node(state: State):
             }
         ]
 
-        structured_test_response = llm_test_generator.invoke(messages)
+        i = 0
+        while i < 3:
+            try:
+                structured_test_response = llm_test_generator.invoke(messages)
+                if structured_test_response:
+                    # Validate if the response can be deserialized
+                    GeneratedCode(**structured_test_response)
+                    break
+                i += 1
+            except ValidationError:
+                log("test_node", "Regenerating ")
+                i += 1
+
+
         messages.append(
             {
                 "role": "assistant",
@@ -291,7 +304,18 @@ def test_node(state: State):
                 ]
                 
                 test_item["iteration_count"] += 1
-                new_test_code_response = llm_test_and_code_reviser.invoke(new_messages)
+                i = 0
+                while i < 3:
+                    try:
+                        new_test_code_response = llm_test_and_code_reviser.invoke(new_messages)
+                        if new_test_code_response:
+                            # Validate if the response can be deserialized
+                            CodeHistoryMessage(**new_test_code_response)
+                            break
+                        i += 1
+                    except ValidationError:
+                        log("test_node", "Regenerating test code")
+                        i += 1
 
                 messages.append(
                     {
@@ -406,22 +430,35 @@ def report_node(state: State):
     env_file.close()
     api_code = read_python_code("api.py")
 
-    readme_result = llm_readme_generator.invoke(
-        [
-            {
-                "role": "system",
-                "content": "You are a software engineer. You are responsible for writing the README file for the project. The README file should be in markdown format."
-            },
-            {
-                "role": "user",
-                "content": f"""Write a clean and concise README.md file for a Python API (api.py) built using the Falcon framework. The README should include:
+    i = 0
+    while i < 3:
+        try:
+            readme_result = llm_readme_generator.invoke(
+                [
+                    {
+                        "role": "system",
+                        "content": "You are a software engineer. You are responsible for writing the README file for the project. The README file should be in markdown format."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""Write a clean and concise README.md file for a Python API (api.py) built using the Falcon framework. The README should include:
 env variables must be set in the .env file ("DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT")
 "pip install falcon falcon-cors psycopg2" should be installed
 Use the provided API code below as a reference when writing the README.
 Here is the API code:\n{api_code}"""
-            }
-        ]
-    )
+                    }
+                ]
+            )
+
+            if readme_result:
+                # Validate if the response can be deserialized
+                Readme(**readme_result)
+                break
+            i += 1
+        except ValidationError:
+            log("test_node", "Regenerating test code")
+            i += 1
+
 
     #save the readme file
     save_python_code(
@@ -664,7 +701,20 @@ def _process_table(state:State):
                 "content": user_prompt
             }
         ]
-        structured_resource_response = llm_resource_generator.invoke(messages)
+
+        i = 0
+        while i < 3:
+            try:
+                structured_resource_response = llm_resource_generator.invoke(messages)
+                if structured_resource_response:
+                    # Validate if the response can be deserialized
+                    Resource(**structured_resource_response)
+                    break
+                i += 1
+            except ValidationError:
+                log("process_table", "Regenerating ")
+                i += 1
+
         log("process_table", f"Resource generated for  {table_name}")
         save_python_code(
             structured_resource_response["resource_code"],
