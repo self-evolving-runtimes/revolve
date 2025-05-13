@@ -4,6 +4,8 @@ from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, START, END
 # from IPython.display import Image, display
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from pydantic_core import ValidationError
+
 from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode, GeneratedCode, CodeHistoryMessage, Readme
 from langchain_openai import ChatOpenAI
 from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code, log, save_state, retrieve_state, run_pytest, test_db
@@ -147,7 +149,7 @@ def router_node(state: State):
         }
 
 def test_node(state: State):
-    MAX_TEST_ITERATIONS = 5
+    MAX_TEST_ITERATIONS = 3
     test_example = read_python_code_template("test_api.py")
     utils = read_python_code_template("utils.py")
     api_code = read_python_code("api.py")
@@ -341,7 +343,7 @@ What is fixed: {new_test_code_response.what_is_fixed}
                 )
 
                 if code_history_item["test_report_after_revising"]["summary"]==code_history_item["test_report_before_revising"]["summary"]:
-                    log("test_node", f"Test success is not changing, stopping the iteration :"+test_item["iteration_count"])
+                    log("test_node", f"Test success is not changing, stopping the iteration: {test_item['iteration_count']}")
                     break
                 
                         
@@ -478,8 +480,21 @@ def generate_prompt_for_code_generation(state: State):
             "content": last_message_content + "\n\nHere are the full schema of the database:\n" + schemas
         }
     ]
-    
-    structured_db_response = llm_table_extractor.invoke(messages)
+
+    i = 0
+    while i < 3:
+        try:
+            structured_db_response = llm_table_extractor.invoke(messages)
+            if structured_db_response:
+                # Validate if the response can be deserialized
+                DBSchema(**structured_db_response)
+                break
+            i += 1
+        except ValidationError:
+            log("generate_prompt_for_code_generation", "Regenerating ")
+            i += 1
+
+
     trace = state.get("trace", [])
     new_trace = {
         "node_name": "generate_prompt_for_code_generation",
@@ -552,6 +567,20 @@ def process_table(table_state:Table):
         }
     ]
     structured_resource_response = llm_resource_generator.invoke(messages)
+
+    i = 0
+    while i < 3:
+        try:
+            structured_resource_response = llm_resource_generator.invoke(messages)
+            if structured_resource_response:
+                # Validate if the response can be deserialized
+                Resource(**structured_resource_response)
+                break
+            i += 1
+        except ValidationError:
+            log("process_table", "Regenerating ")
+            i += 1
+
     log("process_table", f"Resource generated for  {table_name}")
     save_python_code(
         structured_resource_response["resource_code"],
