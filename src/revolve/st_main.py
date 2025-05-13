@@ -68,11 +68,11 @@ with st.expander("📖 Readme", expanded=False):
     st.markdown(readme_message)
 
 with st.expander("🔧 Database Configuration", expanded=False):
-    db_name = st.text_input("DB_NAME", value="newdb")
-    db_user = st.text_input("DB_USER", value="postgres")
-    db_password = st.text_input("DB_PASSWORD", value="admin", type="password")
-    db_host = st.text_input("DB_HOST", value="localhost")
-    db_port = st.text_input("DB_PORT", value="5432")
+    db_name = st.text_input("DB_NAME", value=os.getenv("DB_NAME", "newdb"))
+    db_user = st.text_input("DB_USER", value=os.getenv("DB_USER", "postgres"))
+    db_password = st.text_input("DB_PASSWORD", value=os.getenv("DB_PASSWORD", "admin"), type="password")
+    db_host = st.text_input("DB_HOST", value=os.getenv("DB_HOST", "localhost"))
+    db_port = st.text_input("DB_PORT", value=os.getenv("DB_PORT", "5432"))
     if st.button("Test Connection", use_container_width=True):
         try:
             result = test_db(
