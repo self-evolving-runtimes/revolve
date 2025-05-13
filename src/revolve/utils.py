@@ -31,5 +31,17 @@ def create_test_report(task,state):
             f.write(f"### 📄 {test_item['resource_file_name']}\n")
             f.write(f"- **Status:** `{test_item['status']}`\n")
             f.write(f"- **Iteration Count:** `{test_item['iteration_count']}`\n\n")
+            f.write(f"- **Test Summary:**\n")
+            if "code_history" in test_item and len(test_item['code_history']) > 0:
+                last_test = test_item['code_history'][-1]
+                last_summary = last_test['test_report_after_revising']["summary"]
+                for key, value in last_summary.items():
+                    if key =="failed_tests":
+                        f.write(f"  - **{key}:**\n")
+                        for test in value:
+                            f.write(f"    - `{test}`\n")
+                    else:
+                        f.write(f"  - **{key}:** `{value}`\n")
+
 
 
