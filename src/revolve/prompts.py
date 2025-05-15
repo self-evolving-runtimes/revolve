@@ -11,6 +11,195 @@ Always:
         """,
 }
 
+def get_test_generation_prompt(test_example: str, api_code: str, table_name: str, schema: str, utils: str, resouce_file: str, resource_file_name:str) -> str:
+    system_prompt = f"""
+Generate comprehensive test cases (max:10) for a Python API that implements CRUD (Create, Read, Update, Delete) and LIST operations based on the provided schema. The schema may include unique constraints, data types (e.g., UUID, JSONB, timestamps), and nullable fields. The tests must adhere to the following guidelines:
+Data Integrity:
+Validate unique constraints effectively to prevent false positives.
+Ensure test data is dynamically generated to avoid conflicts, particularly for fields marked as unique.
+Data Types and Validation:
+Handle UUIDs, JSONB, and timestamp fields with proper parsing and formatting.
+CRUD Operations:
+Verify CRUD functionality, ensuring that data is created, read, updated, and deleted as expected.
+Focus on testing CRUD and LIST operations using realistic scenarios.
+Do not create tests for unrealistic and edge cases such as missing fields or invalid data types.        
+Include tests for partial updates and soft deletes if applicable.
+LIST Operations:
+Test pagination, filtering, and sorting behavior.
+Validate list responses for consistency, ensuring correct data types and structures.
+For lists since we are connecting to the database, do not test cases such as ones where you need the latest entries created or anything unreasonable like that which are not expected in real world. Provide filters for such cases such as ids to get data expected.  
+Error Handling:
+Confirm that appropriate error messages are returned for invalid data, missing parameters, and constraint violations.
+Idempotency and State Management:
+Ensure that multiple test runs do not interfere with each other, maintaining test isolation and data consistency.
+Implementation Constraints:
+Do not introduce external libraries beyond standard testing libraries such as unittest, pytest, and requests.
+The test code should be modular, reusable, and structured for easy maintenance and readability.
+Minimize hard-coded values and prefer parameterized test cases.
+For fields like created_at / updated_at that are determined by the database / server - do not assert in tests.
+When sending data to simulate use json.dumps to convert py objects into valid json
+Pay attention to datatypes such as text array when making payloads and send the right form of it.
+
+Example test file should be like this:
+{test_example}"""
+
+    user_message = f"""
+Here is my api code for the endpoints.
+{api_code}
+Here are the schema of the table ({table_name}) is used in the api:
+{schema}
+Here is the utils file (import methods from utils if needed):
+{utils}
+Write test methods foreach function in the resource code:
+{resouce_file}"""
+    return [
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        {
+            "role": "user",
+            "content": user_message,
+        },
+    ]
+
+def get_test_generation_prompt_ft(test_example: str, api_code: str, table_name: str, schema: str, utils: str, resouce_file: str, resource_file_name: str) -> str:
+    system_prompt = f"""
+### SYSTEM ###
+Generate comprehensive test cases (max:10) for a Python API that implements CRUD (Create, Read, Update, Delete) and LIST operations based on the provided schema. The schema may include unique constraints, data types (e.g., UUID, JSONB, timestamps), and nullable fields. The tests must adhere to the following guidelines:
+Data Integrity:
+Validate unique constraints effectively to prevent false positives.
+Ensure test data is dynamically generated to avoid conflicts, particularly for fields marked as unique.
+Data Types and Validation:
+Handle UUIDs, JSONB, and timestamp fields with proper parsing and formatting.
+CRUD Operations:
+Verify CRUD functionality, ensuring that data is created, read, updated, and deleted as expected.
+Focus on testing CRUD and LIST operations using realistic scenarios.
+Do not create tests for unrealistic and edge cases such as missing fields or invalid data types.        
+Include tests for partial updates and soft deletes if applicable.
+LIST Operations:
+Test pagination, filtering, and sorting behavior.
+Validate list responses for consistency, ensuring correct data types and structures.
+For lists since we are connecting to the database, do not test cases such as ones where you need the latest entries created or anything unreasonable like that which are not expected in real world. Provide filters for such cases such as ids to get data expected.  
+Error Handling:
+Confirm that appropriate error messages are returned for invalid data, missing parameters, and constraint violations.
+Idempotency and State Management:
+Ensure that multiple test runs do not interfere with each other, maintaining test isolation and data consistency.
+Implementation Constraints:
+Do not introduce external libraries beyond standard testing libraries such as unittest, pytest, and requests.
+The test code should be modular, reusable, and structured for easy maintenance and readability.
+Minimize hard-coded values and prefer parameterized test cases.
+For fields like created_at / updated_at that are determined by the database / server - do not assert in tests.
+When sending data to simulate use json.dumps to convert py objects into valid json
+Pay attention to datatypes such as text array when making payloads and send the right form of it.
+#### Example Test File ####
+{test_example}"""
+
+    user_message = f"""
+### USER ###
+Write test methods foreach function in the resource code:
+#### Api Code (api.py) ####
+{api_code}
+#### Schema for ({table_name}) table ####
+{schema}
+#### Utils (util.py) ####
+{utils}
+#### Resource Code ({resource_file_name}) ####
+{resouce_file}"""
+    return [
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        {
+            "role": "user",
+            "content": user_message,
+        },
+    ]
+
+def get_test_revising_prompt(individual_prompt: str, source_code: str, example_resource_code: str, test_code: str, api_code: str, table_name: str, schema: str, utils: str, pytest_response: str, resource_file_name:str) -> str:
+    new_system_message = f"""
+You are responsible for fixing the errors.
+Fix the test or the source code according to the test report provided by user.
+You are responsible for writing the test cases for the given code.
+Do not add any external libraries.
+Always print the response content in the test for better debugging.
+Be careful with non-nullable columns when generating tests.
+Don't assume any id is already in the database.
+Do not use placeholder values, everything should be ready to use."""
+    new_user_message = f"""
+My initial goal was {individual_prompt}.
+However some tests are failing. 
+Please fix the test, api or the resource code, which one is needed.
+I only need the code, do not add any other comments or explanations.
+Here is the resource code :
+{source_code}
+This is the example resource code in case you need to refer:
+{example_resource_code}
+Here is the test code:
+{test_code}
+The api and routes are here:
+{api_code}
+The utils file is here (import methods from utils if needed):
+{utils}
+The schema of the related {table_name} table is:
+{schema}
+And Here is the report of the failing tests:
+{pytest_response}"""
+    return [
+        {
+            "role": "system",
+            "content": new_system_message,
+        },
+        {
+            "role": "user",
+            "content": new_user_message,
+        },
+    ]
+
+def get_test_revising_prompt_ft(individual_prompt: str, source_code: str, example_resource_code: str, test_code: str, api_code: str, table_name: str, schema: str, utils: str, pytest_response: str, resource_file_name:str) -> str:
+    new_system_message = f"""
+### SYSTEM ###
+You are responsible for fixing the errors.
+Fix the test or the source code according to the test report provided by user.
+You are responsible for writing the test cases for the given code.
+Do not add any external libraries.
+Always print the response content in the test for better debugging.
+Be careful with non-nullable columns when generating tests.
+Don't assume any id is already in the database.
+Do not use placeholder values, everything should be ready to use."""
+    
+    new_user_message = f"""
+### USER ###
+My initial goal was to {individual_prompt}.
+However some tests are failing. 
+Please fix the test, api or the resource code, which one is needed.
+I only need the code, do not add any other comments or explanations.
+#### Resource Code ({resource_file_name}) ####
+{source_code}
+#### Example Resource Code (in case you need to refer) ####
+{example_resource_code}
+#### Test Code ####
+{test_code}
+#### Api Code (api.py) ####
+{api_code}
+#### Utils (util.py, in case you need to import) ####
+{utils}
+#### Schema for ({table_name}) table ####
+{schema}
+#### Report of the failing tests ####
+{pytest_response}"""
+    
+    return [
+        {
+            "role": "system",
+            "content": new_system_message,
+        },
+        {
+            "role": "user",
+            "content": new_user_message,
+        },
+    ]
 
 def get_simple_prompt(prompt_name: str) -> str:
     return prompt_list[prompt_name]
