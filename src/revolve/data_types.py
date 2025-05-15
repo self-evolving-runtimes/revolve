@@ -59,10 +59,14 @@ class CodeHistory(TypedDict):
     test_report_before_revising: str
     test_report_after_revising:str
     iteration_index:int
+    test_revising_input_prompt:List[AnyMessage]
+
 
 class TestStatus(TypedDict):
     resource_file_name:str
     resource_code:str
+    test_generation_input_prompt:List[AnyMessage]
+    test_revising_prompt:str
     test_file_name: str
     test_code:str
     status: str # success, failed, fixed, in_progress

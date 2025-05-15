@@ -9,12 +9,12 @@ from pydantic_core import ValidationError
 from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode, GeneratedCode, CodeHistoryMessage, Readme
 from langchain_openai import ChatOpenAI
 from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code, log, save_state, retrieve_state, run_pytest, test_db
-from src.revolve.prompts import get_simple_prompt
+from src.revolve.prompts import get_simple_prompt, get_test_generation_prompt, get_test_generation_prompt_ft, get_test_revising_prompt, get_test_revising_prompt_ft
 from datetime import datetime
 from langgraph.constants import Send
 import pickle
 from src.revolve.utils_git import *
-from src.revolve.utils import create_test_report, create_report_json
+from src.revolve.utils import create_ft_data, create_test_report, create_report_json
 
 
 
@@ -159,56 +159,27 @@ def test_node(state: State):
         log("test_node", f"Creating and testing for {test_file_name}")
         table_name = test_item["table"]["table_name"]
         schema = str(test_item["table"]["columns"])
-        system_message = f"""
-        Generate comprehensive test cases (max:10) for a Python API that implements CRUD (Create, Read, Update, Delete) and LIST operations based on the provided schema. The schema may include unique constraints, data types (e.g., UUID, JSONB, timestamps), and nullable fields. The tests must adhere to the following guidelines:
-        Data Integrity:
-        Validate unique constraints effectively to prevent false positives.
-        Ensure test data is dynamically generated to avoid conflicts, particularly for fields marked as unique.
-        Data Types and Validation:
-        Handle UUIDs, JSONB, and timestamp fields with proper parsing and formatting.
-        CRUD Operations:
-        Verify CRUD functionality, ensuring that data is created, read, updated, and deleted as expected.
-        Focus on testing CRUD and LIST operations using realistic scenarios.
-        Do not create tests for unrealistic and edge cases such as missing fields or invalid data types.        
-        Include tests for partial updates and soft deletes if applicable.
-        LIST Operations:
-        Test pagination, filtering, and sorting behavior.
-        Validate list responses for consistency, ensuring correct data types and structures.
-        For lists since we are connecting to the database, do not test cases such as ones where you need the latest entries created or anything unreasonable like that which are not expected in real world. Provide filters for such cases such as ids to get data expected.  
-        Error Handling:
-        Confirm that appropriate error messages are returned for invalid data, missing parameters, and constraint violations.
-        Idempotency and State Management:
-        Ensure that multiple test runs do not interfere with each other, maintaining test isolation and data consistency.
-        Implementation Constraints:
-        Do not introduce external libraries beyond standard testing libraries such as unittest, pytest, and requests.
-        The test code should be modular, reusable, and structured for easy maintenance and readability.
-        Minimize hard-coded values and prefer parameterized test cases.
-        For fields like created_at / updated_at that are determined by the database / server - do not assert in tests.
-        When sending data to simulate use json.dumps to convert py objects into valid json
-        Pay attention to datatypes such as text array when making payloads and send the right form of it.
-
-        Example test file should be like this:
-        {test_example}"""
         
-        user_message = f"""Here is my api code for the endpoints.
-        {api_code}
-        Here are the schema of the table ({table_name}) is used in the api:
-        {schema}
-        Here is the utils file (import methods from utils if needed):
-        {utils}
-        Write test methods foreach function in the resource code:
-        {resouce_file}"""
+        messages = get_test_generation_prompt(
+            test_example=test_example,
+            api_code=api_code,
+            table_name=table_name,
+            schema=schema,
+            utils=utils,
+            resouce_file=resouce_file,
+            resource_file_name = test_item["resource_file_name"]
+        )
+        messages_ft = get_test_generation_prompt_ft(
+            test_example=test_example,
+            api_code=api_code,
+            table_name=table_name,
+            schema=schema,
+            utils=utils,
+            resouce_file=resouce_file,
+            resource_file_name = test_item["resource_file_name"]
+        )
 
-        messages = [
-            {
-                "role": "system",
-                "content": system_message
-            },
-            {
-                "role": "user",
-                "content": user_message
-            }
-        ]
+        # test_item["test_generation_input_prompt"] = messages_ft
 
         i = 0
         while i < 3:
@@ -224,12 +195,23 @@ def test_node(state: State):
                 i += 1
 
 
-        messages.append(
+
+        full_test_code = structured_test_response["full_test_code"]
+
+        assistan_response_ft = f"""
+### ASSISTANT ###
+#### Test Code ({test_file_name}) ####
+{full_test_code}
+"""
+
+        messages_ft.append(
             {
                 "role": "assistant",
-                "content": structured_test_response["full_test_code"]
+                "content": assistan_response_ft
             }
         )
+
+
         test_item["test_code"] = structured_test_response["full_test_code"]
         test_item["test_file_name"] = test_file_name
         save_python_code(
@@ -256,52 +238,47 @@ def test_node(state: State):
             "iteration_index": 0
         }
         test_item["code_history"].append(code_history_item)
+        test_item["test_generation_input_prompt"] = messages_ft
 
         for i in range(MAX_TEST_ITERATIONS):
 
             #get the previous code history and add pytest_response to the test_report_after_revising
             if pytest_response["status"]!= "success":
                 test_item["status"] = "failed"
-                new_system_message = f"""You are responsible for fixing the errors.
-                Fix the test or the source code according to the test report provided by user.
-                You are responsible for writing the test cases for the given code.
-                Do not add any external libraries.
-                Always print the response content in the test for better debugging.
-                Be careful with non-nullable columns when generating tests.
-                Don't assume any id is already in the database.
-                Do not use placeholder values, everything should be ready to use."""
+        
+
                 individual_prompt = test_item["table"]["individual_prompt"]
                 source_code = read_python_code(test_item["resource_file_name"])
                 test_code = read_python_code(test_file_name)
                 example_resource_code = read_python_code_template("service.py")
-                new_user_message = f"""My initial goal was {individual_prompt}.
-                However some tests are failing. 
-                Please fix the test, api or the resource code, which one is needed.
-                I only need the code, do not add any other comments or explanations.
-                Here is the resource code :
-                {source_code}
-                This is the example resource code in case you need to refer:
-                {example_resource_code}
-                Here is the test code:
-                {test_code}
-                The api and routes are here:
-                {api_code}
-                The utils file is here (import methods from utils if needed):
-                {utils}
-                The schema of the related {table_name} table is:
-                {schema}
-                And Here is the report of the failing tests:
-                {pytest_response}"""
-                new_messages = [
-                    {
-                        "role": "system",
-                        "content": new_system_message
-                    },
-                    {
-                        "role": "user",
-                        "content": new_user_message
-                    }
-                ]
+                
+                new_messages = get_test_revising_prompt(
+                    individual_prompt=individual_prompt,
+                    source_code=source_code,
+                    example_resource_code=example_resource_code,
+                    test_code=test_code,
+                    api_code=api_code,
+                    table_name=table_name,
+                    schema=schema,
+                    utils=utils,
+                    pytest_response=pytest_response,
+                    resource_file_name = test_item["resource_file_name"]
+                )
+
+                new_messages_ft  = get_test_revising_prompt_ft(
+                    individual_prompt=individual_prompt,
+                    source_code=source_code,
+                    example_resource_code=example_resource_code,
+                    test_code=test_code,
+                    api_code=api_code,
+                    table_name=table_name,
+                    schema=schema,
+                    utils=utils,
+                    pytest_response=pytest_response,
+                    resource_file_name = test_item["resource_file_name"]
+                )
+
+
                 
                 test_item["iteration_count"] += 1
                 i = 0
@@ -310,19 +287,15 @@ def test_node(state: State):
                         new_test_code_response = llm_test_and_code_reviser.invoke(new_messages)
                         if new_test_code_response:
                             # Validate if the response can be deserialized
-                            CodeHistoryMessage(**new_test_code_response)
-                            break
+                            if isinstance(new_test_code_response, CodeHistoryMessage):
+                                break
+                            
                         i += 1
                     except ValidationError:
                         log("test_node", "Regenerating test code")
                         i += 1
 
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": str(new_test_code_response)
-                    }
-                )
+
                 # if "code_type" in new_test_code_response:
                 if new_test_code_response.code_type == "resource":
                     file_name_to_revise = test_item["resource_file_name"]
@@ -338,7 +311,16 @@ def test_node(state: State):
                 commit_description = f"""What was the problem: {new_test_code_response.what_was_the_problem}
 What is fixed: {new_test_code_response.what_is_fixed}
 """
-               
+                new_messages_ft.append(
+                    {
+                        "role": "assistant",
+                        "content": f"""
+### ASSISTANT ###
+#### New Code ({file_name_to_revise}) ####
+{new_test_code_response.new_code}
+"""
+                    }
+                )
 
                 code_history_item = {
                     "history_type": "revision",
@@ -348,6 +330,8 @@ What is fixed: {new_test_code_response.what_is_fixed}
                         "what_is_fixed": new_test_code_response.what_is_fixed,
                         "code_type": new_test_code_response.code_type
                     },
+
+                    "test_revising_input_prompt" : new_messages_ft,
                     "test_report_before_revising": pytest_response,
                     "test_report_after_revising": None,
                     "iteration_index": test_item["iteration_count"]
@@ -410,6 +394,7 @@ def create_schemas_endpoint(state: State):
 
 def report_node(state: State):
     task = state["messages"][0].content
+    create_ft_data(state)
     create_test_report(task, state)
     commit_and_push_changes(
         message="Test report created.",
@@ -851,8 +836,8 @@ def run_workflow(task=None, db_config=None):
 
     #Running the workflow:
     if not task:
-        #task = "Created crud operations users table"
-        task = "Created crud operations for all the tables"
+        task = "Created crud operations for users table"
+        #task = "Created crud operations for all the tables"
     else:
         task = task[-1]["content"]
     # state = retrieve_state(state_file_name="after_test_2025-05-13_15-05-39.pkl", reset_tests=False)

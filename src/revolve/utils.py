@@ -9,6 +9,23 @@ def make_serializable(obj):
     else:
         return obj
 
+def create_ft_data(state):
+    test_status = state.get("test_status", {})
+    samples = []
+    for test_sample in test_status:
+        if test_sample["status"] == "success":
+            if test_sample["iteration_count"]==0:
+                samples.append(test_sample["test_generation_input_prompt"])
+            else:
+                samples.append(test_sample["code_history"][-1]["test_revising_input_prompt"])
+
+    if len(samples)>0:
+        samples_json = make_serializable(samples)
+        with open(f"src/revolve/source_generated/ft_data.json", "w") as f:
+            json.dump(samples_json, f, indent=4)
+    
+    return samples, samples_json
+
 def create_report_json(state):
     test_status = state.get("test_status", {})
     test_status_json = make_serializable(test_status)
