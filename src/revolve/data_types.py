@@ -1,7 +1,7 @@
 from typing_extensions import TypedDict, Literal
 from langchain_core.messages import AnyMessage
 from datetime import datetime
-from typing import Annotated, List
+from typing import Annotated, List, Callable
 import operator
 from pydantic import BaseModel, Field
 
@@ -90,6 +90,7 @@ class State(TypedDict):
     DBSchema:DBSchema
     next_node:str
     test_status:list[TestStatus]
+    send: Callable[[dict], None]
 
 class Readme(TypedDict):
     md_content:str
