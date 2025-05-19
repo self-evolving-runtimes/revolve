@@ -18,7 +18,7 @@ class WorkflowResource:
     def on_post(self, req, resp):
         try:
             data = req.media 
-            task = data.get("task", "Default task")
+            task = data.get("message", None)
         except Exception:
             resp.status = falcon.HTTP_400
             resp.media = {"error": "Invalid JSON"}
@@ -35,7 +35,7 @@ class WorkflowResource:
         resp.stream = generate()
 
 app = falcon.App()
-app.add_route("/run_workflow", WorkflowResource())
+app.add_route("/api/chat", WorkflowResource())
 
 
 # Threading WSGI server to handle concurrent requests
