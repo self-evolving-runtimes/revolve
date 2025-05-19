@@ -14,6 +14,7 @@ const { Text } = Typography;
 
 const App = () => {
   const [systemMessages, setSystemMessages] = React.useState([]);
+  const [inputValue, setInputValue] = React.useState('');
   const [serverStatus, setServerStatus] = React.useState('Server is not running');
   const [chatMessages, setChatMessages] = React.useState([
     { role: 'assistant', content: 'Hello! How can I assist you today?' }
@@ -173,17 +174,19 @@ const handleSendMessage = async (message) => {
                   )}
                 />
               </div>
-              <Input
-                placeholder="Type a message..."
-                onPressEnter={(e) => {
-                  const message = e.target.value.trim();
-                  if (message) {
-                    handleSendMessage(message);
-                    e.target.value = '';
-                  }
-                }}
-                style={{ marginTop: 16 }}
-              />
+                <Input
+                  placeholder="Type a message..."
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onPressEnter={() => {
+                    const message = inputValue.trim();
+                    if (message) {
+                      handleSendMessage(message);
+                      setInputValue('');
+                    }
+                  }}
+                  style={{ marginTop: 16 }}
+                />
             </Col>
           </Row>
         </Content>
