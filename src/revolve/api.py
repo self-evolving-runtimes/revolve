@@ -26,6 +26,7 @@ class WorkflowResource:
         try:
             data = req.media 
             task = data.get("message", None)
+            db_config = data.get("dbConfig", {})
         except Exception:
             resp.status = falcon.HTTP_400
             resp.media = {"error": "Invalid JSON"}
@@ -35,7 +36,7 @@ class WorkflowResource:
         resp.content_type = 'application/x-ndjson'
 
         def generate():
-            for item in run_workflow_generator(task=task):
+            for item in run_workflow_generator(task=task, db_config=db_config):
                 line = json.dumps(item) + "\n"
                 yield line.encode("utf-8")
 

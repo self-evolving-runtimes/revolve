@@ -97,7 +97,10 @@ const handleSendMessage = async (message) => {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ message })
+      body: JSON.stringify({
+        message,
+        dbConfig // 👈 Add this
+      })
     });
 
     if (!response.ok) {
@@ -123,15 +126,16 @@ const handleSendMessage = async (message) => {
           console.error('Failed to parse line:', line);
           continue;
         }
-          //log level can be added as well.
-          if (parsed.status === 'processing') {
-            setSystemMessages(prev => [
-              ...prev,
-              { name: parsed.name, text: parsed.text, level: parsed.level }
-            ]);
-          } else if (parsed.status === 'done') {
+
+        if (parsed.status === 'processing') {
+          setSystemMessages(prev => [
+            ...prev,
+            { name: parsed.name, text: parsed.text, level: parsed.level }
+          ]);
+          // done or error
+        } else if (parsed.status === 'done' || parsed.status === 'error') {
           assistantReply += parsed.text || '';
-}
+        }
       }
     }
 
