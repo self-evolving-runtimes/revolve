@@ -180,8 +180,20 @@ const handleSendMessage = async (message) => {
             <Button type="primary" block onClick={handleServerStart} style={{ marginBottom: 8 }}>Start</Button>
             <Button type="primary" danger block onClick={handleServerStop}>Stop</Button>
             <Divider />
+            {serverStatus.includes('http') ? (
+            <Text>
+              External server started at{' '}
+              <Typography.Link
+                href={serverStatus.match(/http:\/\/[^\s]+/)[0]}
+                target="_blank"
+              >
+                {serverStatus.match(/http:\/\/[^\s]+/)[0]}
+              </Typography.Link>
+            </Text>
+          ) : (
             <Text>{serverStatus}</Text>
-          </Panel>
+          )}          
+            </Panel>
         </Collapse>
       </Sider>
 
