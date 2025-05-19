@@ -36,18 +36,62 @@ const App = () => {
     }
   };
 
-  const handleSendMessage = async (message) => {
-    const newMessage = { role: 'user', content: message };
-    setChatMessages((prev) => [...prev, newMessage]);
+const handleSendMessage = async (message) => {
+  const newMessage = { role: 'user', content: message };
+  setChatMessages((prev) => [...prev, newMessage]);
 
-    try {
-      const response = await axios.post('/api/chat', { message });
-      const reply = { role: 'assistant', content: response.data.reply };
-      setChatMessages((prev) => [...prev, reply]);
-    } catch (error) {
-      console.error('Error sending message:', error);
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ message })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
     }
-  };
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let assistantReply = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n').filter(Boolean);
+
+      for (const line of lines) {
+        let parsed;
+        try {
+          parsed = JSON.parse(line);
+        } catch (err) {
+          console.error('Failed to parse line:', line);
+          continue;
+        }
+
+        if (parsed.status === 'processing') {
+          // You can update a loading indicator or status log here
+          console.log('Intermediate status:', parsed.text);
+          // Optionally update UI for processing state
+        } else if (parsed.status === 'done') {
+          assistantReply += parsed.text || '';
+        }
+      }
+    }
+
+    if (assistantReply) {
+      const reply = { role: 'assistant', content: assistantReply };
+      setChatMessages((prev) => [...prev, reply]);
+    }
+
+  } catch (error) {
+    console.error('Error sending message:', error);
+  }
+};
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
