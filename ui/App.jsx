@@ -147,12 +147,13 @@ const handleSendMessage = async (message) => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider width={300} style={{ background: '#f0f2f5', padding: '16px' }}>
+      <Sider width={400} style={{ background: '#f0f2f5', padding: '16px' }}>
         <Collapse defaultActiveKey={['1']}>
         <Panel header="System Messages" key="1">
           {systemMessages.length === 0 ? (
             <Text>No messages yet...</Text>
           ) : (
+            <div style={{ maxHeight: 500, overflowY: 'auto', paddingRight: 8 }}>
               <List
                 size="small"
                 dataSource={systemMessages}
@@ -161,19 +162,18 @@ const handleSendMessage = async (message) => {
                     key={index}
                     style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
                   >
-                  <List.Item.Meta
-                    title={
-                      <Text strong>{msg.name}</Text> 
-                    }
-                    description={
-                      <div style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                        {msg.text}
-                      </div>
-                    }
-                  />
+                    <List.Item.Meta
+                      title={<Text strong>{msg.name}</Text>}
+                      description={
+                        <div style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                          {msg.text}
+                        </div>
+                      }
+                    />
                   </List.Item>
                 )}
               />
+            </div>
           )}
         </Panel>
           <Panel header="Server Controls" key="2">
