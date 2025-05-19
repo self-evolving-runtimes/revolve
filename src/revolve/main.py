@@ -79,12 +79,15 @@ def router_node(state: State):
     test_status = state.get("test_status", None)
     resources = state.get("resources", None)
     dbSchema = state.get("DBSchema", None)
+
+    send = state.get("send")
+
     if not next_node:
 
         init_or_attach_git_repo()
         branch_name = create_branch_with_timestamp()
-        log("router_node", f"Branch created: {branch_name}")
-        log("router_node", "defaulting to generate_prompt_for_code_generation")
+        log("router_node", f"Branch created: {branch_name}",send)
+        log("router_node", "defaulting to generate_prompt_for_code_generation", send)
         new_trace = {
             "node_name": "router_node",
             "node_type": "router",
@@ -111,7 +114,7 @@ def router_node(state: State):
             new_test["table"] = table_object
             test_status.append(new_test)
                     
-        log("router_node", f"Routing to test_node")
+        log("router_node", f"Routing to test_node", send)
         new_trace = {
             "node_name": "router_node",
             "node_type": "router",
@@ -143,12 +146,13 @@ def router_node(state: State):
 
     else:
         save_state(state, "after_test")
-        log("router_node", f"routing to END")
+        log("router_node", "routing to END", send)
         return {
             "next_node": "__end__",
         }
 
 def test_node(state: State):
+    send = state.get("send")
     MAX_TEST_ITERATIONS = 3
     test_example = read_python_code_template("test_api.py")
     utils = read_python_code_template("utils.py")
@@ -156,12 +160,12 @@ def test_node(state: State):
     for test_item in state["test_status"]:
         is_foreign_key_exist = check_schema_if_has_foreign_key(test_item["table"]["columns"])
         if is_foreign_key_exist:
-            log("test_node", f"Skipping test generation for {test_item['resource_file_name']} as it has foreign key")
+            log("test_node", f"Skipping test generation for {test_item['resource_file_name']} as it has foreign key", send)
             test_item["status"] = "skipped"
             continue
         resouce_file = read_python_code(test_item["resource_file_name"])
         test_file_name = "test_"+test_item["resource_file_name"]
-        log("test_node", f"Creating and testing for {test_file_name}")
+        log("test_node", f"Creating and testing for {test_file_name}", send)
         table_name = test_item["table"]["table_name"]
         schema = str(test_item["table"]["columns"])
         
@@ -196,7 +200,7 @@ def test_node(state: State):
                     break
                 i += 1
             except ValidationError:
-                log("test_node", "Regenerating ")
+                log("test_node", f"Regenerating {test_file_name}", send)
                 i += 1
 
 
@@ -297,7 +301,7 @@ def test_node(state: State):
                             
                         i += 1
                     except ValidationError:
-                        log("test_node", "Regenerating test code")
+                        log("test_node", f"Regenerating test code", send)
                         i += 1
 
 
@@ -356,7 +360,7 @@ What is fixed: {new_test_code_response.what_is_fixed}
                 )
 
                 if code_history_item["test_report_after_revising"]["summary"]==code_history_item["test_report_before_revising"]["summary"]:
-                    log("test_node", f"Test success is not changing, stopping the iteration: {test_item['iteration_count']}")
+                    log("test_node", f"Test success is not changing, stopping the iteration: {test_item['iteration_count']}", send)
                     break
                 
                         
@@ -477,7 +481,8 @@ Here is the API code:\n{api_code}"""
     }
 
 def generate_prompt_for_code_generation(state: State):
-    log("generate_prompt_for_code_generation", "Started")
+    send  = state.get("send")
+    log("generate_prompt_for_code_generation", "Started", send)
     last_message_content = state["messages"][-1].content
     schemas = get_schemas_from_db()
 
@@ -502,7 +507,7 @@ def generate_prompt_for_code_generation(state: State):
                 break
             i += 1
         except ValidationError:
-            log("generate_prompt_for_code_generation", "Regenerating ")
+            log("generate_prompt_for_code_generation", "Regenerating prompt ", send)
             i += 1
 
 
@@ -516,7 +521,7 @@ def generate_prompt_for_code_generation(state: State):
         "description": "Table schemas extracted from the database and prompts generated for each table."
     }
 
-    log("generate_prompt_for_code_generation", "Completed")
+    log("generate_prompt_for_code_generation", "Completed", send)
 
     return {
         "DBSchema": structured_db_response,
@@ -713,7 +718,8 @@ def _process_table(state:State):
     }
 
 def generate_api(state:State):
-    log("generate_api", "Started")
+    send = state.get("send")
+    log("generate_api", "Started", send)
     resources = state.get("resources", [])
     added_sources = []
     if resources:
@@ -761,8 +767,13 @@ def generate_api(state:State):
         "trace": [new_trace]
     }
 
+def send_message(message):
+    print(f"{message}")
 
-def run_workflow(task=None, db_config=None):
+def run_workflow(task=None, db_config=None, send=None):
+    if send is None:
+        send = send_message
+
     if db_config:
         os.environ["DB_NAME"] = db_config["DB_NAME"]
         os.environ["DB_USER"] = db_config["DB_USER"]
@@ -776,12 +787,12 @@ def run_workflow(task=None, db_config=None):
                              db_port=os.environ["DB_PORT"],
                              db_name=os.environ["DB_NAME"])
     if not db_test_result:
-        yield {
-            "yield": False,
+        send({
+            "status":"error",
             "text": "Database connection failed. Please check your database configuration.",
             "name": "Database Connection Error"
-        }
-        return 
+        })
+         
          
     
     graph = StateGraph(State)
@@ -829,7 +840,7 @@ def run_workflow(task=None, db_config=None):
         #task = "Created crud operations for all the tables"
 
     # state = retrieve_state(state_file_name="after_test_2025-05-13_15-05-39.pkl", reset_tests=False)
-    for event in workflow.stream({"messages": [HumanMessage(task)]}): #workflow.stream(state):
+    for event in workflow.stream({"messages": [HumanMessage(task)], "send":send}): #workflow.stream(state):
         name = ""
         text = ""
         key = list(event.keys())[0]
@@ -837,16 +848,18 @@ def run_workflow(task=None, db_config=None):
             if "description" in event[key]["trace"][-1]:
                 name = event[key]["trace"][-1]["node_name"]
                 text = event[key]["trace"][-1]["description"]
-                yield {
-                    "yield":True,
+                send({
+                    "status":"processing",
                     "text":text,
-                    "name":name
-                }
-    yield {
-        "yield":False,
+                    "name":name,
+                    "level":"workflow"
+                })
+    send({
+        "status":"done",
         "text":"Task completed.",
-        "name":"Workflow"
-    }
+        "name":"Workflow",
+        "level":"workflow"
+    })
     
     #Running workflow with a state
     # result_state = workflow.invoke(retrieve_state(reset_tests=False, state_file_name="after_test_2025-05-07_14-31-48.pkl"))
