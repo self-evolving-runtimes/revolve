@@ -394,7 +394,8 @@ def create_schemas_endpoint(state: State):
 
 def report_node(state: State):
     task = state["messages"][0].content
-    create_ft_data(state)
+    if os.environ.get("FT_SAVE_MODE","false") == "true":
+        create_ft_data(state)
     create_test_report(task, state)
     commit_and_push_changes(
         message="Test report created.",

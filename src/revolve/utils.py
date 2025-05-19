@@ -1,4 +1,7 @@
 import json
+import time
+import os
+
 def make_serializable(obj):
     if hasattr(obj, '__dict__'):
         return {k: make_serializable(v) for k, v in obj.__dict__.items()}
@@ -23,7 +26,12 @@ def create_ft_data(state):
         samples_json = make_serializable(samples)
         with open(f"src/revolve/source_generated/ft_data.json", "w") as f:
             json.dump(samples_json, f, indent=4)
-    
+        
+        if os.path.exists("ft"):        
+            file_name_with_time = f"ft/ft_data_{int(time.time())}.json"
+            with open(file_name_with_time, "w") as f:
+                json.dump(samples_json, f, indent=4)
+        
     return samples, samples_json
 
 def create_report_json(state):
