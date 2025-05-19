@@ -7,7 +7,7 @@ import sys
 import os
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
-from src.revolve.main import run_workflow
+from src.revolve.workflow_generator import run_workflow_generator
 
 
 LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
@@ -28,7 +28,7 @@ class WorkflowResource:
         resp.content_type = 'application/x-ndjson'
 
         def generate():
-            for item in run_workflow(task=task):
+            for item in run_workflow_generator(task=task):
                 line = json.dumps(item) + "\n"
                 yield line.encode("utf-8")
 
