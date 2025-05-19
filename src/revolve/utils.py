@@ -1,4 +1,6 @@
 import json
+import random
+import subprocess
 import time
 import os
 
@@ -98,3 +100,42 @@ def create_test_report(task,state):
 
 
 
+process_state = {
+    "pid": None,
+    "port": None,
+    "link": None
+}
+
+def start_process():
+    if process_state["pid"] is not None:
+        return {"message": f"Server already running at {process_state['link']}"}
+
+    COMMAND = ["python", "api.py"]  
+    env_vars = os.environ.copy()
+    port = os.environ.get("PORT", str(random.randint(1024, 65535)))
+    env_vars["PORT"] = port
+    env_vars["STATIC_DIR"] = env_vars.get("STATIC_DIR", "-")
+
+    try:
+        code_dir = os.path.join(os.path.dirname(__file__), "source_generated")
+        process = subprocess.Popen(COMMAND, cwd=code_dir, env=env_vars)
+        process_state["pid"] = process.pid
+        process_state["port"] = port
+        process_state["link"] = f"http://localhost:{port}"
+        return {"message": f"External server started at {process_state['link']}"}
+    except Exception as e:
+        return {"error": f"Failed to start external process: {e}"}
+
+def stop_process():
+    pid = process_state.get("pid")
+    if pid:
+        try:
+            os.kill(pid, 9)
+            process_state["pid"] = None
+            process_state["port"] = None
+            process_state["link"] = None
+            return {"message": f"Process with PID {pid} stopped"}
+        except Exception as e:
+            return {"error": f"Failed to stop process: {e}"}
+    else:
+        return {"message": "No process is running"}
