@@ -15,6 +15,7 @@ def make_serializable(obj):
 def create_ft_data(state):
     test_status = state.get("test_status", {})
     samples = []
+    samples_json = []
     for test_sample in test_status:
         if test_sample["status"] == "success":
             if test_sample["iteration_count"]==0:
@@ -54,7 +55,7 @@ def create_test_report(task,state):
         for test_item in test_status:
             f.write("---\n")
             f.write(f"### 📄 {test_item['resource_file_name']}\n")
-            f.write(f"- **Status:** `{test_item['status']}`\n")
+            f.write(f"- **Test Status:** `{test_item['status']}`\n")
             f.write(f"- **Iteration Count:** `{test_item['iteration_count']}`\n\n")
             f.write(f"- **Test Summary:**\n")
             if "code_history" in test_item and len(test_item['code_history']) > 0:

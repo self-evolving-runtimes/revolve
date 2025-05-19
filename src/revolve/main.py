@@ -8,7 +8,7 @@ from pydantic_core import ValidationError
 
 from src.revolve.data_types import State, DBSchema, Table, Resource, NextNode, GeneratedCode, CodeHistoryMessage, Readme
 from langchain_openai import ChatOpenAI
-from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code, log, save_state, retrieve_state, run_pytest, test_db
+from src.revolve.functions import run_query_on_db, read_python_code, read_python_code_template, save_python_code, log, save_state, retrieve_state, run_pytest, test_db, get_schemas_from_db, check_schema_if_has_foreign_key
 from src.revolve.prompts import get_simple_prompt, get_test_generation_prompt, get_test_generation_prompt_ft, get_test_revising_prompt, get_test_revising_prompt_ft
 from datetime import datetime
 from langgraph.constants import Send
@@ -154,6 +154,11 @@ def test_node(state: State):
     utils = read_python_code_template("utils.py")
     api_code = read_python_code("api.py")
     for test_item in state["test_status"]:
+        is_foreign_key_exist = check_schema_if_has_foreign_key(test_item["table"]["columns"])
+        if is_foreign_key_exist:
+            log("test_node", f"Skipping test generation for {test_item['resource_file_name']} as it has foreign key")
+            test_item["status"] = "skipped"
+            continue
         resouce_file = read_python_code(test_item["resource_file_name"])
         test_file_name = "test_"+test_item["resource_file_name"]
         log("test_node", f"Creating and testing for {test_file_name}")
@@ -474,24 +479,7 @@ Here is the API code:\n{api_code}"""
 def generate_prompt_for_code_generation(state: State):
     log("generate_prompt_for_code_generation", "Started")
     last_message_content = state["messages"][-1].content
-    schemas = run_query_on_db("""SELECT jsonb_object_agg(
-            table_name,
-            columns
-        ) AS schema_dict
-    FROM (
-        SELECT
-            table_name,
-            jsonb_agg(
-                jsonb_build_object(
-                    'column_name', column_name,
-                    'data_type', data_type,
-                    'is_nullable', is_nullable
-                )
-            ) AS columns
-        FROM information_schema.columns
-        WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-        GROUP BY table_name
-    ) AS sub;""")
+    schemas = get_schemas_from_db()
 
     messages = [
         {
@@ -837,7 +825,7 @@ def run_workflow(task=None, db_config=None):
 
     #Running the workflow:
     if not task:
-        task = "Created crud operations for users table"
+        task = "Created crud operations for passes, satellites, ground stations and orbits"
         #task = "Created crud operations for all the tables"
     else:
         task = task[-1]["content"]
