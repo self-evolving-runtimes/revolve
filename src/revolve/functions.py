@@ -41,6 +41,71 @@ def retrieve_state(state_file_name="state_2025-05-01_16-28-50.pkl", reset_tests=
         backup_state["test_status"] = None
     return backup_state
 
+def check_schema_if_has_foreign_key(columns: Dict[str, Any]) -> bool:
+    for column in columns:
+        if column.get("foreign_key"):
+            return True
+    return False
+
+def get_schemas_from_db():
+
+    query_result = run_query_on_db("""SELECT jsonb_object_agg(
+            table_name,
+            columns
+        ) AS schema_dict
+    FROM (
+        SELECT
+            table_name,
+            jsonb_agg(
+                jsonb_build_object(
+                    'column_name', column_name,
+                    'data_type', data_type,
+                    'is_nullable', is_nullable
+                )
+            ) AS columns
+        FROM information_schema.columns
+        WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+        GROUP BY table_name
+    ) AS sub;""")
+
+    query_result = run_query_on_db("""
+SELECT jsonb_object_agg(
+           table_name,
+           columns
+       ) AS schema_dict
+FROM (
+    SELECT
+        c.table_name,
+        jsonb_agg(
+            jsonb_strip_nulls(
+                jsonb_build_object(
+                    'column_name', c.column_name,
+                    'data_type', c.data_type,
+                    'is_nullable', c.is_nullable,
+                    'foreign_key', jsonb_build_object(
+                        'foreign_table', ccu.table_name,
+                        'foreign_column', ccu.column_name
+                    )
+                )
+            )
+        ) AS columns
+    FROM information_schema.columns c
+    LEFT JOIN information_schema.key_column_usage kcu
+        ON c.table_name = kcu.table_name
+        AND c.column_name = kcu.column_name
+        AND c.table_schema = kcu.table_schema
+    LEFT JOIN information_schema.table_constraints tc
+        ON kcu.constraint_name = tc.constraint_name
+        AND tc.constraint_type = 'FOREIGN KEY'
+    LEFT JOIN information_schema.constraint_column_usage ccu
+        ON tc.constraint_name = ccu.constraint_name
+    WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
+    GROUP BY c.table_name
+) AS sub;
+""")
+
+    return query_result
+    
 
 def run_query_on_db(query: str) -> str:
     """
@@ -330,5 +395,6 @@ if __name__ =="__main__":
     # print(run_pytest("test_customers.py"))
     # print(run_pytest("test_owners.py"))
     # print(run_pytest("test_students.py"))
-    print(run_pytest("test_watch_history.py"))
+    # print(run_pytest("test_watch_history.py"))
+    print(get_schemas_from_db())
 
