@@ -9,13 +9,19 @@ from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
 from src.revolve.workflow_generator import run_workflow_generator
 from src.revolve.functions import test_db
+from src.revolve.utils import start_process, stop_process
 
+process_state = {
+    "pid": None,
+    "port": None,
+    "link": None
+}
 
 LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=LOGLEVEL)
 logger = logging.getLogger(__name__)
 
-class _MockWorkflowResource:
+class WorkflowResource:
     def on_post(self, req, resp):
         try:
             data = req.media 
@@ -35,7 +41,7 @@ class _MockWorkflowResource:
 
         resp.stream = generate()
 
-class WorkflowResource:
+class _MockWorkflowResource:
     def on_post(self, req, resp):
         try:
 
@@ -103,11 +109,26 @@ class TestDBResource:
             resp.status = falcon.HTTP_500
             resp.media = {"error": "Database connection failed."}
 
+class ServerControlResource:
+    def on_post(self, req, resp):
+        path = req.path
+        if path.endswith('/start'):
+            result = start_process()
+        elif path.endswith('/stop'):
+            result = stop_process()
+        else:
+            resp.status = falcon.HTTP_404
+            resp.media = {"error": "Unknown command"}
+            return
+
+        resp.status = falcon.HTTP_200
+        resp.media = result
 
 app = falcon.App()
 app.add_route("/api/chat", WorkflowResource())
 app.add_route("/api/test_db", TestDBResource())
-
+app.add_route("/api/start", ServerControlResource())
+app.add_route("/api/stop", ServerControlResource())
 
 
 # Threading WSGI server to handle concurrent requests
