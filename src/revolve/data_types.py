@@ -16,11 +16,15 @@ class Trace(TypedDict):
     trace_timestamp:datetime
 
 
+class ForeignKey(TypedDict):
+    foreign_table: str
+    foreign_column: str
+
 class Column(TypedDict):
     column: str
     type: str
     is_primary_key: bool
-    is_foreign_key: bool
+    foreign_key: ForeignKey
     is_unique: bool
     is_nullable: bool
     is_uid: str
