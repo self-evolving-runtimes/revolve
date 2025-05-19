@@ -201,5 +201,69 @@ I only need the code, do not add any other comments or explanations.
         },
     ]
 
+def get_process_table_prompt(utils_template: str, code_template: str, table_name: str, schemas: str, individual_prompt: str) -> list:
+    
+    system_prompt = f"""
+Generate resource code according to the user request.
+Make sure that you write production quality code that can be maintained by developers.
+Include a /<resource>/schema endpoint to get the schema of the resource so that we can auto generate ui forms.
+We are using falcon 4.02 for http - so only use parameters available from that version 
+Requests should be trackable with logs in INFO mode. Double check the imports.
+when using default values to sanitize input pl used `default` keyword in the method req.get_param('order',default='asc').lower()
+Make sure that you check whether data is serializable and convert data when needed.
+Guard against SQL injection attacks. Always sanitize inputs before sending it to database.
+While creating List functionality, provide functionality to sort, order by and filter based on
+key columns as well as skip , limit and total for pagination support. If the search filter is a date field, provide functionality to match greater than,
+less than and equal to date. Filter may not be specified - handle those cases as well.
+There could be multiple endpoints for the same resource.
+Use methods from utils if needed. Here is the utils.py file:
+{utils_template}
+Here are the templates for the generation:
+for the example api route 'app.add_route("/hello_db", HelloDBResource())'
+output should be like this:
+uri: /hello_db
+resource_object: HelloDBResource()
+resource_file_name: hellodb.py
+resouce_code : {code_template} 
+"""
+    
+
+    # add schemas and individual prompt to the user prompt
+    user_prompt = f"""
+Task : {individual_prompt}
+Table Name : {table_name}
+Schema : {schemas}
+"""
+
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt
+        },
+        {
+            "role": "user",
+            "content": user_prompt
+        }
+    ]
+    return messages
+
+def get_readme_prompt(api_code: str) -> list:
+    messages =  [
+                {
+                    "role": "system",
+                    "content": "You are a software engineer. You are responsible for writing the README file for the project. The README file should be in markdown format."
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+Write a clean and concise README.md file for a Python API (api.py) built using the Falcon framework. The README should include:
+env variables must be set in the .env file ("DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT")
+"pip install falcon falcon-cors psycopg2" should be installed
+Use the provided API code below as a reference when writing the README.
+Here is the API code:\n{api_code}"""
+                }
+            ]
+    return messages
+
 def get_simple_prompt(prompt_name: str) -> str:
     return prompt_list[prompt_name]
