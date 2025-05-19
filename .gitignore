@@ -5,6 +5,7 @@ build/
 dist/
 wheels/
 *.egg-info
+ui/node_modules/
 
 # Virtual environments
 .venv
@@ -18,3 +19,4 @@ report.json
 /test.py
 .DS_Store
 ft
+ui/package-lock.json
