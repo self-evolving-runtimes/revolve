@@ -3,10 +3,28 @@ import ReactDOM from 'react-dom/client';
 import 'antd/dist/reset.css';
 import axios from 'axios';
 import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, List ,
-  
 } from 'antd';
 import { RobotOutlined, UserOutlined } from '@ant-design/icons';
 import './index.css';
+import ReactMarkdown from 'react-markdown';
+
+const readmeMd = `## Welcome to Revolve
+
+**Revolve** is an agent-based code generation and editing tool designed to streamline your development workflow.
+
+### Getting Started
+
+1. Configure your database connection.
+2. Enter a task prompt describing what you want to build.
+
+### What Can Revolve Do?
+
+- Generate API endpoints based on your prompt.
+- Create service files with the required business logic.
+- Automatically write and include test cases for the generated code.
+- Continuously edit and refine existing code to match evolving requirements.
+`;
+
 
 const { Header, Sider, Content } = Layout;
 const { Panel } = Collapse;
@@ -142,7 +160,9 @@ const handleSendMessage = async (message) => {
           <Row gutter={[16, 16]}>
             <Col span={24}>
               <Collapse>
-                <Panel header="Readme" key="1">Readme content here...</Panel>
+                <Panel header="Readme" key="1">
+                  <ReactMarkdown>{readmeMd}</ReactMarkdown>
+                </Panel>
                 <Panel header="Database Configuration" key="2">Database config content here...</Panel>
                 <Panel header="Generated Resources" key="3">Generated resources content here...</Panel>
               </Collapse>

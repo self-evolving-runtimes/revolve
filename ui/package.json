@@ -8,7 +8,8 @@
     "antd": "^5.5.0",
     "axios": "^1.5.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0"
   },
   "devDependencies": {
     "vite": "^4.3.0"
