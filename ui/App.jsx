@@ -13,6 +13,7 @@ const { Panel } = Collapse;
 const { Text } = Typography;
 
 const App = () => {
+  const [systemMessages, setSystemMessages] = React.useState([]);
   const [serverStatus, setServerStatus] = React.useState('Server is not running');
   const [chatMessages, setChatMessages] = React.useState([
     { role: 'assistant', content: 'Hello! How can I assist you today?' }
@@ -72,14 +73,15 @@ const handleSendMessage = async (message) => {
           console.error('Failed to parse line:', line);
           continue;
         }
-
-        if (parsed.status === 'processing') {
-          // You can update a loading indicator or status log here
-          console.log('Intermediate status:', parsed.text);
-          // Optionally update UI for processing state
-        } else if (parsed.status === 'done') {
+          //log level can be added as well.
+          if (parsed.status === 'processing') {
+            setSystemMessages(prev => [
+              ...prev,
+              { name: parsed.name, text: parsed.text, level: parsed.level }
+            ]);
+          } else if (parsed.status === 'done') {
           assistantReply += parsed.text || '';
-        }
+}
       }
     }
 
@@ -97,9 +99,33 @@ const handleSendMessage = async (message) => {
     <Layout style={{ minHeight: '100vh' }}>
       <Sider width={300} style={{ background: '#f0f2f5', padding: '16px' }}>
         <Collapse defaultActiveKey={['1']}>
-          <Panel header="System Messages" key="1">
+        <Panel header="System Messages" key="1">
+          {systemMessages.length === 0 ? (
             <Text>No messages yet...</Text>
-          </Panel>
+          ) : (
+              <List
+                size="small"
+                dataSource={systemMessages}
+                renderItem={(msg, index) => (
+                  <List.Item
+                    key={index}
+                    style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
+                  >
+                  <List.Item.Meta
+                    title={
+                      <Text strong>{msg.name}</Text> 
+                    }
+                    description={
+                      <div style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        {msg.text}
+                      </div>
+                    }
+                  />
+                  </List.Item>
+                )}
+              />
+          )}
+        </Panel>
           <Panel header="Server Controls" key="2">
             <Button type="primary" block onClick={handleServerStart} style={{ marginBottom: 8 }}>Start</Button>
             <Button type="primary" danger block onClick={handleServerStop}>Stop</Button>
