@@ -1,6 +1,6 @@
 CREATE TABLE orbits (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100), -- e.g., "LEO-Polar", "GEO-East"
+    name VARCHAR(100),
     altitude_km INT,
     inclination_deg INT
 );
