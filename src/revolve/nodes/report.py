@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 from revolve.data_types import Readme, State
 from revolve.functions import read_python_code, save_python_code
+from revolve.prompts import get_readme_prompt
 from revolve.utils import create_ft_data, create_test_report
 from revolve.utils_git import commit_and_push_changes
 
@@ -33,20 +34,7 @@ def report_node(state: State):
     env_file.close()
     api_code = read_python_code("api.py")
 
-    messages =  [
-                    {
-                        "role": "system",
-                        "content": "You are a software engineer. You are responsible for writing the README file for the project. The README file should be in markdown format."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"""Write a clean and concise README.md file for a Python API (api.py) built using the Falcon framework. The README should include:
-env variables must be set in the .env file ("DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT")
-"pip install falcon falcon-cors psycopg2" should be installed
-Use the provided API code below as a reference when writing the README.
-Here is the API code:\n{api_code}"""
-                    }
-                ]
+    messages = get_readme_prompt(api_code)
     
     readme_result = invoke_llm(
         messages,
