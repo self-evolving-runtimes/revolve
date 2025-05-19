@@ -15,6 +15,6 @@ states
 .vscode/settings.json
 .webui_secret_key
 report.json
-test.py
+/test.py
 .DS_Store
 ft
