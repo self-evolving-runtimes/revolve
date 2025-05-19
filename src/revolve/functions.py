@@ -18,12 +18,24 @@ import psycopg2
 import json
 
 
-def log(method_name, description):
+def _log(method_name, description):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{method_name:<20} - {timestamp:<20} - {description:<30}")
 
+def log(method_name, description, send=None):
+    if send:
+        send({
+            "name": method_name,
+            "text": description,
+            "status":"processing",
+            "level":"log"}
+        )
+    _log(method_name, description)
+    
+
 def save_state(state, state_name="state"):
     try:
+        state.pop("send", None)
         time_stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         file_name = f"states/{state_name}_{time_stamp}.pkl"
         os.makedirs("states", exist_ok=True)
