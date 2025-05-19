@@ -827,8 +827,7 @@ def run_workflow(task=None, db_config=None):
     if not task:
         task = "Created crud operations for passes, satellites, ground stations and orbits"
         #task = "Created crud operations for all the tables"
-    else:
-        task = task[-1]["content"]
+
     # state = retrieve_state(state_file_name="after_test_2025-05-13_15-05-39.pkl", reset_tests=False)
     for event in workflow.stream({"messages": [HumanMessage(task)]}): #workflow.stream(state):
         name = ""
@@ -846,7 +845,7 @@ def run_workflow(task=None, db_config=None):
     yield {
         "yield":False,
         "text":"Task completed.",
-        "name":"Test Name"
+        "name":"Workflow"
     }
     
     #Running workflow with a state
