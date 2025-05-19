@@ -2,6 +2,9 @@ import json
 import time
 import os
 
+from revolve.data_types import State
+from revolve.functions import read_python_code, read_python_code_template, save_python_code
+
 def make_serializable(obj):
     if hasattr(obj, '__dict__'):
         return {k: make_serializable(v) for k, v in obj.__dict__.items()}
@@ -11,6 +14,30 @@ def make_serializable(obj):
         return [make_serializable(v) for v in obj]
     else:
         return obj
+
+def create_schemas_endpoint(state: State):
+    routes = set()
+    for item in state["resources"]:
+        module_name = item["resource_file_name"].replace(".py", "")
+        routes.add(module_name)
+
+    schemas_service = read_python_code_template("schemas.py")
+    for route in routes:
+        schemas_service = schemas_service.replace("## Routes", f'## Routes\n"{route}",')
+
+    save_python_code(
+        schemas_service,
+        "schemas.py"
+    )
+
+    api_code = read_python_code("api.py")
+    api_code = api_code.replace("###IMPORTS###", f"###IMPORTS###\nfrom schemas import SchemasResource")
+    api_code = api_code.replace("###ENDPOINTS###", f"###ENDPOINTS###\napp.add_route('/schemas', SchemasResource())")
+    save_python_code(
+        api_code,
+        "api.py"
+    )
+
 
 def create_ft_data(state):
     test_status = state.get("test_status", {})
