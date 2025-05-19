@@ -1427,7 +1427,6 @@ dependencies = [
     { name = "pytest" },
     { name = "pytest-json-report" },
     { name = "python-dotenv" },
-    { name = "streamlit" },
 ]
 
 [package.metadata]
@@ -1442,7 +1441,6 @@ requires-dist = [
     { name = "pytest" },
     { name = "pytest-json-report", specifier = ">=1.5.0" },
     { name = "python-dotenv" },
-    { name = "streamlit", specifier = ">=1.44.1" },
 ]
 
 [[package]]
@@ -1557,34 +1555,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl", hash = "sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695", size = 24521 },
 ]
 
-[[package]]
-name = "streamlit"
-version = "1.45.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "altair" },
-    { name = "blinker" },
-    { name = "cachetools" },
-    { name = "click" },
-    { name = "gitpython" },
-    { name = "numpy" },
-    { name = "packaging" },
-    { name = "pandas" },
-    { name = "pillow" },
-    { name = "protobuf" },
-    { name = "pyarrow" },
-    { name = "pydeck" },
-    { name = "requests" },
-    { name = "tenacity" },
-    { name = "toml" },
-    { name = "tornado" },
-    { name = "typing-extensions" },
-    { name = "watchdog", marker = "sys_platform != 'darwin'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c0/52/83d46b4c5044477e9c6dee779704a9d4041610439533af9c0a5084921098/streamlit-1.45.0.tar.gz", hash = "sha256:4e99014e113a11a7163b9da5ac079efb1ae5f8575a09c5a6a9c43cd6877a2a88", size = 9462166 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/ff/f41cfaf1bb58223fe77ff87213a689f6c9c82f7363f9d7c879d294dbe985/streamlit-1.45.0-py3-none-any.whl", hash = "sha256:b7d03ec68a23de0f1922ec9a28fbe3fe37d9fb31ad31d6c429d262c3631c2943", size = 9856265 },
-]
 
 [[package]]
 name = "tenacity"
