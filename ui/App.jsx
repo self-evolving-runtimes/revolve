@@ -6,7 +6,12 @@ import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, 
 } from 'antd';
 import { RobotOutlined, UserOutlined } from '@ant-design/icons';
 import './index.css';
+
+import { notification } from 'antd';
 import ReactMarkdown from 'react-markdown';
+
+
+
 
 const readmeMd = `## Welcome to Revolve
 
@@ -31,12 +36,38 @@ const { Panel } = Collapse;
 const { Text } = Typography;
 
 const App = () => {
+  const [dbConfig, setDbConfig] = React.useState({
+  DB_NAME: 'newdb',
+  DB_USER: 'postgres',
+  DB_PASSWORD: 'admin',
+  DB_HOST: 'localhost',
+  DB_PORT: '5432'
+});
+
+  const updateDbField = (key, value) => {
+  setDbConfig((prev) => ({ ...prev, [key]: value }));
+};
   const [systemMessages, setSystemMessages] = React.useState([]);
   const [inputValue, setInputValue] = React.useState('');
   const [serverStatus, setServerStatus] = React.useState('Server is not running');
   const [chatMessages, setChatMessages] = React.useState([
     { role: 'assistant', content: 'Hello! How can I assist you today?' }
   ]);
+
+  const handleTestConnection = async () => {
+    try {
+      const response = await axios.post('/api/test_db', dbConfig);
+      notification.success({
+        message: 'Connection Successful',
+        description: response.data?.message || 'Database is reachable.'
+      });
+    } catch (err) {
+      notification.error({
+        message: 'Connection Failed',
+        description: err.response?.data?.error || 'Unable to reach the database.'
+      });
+    }
+  };
 
   const handleServerStart = async () => {
     try {
@@ -163,7 +194,25 @@ const handleSendMessage = async (message) => {
                 <Panel header="Readme" key="1">
                   <ReactMarkdown>{readmeMd}</ReactMarkdown>
                 </Panel>
-                <Panel header="Database Configuration" key="2">Database config content here...</Panel>
+                <Panel header="Database Configuration" key="2">
+                  <List
+                    dataSource={Object.entries(dbConfig)}
+                    renderItem={([key, value]) => (
+                      <List.Item>
+                        <Text strong style={{ marginRight: 8 }}>{key}:</Text>
+                        <Input
+                          style={{ width: '70%' }}
+                          value={value}
+                          onChange={(e) => updateDbField(key, e.target.value)}
+                        />
+                      </List.Item>
+                    )}
+                  />
+                  <Divider />
+                  <Button type="primary" onClick={handleTestConnection}>
+                    Test Connection
+                  </Button>
+                </Panel>           
                 <Panel header="Generated Resources" key="3">Generated resources content here...</Panel>
               </Collapse>
             </Col>
