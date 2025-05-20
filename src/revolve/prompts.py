@@ -118,7 +118,7 @@ Write test methods foreach function in the resource code:
     ]
 
 def get_test_revising_prompt(individual_prompt: str, source_code: str, example_resource_code: str, test_code: str, api_code: str, table_name: str, schema: str, utils: str, pytest_response: str, resource_file_name:str) -> str:
-    new_system_message = f"""
+    new_system_message = """
 You are responsible for fixing the errors.
 Fix the test or the source code according to the test report provided by user.
 You are responsible for writing the test cases for the given code.
@@ -158,7 +158,7 @@ And Here is the report of the failing tests:
     ]
 
 def get_test_revising_prompt_ft(individual_prompt: str, source_code: str, example_resource_code: str, test_code: str, api_code: str, table_name: str, schema: str, utils: str, pytest_response: str, resource_file_name:str) -> str:
-    new_system_message = f"""
+    new_system_message = """
 ### SYSTEM ###
 You are responsible for fixing the errors.
 Fix the test or the source code according to the test report provided by user.
