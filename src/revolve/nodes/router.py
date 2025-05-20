@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from src.revolve.data_types import State
-from src.revolve.functions import log, save_state
-from src.revolve.utils_git import init_or_attach_git_repo, create_branch_with_timestamp
+from revolve.data_types import State
+from revolve.functions import log, save_state
+from revolve.utils_git import init_or_attach_git_repo, create_branch_with_timestamp
 
 
 def router_node(state: State):

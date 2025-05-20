@@ -1,5 +1,5 @@
 from pydantic_core import ValidationError
-from src.revolve.data_types import *
+from revolve.data_types import *
 from langchain_openai import ChatOpenAI
 
 def invoke_llm(messages, max_attempts=3, validation_class=None, method="function_calling", logger=None, manual_validation=False):

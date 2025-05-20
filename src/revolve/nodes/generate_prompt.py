@@ -1,10 +1,10 @@
 from pydantic_core import ValidationError
 from revolve.prompts import get_simple_prompt
-from src.revolve.functions import get_schemas_from_db, log
-from src.revolve.data_types import DBSchema, State
+from revolve.functions import get_schemas_from_db, log
+from revolve.data_types import DBSchema, State
 from datetime import datetime
 
-from src.revolve.llm import invoke_llm
+from revolve.llm import invoke_llm
 
 
 

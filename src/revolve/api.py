@@ -7,9 +7,10 @@ import sys
 import os
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
-from src.revolve.workflow_generator import run_workflow_generator
-from src.revolve.functions import test_db, get_file_list, read_python_code
-from src.revolve.utils import start_process, stop_process
+from revolve.workflow_generator import run_workflow_generator
+from revolve.functions import test_db, get_file_list, read_python_code
+from revolve.utils import start_process, stop_process
+from wsgiref.simple_server import make_server, WSGIRequestHandler
 
 process_state = {
     "pid": None,
@@ -17,9 +18,18 @@ process_state = {
     "link": None
 }
 
-LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
-logging.basicConfig(level=LOGLEVEL)
+logging.basicConfig(level=logging.INFO, filename="api.log")
 logger = logging.getLogger(__name__)
+
+
+class LoggingWSGIRequestHandler(WSGIRequestHandler):
+    #     daemon_threads = True
+    def log_message(self, format, *args):
+        logger.info("%s - - [%s] %s\n" % (
+            self.client_address[0],
+            self.log_date_time_string(),
+            format % args
+        ))
 
 class WorkflowResource:
     def on_post(self, req, resp):
@@ -163,14 +173,21 @@ app.add_route("/api/stop", ServerControlResource())
 app.add_route("/api/get-file-list", FileResource())
 app.add_route("/api/get-file", FileResource())
 
+#get current directory
+static_resource = f"{os.path.dirname(os.path.abspath(__file__))}/ui/dist"
+# Route handling:
+app.add_static_route("/{filepath:path}", static_resource)
+app.add_static_route("/", static_resource, fallback_filename='index.html')
 
-# Threading WSGI server to handle concurrent requests
+
+# # Threading WSGI server to handle concurrent requests
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     daemon_threads = True
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("API_PORT", "48001"))
-    with make_server("", port, app, ThreadingWSGIServer) as httpd:
+    with make_server("", port, app, server_class=ThreadingWSGIServer, handler_class=LoggingWSGIRequestHandler) as httpd:
         logger.info(f"Serving on http://localhost:{port}/")
+        print(f"Serving on http://localhost:{port}/")
         httpd.serve_forever()
