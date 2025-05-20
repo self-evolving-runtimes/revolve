@@ -65,7 +65,7 @@ def router_node(state: State):
             new_test["table"] = table_object
             test_status.append(new_test)
                     
-        log("router_node", f"Routing to test_node", send)
+        log("router_node", "Routing to test_node", send)
         new_trace = {
             "node_name": "router_node",
             "node_type": "router",
@@ -81,7 +81,7 @@ def router_node(state: State):
         }
     elif next_node == "test_node":
         next_node = "report_node"
-        log("router_node", f"Routing to report_node")
+        log("router_node", "Routing to report_node")
         new_trace = {
             "node_name": "router_node",
             "node_type": "router",

@@ -4,10 +4,6 @@ import subprocess
 from datetime import datetime
 from revolve.external import get_source_folder
 
-import subprocess
-import os
-from datetime import datetime
-import shutil
 
 
 def run_git_command(args, cwd="."):
