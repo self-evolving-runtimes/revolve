@@ -2,13 +2,15 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import 'antd/dist/reset.css';
 import axios from 'axios';
-import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, List, Spin
+import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, List, Spin, Modal
 } from 'antd';
-import { RobotOutlined, UserOutlined } from '@ant-design/icons';
+import { RobotOutlined, UserOutlined,  FileTextOutlined, FileMarkdownOutlined, FileOutlined, FileUnknownOutlined } from '@ant-design/icons';
 import './index.css';
 
 import { notification } from 'antd';
 import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 
 
@@ -30,6 +32,7 @@ const readmeMd = `## Welcome to Revolve
 `;
 
 
+
 const { Header, Sider, Content } = Layout;
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -42,6 +45,46 @@ const App = () => {
   DB_HOST: 'localhost',
   DB_PORT: '5432'
 });
+
+const getFileIcon = (filename) => {
+  if (filename.endsWith('.py')) return <FileTextOutlined />;
+  if (filename.endsWith('.md')) return <FileMarkdownOutlined />;
+  if (filename.endsWith('.json')) return <FileOutlined />; 
+  return <FileUnknownOutlined />;
+};
+
+  React.useEffect(() => {
+    const fetchFileList = async () => {
+      try {
+        const response = await axios.get('/api/get-file-list');
+        setFileList(response.data.files);
+      } catch (err) {
+        console.error('Failed to fetch file list:', err);
+      }
+    };
+
+      fetchFileList(); // Initial fetch
+      const interval = setInterval(fetchFileList, 10000); // Fetch every 5 seconds
+
+      return () => clearInterval(interval); // Clean up on unmount
+    }, []);
+
+    const handleFileClick = async (fileName) => {
+    try {
+      const response = await axios.get('/api/get-file', {
+        params: { name: fileName }
+      });
+      setSelectedFile(fileName);
+      setFileContent(response.data.content);
+      setIsModalOpen(true);
+    } catch (err) {
+      console.error('Failed to fetch file content:', err);
+    }
+  };
+  const [fileList, setFileList] = React.useState([]);
+  const [selectedFile, setSelectedFile] = React.useState(null);
+  const [fileContent, setFileContent] = React.useState('');
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -233,7 +276,39 @@ const handleSendMessage = async (message) => {
                     Test Connection
                   </Button>
                 </Panel>           
-                <Panel header="Generated Resources" key="3">Generated resources content here...</Panel>
+                <Panel header="Generated Resources" key="3">
+                  {fileList.length === 0 ? (
+                    <Text type="secondary">No files generated yet.</Text>
+                  ) : (
+                    <Row gutter={[16, 16]}>
+                      {fileList.map((file) => (
+                        <Col
+                          key={file}
+                          xs={24}  // 1 column on extra small
+                          sm={12}  // 2 columns on small screens
+                          md={8}   // 3 columns on medium and up
+                        >
+                          <div
+                            onClick={() => handleFileClick(file)}
+                            style={{
+                              padding: '12px',
+                              border: '1px solid #f0f0f0',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              transition: 'background 0.2s',
+                              background: '#fff',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f5f5')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+                          >
+                            {getFileIcon(file)} <Text code>{file}</Text>
+                          </div>
+                        </Col>
+                      ))}
+                    </Row>
+                  )}
+                
+                </Panel>
               </Collapse>
             </Col>
 
@@ -282,7 +357,41 @@ const handleSendMessage = async (message) => {
             </Col>
           </Row>
         </Content>
+
       </Layout>
+                      <Modal
+          title={selectedFile}
+          open={isModalOpen}
+          onCancel={() => setIsModalOpen(false)}
+          footer={null}
+          width={1200}
+        >
+          <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+          <ReactMarkdown
+            components={{
+              code({ node, inline, className, children, ...props }) {
+                const match = /language-(\w+)/.exec(className || '');
+                return !inline && match ? (
+                  <SyntaxHighlighter
+                    style={oneDark}
+                    language={match[1]}
+                    PreTag="div"
+                    {...props}
+                  >
+                    {String(children).replace(/\n$/, '')}
+                  </SyntaxHighlighter>
+                ) : (
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                );
+              },
+            }}
+          >
+            {fileContent}
+          </ReactMarkdown>
+          </div>
+        </Modal>
     </Layout>
   );
 };

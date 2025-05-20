@@ -44,6 +44,7 @@ def run_workflow(task=None, db_config=None, send=None):
             "text": "Database connection failed. Please check your database configuration.",
             "name": "Database Connection Error"
         })
+        return
          
          
     
