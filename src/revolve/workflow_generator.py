@@ -1,5 +1,5 @@
 from queue import SimpleQueue
-from src.revolve.main import run_workflow
+from revolve.main import run_workflow
 
 def run_workflow_generator(task, db_config=None):
     q = SimpleQueue()

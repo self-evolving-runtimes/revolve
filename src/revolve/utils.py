@@ -5,6 +5,7 @@ import time
 import os
 
 from revolve.data_types import State
+from revolve.external import get_source_folder
 from revolve.functions import read_python_code, read_python_code_template, save_python_code
 
 def make_serializable(obj):
@@ -54,7 +55,7 @@ def create_ft_data(state):
 
     if len(samples)>0:
         samples_json = make_serializable(samples)
-        with open(f"src/revolve/source_generated/ft_data.json", "w") as f:
+        with open(f"{get_source_folder()}/ft_data.json", "w") as f:
             json.dump(samples_json, f, indent=4)
         
         if os.path.exists("ft"):        
@@ -64,10 +65,11 @@ def create_ft_data(state):
         
     return samples, samples_json
 
+
 def create_report_json(state):
     test_status = state.get("test_status", {})
     test_status_json = make_serializable(test_status)
-    with open(f"src/revolve/source_generated/test_status_history.json", "w") as f:
+    with open(f"{get_source_folder()}/test_status_history.json", "w") as f:
         json.dump(test_status_json, f, indent=4)
     
     return test_status, test_status_json    
@@ -75,7 +77,7 @@ def create_report_json(state):
 def create_test_report(task,state):
 
     test_status, _ = create_report_json(state)
-    output_path = "src/revolve/source_generated/test_status_report.md"
+    output_path = f"{get_source_folder()}/test_status_report.md"
 
     with open(output_path, "w") as f:
         f.write("# Test Report\n\n")
@@ -117,7 +119,7 @@ def start_process():
     env_vars["STATIC_DIR"] = env_vars.get("STATIC_DIR", "-")
 
     try:
-        code_dir = os.path.join(os.path.dirname(__file__), "source_generated")
+        code_dir = f"{get_source_folder()}"
         process = subprocess.Popen(COMMAND, cwd=code_dir, env=env_vars)
         process_state["pid"] = process.pid
         process_state["port"] = port
