@@ -8,7 +8,7 @@ import os
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
 from src.revolve.workflow_generator import run_workflow_generator
-from src.revolve.functions import test_db
+from src.revolve.functions import test_db, get_file_list, read_python_code
 from src.revolve.utils import start_process, stop_process
 
 process_state = {
@@ -58,7 +58,7 @@ class _MockWorkflowResource:
 
         def generate():
             # Simulate 3 intermediate messages and 1 final message
-            for i in range(3):
+            for i in range(10):
                 message = {
                     "status": "processing",
                     "name": "node",
@@ -66,7 +66,7 @@ class _MockWorkflowResource:
                     "text": f"Step {i+1} kljhslkdhj lksahlkdfhsal dfhklshalkf haslkhf lksahklfh aslkdfh laskhfs alkhfkl saklfhsal kflsahlkfhsa lkflkashlk flsakhf lksahflk hasklhf lskahflksa flkahsl kfhklashf lksahklfh alskfhak lsflkas alfhla ksfh lshfkla completed"
                 }
                 yield (json.dumps(message) + "\n").encode("utf-8")
-                time.sleep(1)  # Delay of 1 second
+                time.sleep(2)  # Delay of 1 second
 
             final_message = {
                 "status": "done",
@@ -77,6 +77,36 @@ class _MockWorkflowResource:
             yield (json.dumps(final_message) + "\n").encode("utf-8")
 
         resp.stream = generate()
+
+
+class FileResource:
+    def on_get(self, req, resp):
+        path = req.path
+
+        if path.endswith('/get-file-list'):
+            self.get_file_list(req, resp)
+        elif path.endswith('/get-file'):
+            self.get_file(req, resp)
+        else:
+            resp.status = falcon.HTTP_404
+            resp.media = {"error": "Unknown file endpoint"}
+
+    def get_file_list(self, req, resp):
+        file_list = get_file_list()
+        file_list = [f for f in file_list if f.endswith(('.py', '.json', '.md'))]
+        file_list.sort()
+        resp.status = falcon.HTTP_200
+        resp.media = {"files": file_list}
+
+    def get_file(self, req, resp):
+        file_name = req.get_param("name")
+        content = read_python_code(file_name)
+        if file_name.endswith(".py"):
+            content = f"```python\n{content}\n```"
+        elif file_name.endswith(".json"):
+            content = f"```json\n{content}\n```"
+        resp.status = falcon.HTTP_200
+        resp.media = {"content": content}
 
 class TestDBResource:
     def on_post(self, req, resp):
@@ -130,6 +160,8 @@ app.add_route("/api/chat", WorkflowResource())
 app.add_route("/api/test_db", TestDBResource())
 app.add_route("/api/start", ServerControlResource())
 app.add_route("/api/stop", ServerControlResource())
+app.add_route("/api/get-file-list", FileResource())
+app.add_route("/api/get-file", FileResource())
 
 
 # Threading WSGI server to handle concurrent requests

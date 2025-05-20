@@ -365,6 +365,14 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
                 "summary": {},
             }
 
+def get_file_list():
+    try:
+        file_list = os.listdir("src/revolve/source_generated")
+    except Exception as e:
+        log("get_file_list", f"Error getting file list: {e}")
+        return f"Error getting file list: {e}"
+    return file_list
+
 def test_db(
     db_name: str, db_user: str, db_password: str, db_host: str, db_port: str
 ) -> str:
