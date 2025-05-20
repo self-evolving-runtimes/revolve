@@ -1,4 +1,3 @@
-from pydantic_core import ValidationError
 from revolve.prompts import get_simple_prompt
 from revolve.functions import get_schemas_from_db, log
 from revolve.data_types import DBSchema, State

@@ -2,7 +2,6 @@ import time
 import falcon
 import logging
 import json
-import traceback
 import sys
 import os
 from wsgiref.simple_server import make_server, WSGIServer
@@ -10,7 +9,7 @@ from socketserver import ThreadingMixIn
 from revolve.workflow_generator import run_workflow_generator
 from revolve.functions import test_db, get_file_list, read_python_code
 from revolve.utils import start_process, stop_process
-from wsgiref.simple_server import make_server, WSGIRequestHandler
+from wsgiref.simple_server import WSGIRequestHandler
 
 process_state = {
     "pid": None,
@@ -37,6 +36,7 @@ class WorkflowResource:
             data = req.media 
             task = data.get("message", None)
             db_config = data.get("dbConfig", {})
+            logger.info("Received task: %s", task)
         except Exception:
             resp.status = falcon.HTTP_400
             resp.media = {"error": "Invalid JSON"}
@@ -58,6 +58,7 @@ class _MockWorkflowResource:
 
             data = req.media
             task = data.get("message", None)
+            logger.info("Received task: %s", task)
         except Exception:
             resp.status = falcon.HTTP_400
             resp.media = {"error": "Invalid JSON"}
