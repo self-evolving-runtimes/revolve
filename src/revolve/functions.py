@@ -4,20 +4,17 @@ from datetime import datetime
 import time
 import os
 from pathlib import Path
-import shutil
 from pprint import pprint
 
 import subprocess
-from dotenv import load_dotenv
-from pydantic import BaseModel
-from typing import Any, Dict, List, Optional, Any
-from langchain_openai import ChatOpenAI
+from typing import Dict, List, Any
 import pickle
 
 import json
 from revolve.external import get_source_folder
 import psycopg2
 from psycopg2 import errors, sql
+import sqlparse
 
 
 def _log(method_name, description):
@@ -389,7 +386,7 @@ def test_db(
         db_host (str): The host of the database.
         db_port (str): The port of the database.
     """
-    log("test_db", f"Testing database connection...")
+    log("test_db", "Testing database connection...")
     try:
         conn = psycopg2.connect(
             dbname=db_name,
@@ -399,7 +396,7 @@ def test_db(
             port=db_port,
         )
         conn.close()
-    except Exception as e:
+    except Exception:
         return False
 
     return True
