@@ -53,6 +53,18 @@ const getFileIcon = (filename) => {
   return <FileUnknownOutlined />;
 };
 
+const [suggestions, setSuggestions] = React.useState([
+  'Create CRUD Operations for all the tables',
+  'Generate CRUD Operations for the doctors table',
+  'Run unit tests for all services',
+  'Generate a new service for the satellite and the related tables',
+]);
+
+const handleSuggestionClick = (text) => {
+  setInputValue(text);
+  setSuggestions([]);
+};
+
   React.useEffect(() => {
     const fetchFileList = async () => {
       try {
@@ -312,14 +324,38 @@ const handleSendMessage = async (message) => {
               </Collapse>
             </Col>
 
-            <Col span={24}>
-              <Space size="middle">
-                <Button>CRUD Operations</Button>
-                <Button>API Endpoints</Button>
-                <Button>Refactor Code</Button>
-                <Button>Run Tests</Button>
-              </Space>
-            </Col>
+
+          <Col span={24}>
+            <Space size="middle" wrap>
+              {suggestions.map((suggestion, index) => (
+                <div
+                  key={index}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    background: '#ffffff',
+                    color: '#001529',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    border: '1px solid #001529',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#001529';
+                    e.currentTarget.style.color = '#ffffff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#ffffff';
+                    e.currentTarget.style.color = '#001529';
+                  }}
+                >
+                  {suggestion}
+                </div>
+              ))}
+            </Space>
+          </Col>
 
             <Col span={24}>
                 <Spin spinning={isLoading}>
