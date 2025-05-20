@@ -1,10 +1,9 @@
-// vite.config.js
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  /*
   server: {
     proxy: {
       '/api': {
@@ -14,5 +13,12 @@ export default defineConfig({
       },
     },
   },
+  */
 });
 
+
+
+// export default defineConfig({
+//   plugins: [react()],
+//   // No need for a proxy if same origin
+// });
