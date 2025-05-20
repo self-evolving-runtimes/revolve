@@ -184,10 +184,26 @@ app.add_static_route("/", static_resource, fallback_filename='index.html')
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     daemon_threads = True
 
+#function to check if env vars are set
+def check_env_vars():
+    required_vars = ["SOURCE_FOLDER", "OPENAI_API_KEY"]
+    missing = []
+    for var in required_vars:
+        if var not in os.environ:
+            missing.append(var)
+    if len(missing) > 0:
+        #print with emoji and red with f""
+        print("\033[91m" + "❌" + "\033[0m", end=" ")
+        print(f"Missing environment variables: {', '.join(missing)}")
+        #raise exception and exit
+        sys.exit(1)
 
 if __name__ == "__main__":
+    check_env_vars()
     port = int(os.environ.get("API_PORT", "48001"))
     with make_server("", port, app, server_class=ThreadingWSGIServer, handler_class=LoggingWSGIRequestHandler) as httpd:
         logger.info(f"Serving on http://localhost:{port}/")
+        #print port with emoji and green
+        print("\033[92m" + "✅" + "\033[0m", end=" ")
         print(f"Serving on http://localhost:{port}/")
         httpd.serve_forever()
