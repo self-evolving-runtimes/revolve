@@ -1,15 +1,15 @@
 from langgraph.graph import StateGraph, START, END
 from langchain_core.messages import HumanMessage
 
-from src.revolve.data_types import State
-from src.revolve.functions import test_db
+from revolve.data_types import State
+from revolve.functions import test_db
 
 from datetime import datetime
 from langgraph.constants import Send
-from src.revolve.utils_git import *
+from revolve.utils_git import *
 
 
-from src.revolve.nodes import (
+from revolve.nodes import (
     router_node,
     generate_prompt_for_code_generation,
     process_table,

@@ -16,6 +16,7 @@ import pickle
 
 import psycopg2
 import json
+from revolve.external import get_source_folder
 
 
 def _log(method_name, description):
@@ -161,12 +162,12 @@ def save_python_code(python_code: str, file_name: str) -> str:
     """
 
     #create the directory if it doesn't exist
-    os.makedirs("src/revolve/source_generated", exist_ok=True)
+    os.makedirs(f"{get_source_folder()}", exist_ok=True)
 
     # log("save_python_code", f"Saving python code to file: {file_name}")
     python_code = python_code.encode("utf-8").decode("unicode_escape")
     try:
-        with open(f"src/revolve/source_generated/{file_name}", "w") as f:
+        with open(f"{get_source_folder()}/{file_name}", "w") as f:
             f.write(python_code)
     except Exception as e:
         log("save_python_code", f"Error saving python code: {e}")
@@ -183,7 +184,7 @@ def read_python_code(file_name: str) -> str:
     """
     # log("get_python_code", f"Getting python code from file: {file_name}")
     try:
-        with open(f"src/revolve/source_generated/{file_name}", "r") as f:
+        with open(f"{get_source_folder()}/{file_name}", "r") as f:
             python_code = f.read()
     except Exception as e:
         log("get_python_code", f"Error getting python code: {e}")
@@ -200,7 +201,7 @@ def read_python_code_template(file_name: str) -> str:
     """
     # log("read_python_code_template", f"Getting python code from file: {file_name}")
     try:
-        with open(f"src/revolve/source_template/{file_name}", "r") as f:
+        with open(f"revolve/source_template/{file_name}", "r") as f:
             python_code = f.read()
     except Exception as e:
         log("read_python_code_template", f"Error getting python code: {e}")
@@ -228,7 +229,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
         result = subprocess.run(
             [
                 "pytest",
-                f"src/revolve/source_generated/{file_name}",
+                f"{get_source_folder()}/{file_name}",
                 "--json-report",
                 f"--json-report-file={report_path}",
                 "--log-cli-level=DEBUG",
@@ -367,7 +368,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
 
 def get_file_list():
     try:
-        file_list = os.listdir("src/revolve/source_generated")
+        file_list = os.listdir(f"{get_source_folder()}")
     except Exception as e:
         log("get_file_list", f"Error getting file list: {e}")
         return f"Error getting file list: {e}"
