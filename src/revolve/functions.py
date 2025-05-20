@@ -202,7 +202,9 @@ def read_python_code_template(file_name: str) -> str:
     """
     # log("read_python_code_template", f"Getting python code from file: {file_name}")
     try:
-        with open(f"revolve/source_template/{file_name}", "r") as f:
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "source_template", file_name)
+        
+        with open(file_path, "r") as f:
             python_code = f.read()
     except Exception as e:
         log("read_python_code_template", f"Error getting python code: {e}")
