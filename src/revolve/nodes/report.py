@@ -5,6 +5,7 @@ from revolve.data_types import Readme, State
 from revolve.functions import read_python_code, save_python_code
 from revolve.prompts import get_readme_prompt
 from revolve.utils import create_ft_data, create_test_report
+from revolve.external import get_source_folder
 from revolve.utils_git import commit_and_push_changes
 
 from revolve.llm import invoke_llm
@@ -25,7 +26,7 @@ def report_node(state: State):
         description="All done"
     )
     
-    env_file = open("src/revolve/source_generated/.env", "w")
+    env_file = open(f"{get_source_folder()}/.env", "w")
     env_file.write(f"DB_NAME={os.environ['DB_NAME']}\n")
     env_file.write(f"DB_USER={os.environ['DB_USER']}\n")
     env_file.write(f"DB_PASSWORD={os.environ['DB_PASSWORD']}\n")

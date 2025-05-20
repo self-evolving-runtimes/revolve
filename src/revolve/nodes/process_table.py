@@ -5,7 +5,7 @@ from pydantic_core import ValidationError
 from revolve.data_types import Resource, Table
 from revolve.functions import log, read_python_code_template, save_python_code
 from revolve.prompts import get_process_table_prompt
-from src.revolve.llm import invoke_llm
+from revolve.llm import invoke_llm
 
 
 def process_table(table_state:Table):
