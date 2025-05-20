@@ -2,14 +2,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import 'antd/dist/reset.css';
 import axios from 'axios';
-import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, List ,
+import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, List, Spin
 } from 'antd';
 import { RobotOutlined, UserOutlined } from '@ant-design/icons';
 import './index.css';
 
 import { notification } from 'antd';
 import ReactMarkdown from 'react-markdown';
-
 
 
 
@@ -44,9 +43,12 @@ const App = () => {
   DB_PORT: '5432'
 });
 
+  const [isLoading, setIsLoading] = React.useState(false);
+
+
   const updateDbField = (key, value) => {
   setDbConfig((prev) => ({ ...prev, [key]: value }));
-};
+  };
   const [systemMessages, setSystemMessages] = React.useState([]);
   const [inputValue, setInputValue] = React.useState('');
   const [serverStatus, setServerStatus] = React.useState('Server is not running');
@@ -90,6 +92,7 @@ const App = () => {
 const handleSendMessage = async (message) => {
   const newMessage = { role: 'user', content: message };
   setChatMessages((prev) => [...prev, newMessage]);
+  setIsLoading(true); // Start spinner
 
   try {
     const response = await fetch('/api/chat', {
@@ -99,7 +102,7 @@ const handleSendMessage = async (message) => {
       },
       body: JSON.stringify({
         message,
-        dbConfig // 👈 Add this
+        dbConfig
       })
     });
 
@@ -132,7 +135,6 @@ const handleSendMessage = async (message) => {
             ...prev,
             { name: parsed.name, text: parsed.text, level: parsed.level }
           ]);
-          // done or error
         } else if (parsed.status === 'done' || parsed.status === 'error') {
           assistantReply += parsed.text || '';
         }
@@ -146,6 +148,8 @@ const handleSendMessage = async (message) => {
 
   } catch (error) {
     console.error('Error sending message:', error);
+  } finally {
+    setIsLoading(false); // Stop spinner
   }
 };
 
@@ -243,35 +247,38 @@ const handleSendMessage = async (message) => {
             </Col>
 
             <Col span={24}>
-              <div style={{ background: '#fafafa', padding: '16px', minHeight: 300, overflowY: 'auto', marginBottom: 16 }}>
-                <List
-                  dataSource={chatMessages}
-                  renderItem={(item) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={
-                          item.role === 'user' ? <UserOutlined /> : <RobotOutlined />
-                        }
-                        title={item.role === 'user' ? 'You' : 'Assistant'}
-                        description={item.content}
-                      />
-                    </List.Item>
-                  )}
-                />
-              </div>
-                <Input
-                  placeholder="Type a message..."
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onPressEnter={() => {
-                    const message = inputValue.trim();
-                    if (message) {
-                      handleSendMessage(message);
-                      setInputValue('');
-                    }
-                  }}
-                  style={{ marginTop: 16 }}
-                />
+                <Spin spinning={isLoading}>
+                  <div style={{ background: '#fafafa', padding: '16px', minHeight: 300, overflowY: 'auto', marginBottom: 16 }}>
+                    <List
+                      dataSource={chatMessages}
+                      renderItem={(item) => (
+                        <List.Item>
+                          <List.Item.Meta
+                            avatar={
+                              item.role === 'user' ? <UserOutlined /> : <RobotOutlined />
+                            }
+                            title={item.role === 'user' ? 'You' : 'Assistant'}
+                            description={item.content}
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  </div>
+                </Spin>
+                  <Input
+                    placeholder="Type a message..."
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onPressEnter={() => {
+                      const message = inputValue.trim();
+                      if (message && !isLoading) {
+                        handleSendMessage(message);
+                        setInputValue('');
+                      }
+                    }}
+                    disabled={isLoading} // 🔒 disable while loading
+                    style={{ marginTop: 16 }}
+                  />
             </Col>
           </Row>
         </Content>
