@@ -14,9 +14,10 @@ from typing import Any, Dict, List, Optional, Any
 from langchain_openai import ChatOpenAI
 import pickle
 
-import psycopg2
 import json
 from revolve.external import get_source_folder
+import psycopg2
+from psycopg2 import errors, sql
 
 
 def _log(method_name, description):
@@ -400,11 +401,171 @@ def test_db(
         return False
 
     return True
-       
 
 
+def recreate_database_psycopg2(dbname, user, password, host, port):
+    """Drop and recreate the target database using psycopg2."""
+    conn = psycopg2.connect(
+        dbname="postgres",  # connect to control DB
+        user=user,
+        password=password,
+        host=host,
+        port=port
+    )
+    conn.set_session(autocommit=True)
+    with conn.cursor() as cur:
+        try:
+            cur.execute(f"DROP DATABASE IF EXISTS {dbname};")
+            print(f"✅ Dropped database '{dbname}'")
+        except Exception as e:
+            print(f"⚠️ Failed to drop: {e}")
+        try:
+            cur.execute(f"CREATE DATABASE {dbname};")
+            print(f"✅ Created database '{dbname}'")
+        except Exception as e:
+            print(f"❌ Failed to create database: {e}")
+            raise
+    conn.close()
+
+def restore_schema_with_psycopg2(
+    dump_file,
+    dbname,
+    user,
+    password,
+    host="localhost",
+    port=5432,
+    recreate_db=False
+):
+    if recreate_db:
+        recreate_database_psycopg2(dbname, user, password, host, port)
+
+    with open(dump_file, "r") as f:
+        raw_sql = f.read()
+
+    statements = sqlparse.split(raw_sql)
+
+    conn = psycopg2.connect(
+        dbname=dbname,
+        user=user,
+        password=password,
+        host=host,
+        port=port
+    )
+    conn.set_session(autocommit=False)
+    with conn.cursor() as cur:
+        for stmt in statements:
+            stmt = stmt.strip()
+            if not stmt:
+                continue
+            try:
+                cur.execute(stmt)
+            except psycopg2.errors.DuplicateTable:
+                print("⚠️ Table already exists. Skipped.")
+                conn.rollback()
+            except psycopg2.errors.DuplicateObject:
+                print("⚠️ Object already exists. Skipped.")
+                conn.rollback()
+            except Exception as e:
+                print(f"❌ Error executing statement:\n{stmt[:200]}...\n{e}")
+                conn.rollback()
+            else:
+                conn.commit()
+
+    conn.close()
+    print(f"✅ Schema restored to '{dbname}'")
 
 
+def generate_create_table_sql(table_name: str, columns: List[Dict]) -> str:
+    col_lines = []
+    for col in columns:
+        data_type = col["data_type"]
+        # Fix for ARRAY type
+        if data_type == "ARRAY":
+            data_type = "text[]"  # Default assumption; adjust per actual use-case
+        line = f"  {col['column_name']} {data_type}"
+        if col['is_nullable'] == 'NO':
+            line += " NOT NULL"
+        col_lines.append(line)
+    body = ",\n".join(col_lines)
+    ddl = f"CREATE TABLE {table_name} (\n{body}\n);"
+    return ddl
+
+def gen_table_map(map : Dict) -> Dict:
+    # Regenerate with fixed function
+    fixed_create_table_ddls = {
+        table_name: generate_create_table_sql(table_name, columns)
+        for table_name, columns in map.items()
+    }
+    return fixed_create_table_ddls
+
+def create_database_if_not_exists(existing_dbname, new_dbname, user, password, host='localhost', port=5432):
+    method = "create_database_if_not_exists"
+    try:
+        conn = psycopg2.connect(
+            dbname=existing_dbname,
+            user=user,
+            password=password,
+            host=host,
+            port=port
+        )
+        conn.set_session(autocommit=True)
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (new_dbname,))
+            if cur.fetchone():
+                log(method, f"ℹ️ Database '{new_dbname}' already exists.")
+            else:
+                log(method, f"📦 Creating database '{new_dbname}' owned by '{user}'...")
+                cur.execute(
+                    sql.SQL("CREATE DATABASE {} OWNER {}")
+                    .format(sql.Identifier(new_dbname), sql.Identifier(user))
+                )
+                log(method, f"✅ Database '{new_dbname}' created.")
+        conn.close()
+    except Exception as e:
+        raise RuntimeError(f"[{method}] ❌ Failed to create database '{new_dbname}': {e}")
+
+
+def apply_create_table_ddls(table_ddl_map, existing_dbname, new_dbname, user, password, host='localhost', port=5432, drop_if_exists=False):
+    method = "apply_create_table_ddls"
+    create_database_if_not_exists(existing_dbname, new_dbname, user, password, host, port)
+
+    conn = psycopg2.connect(
+        dbname=existing_dbname,
+        user=user,
+        password=password,
+        host=host,
+        port=port
+    )
+    conn.set_session(autocommit=False)
+
+    with conn.cursor() as cur:
+        for table, ddl in table_ddl_map.items():
+            log(method, f"▶️ Creating table: {table}")
+            try:
+                cur.execute(ddl)
+            except errors.DuplicateTable:
+                log(method, f"⚠️ Table '{table}' already exists.")
+                conn.rollback()
+                if drop_if_exists:
+                    try:
+                        log(method, f"🔁 Dropping and recreating table '{table}'...")
+                        cur.execute(sql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(sql.Identifier(table)))
+                        conn.commit()
+                        cur.execute(ddl)
+                        conn.commit()
+                        log(method, f"✅ Recreated table: {table}")
+                    except Exception as drop_err:
+                        log(method, f"❌ Error recreating '{table}': {drop_err}")
+                        conn.rollback()
+                else:
+                    log(method, f"⏩ Skipping '{table}' (already exists)")
+            except Exception as e:
+                log(method, f"❌ Error creating '{table}': {e}")
+                conn.rollback()
+            else:
+                conn.commit()
+                log(method, f"✅ Created table: {table}")
+    conn.close()
 
 if __name__ =="__main__":
     # print(run_pytest("test_patients.py"))
@@ -417,5 +578,16 @@ if __name__ =="__main__":
     # print(run_pytest("test_owners.py"))
     # print(run_pytest("test_students.py"))
     # print(run_pytest("test_watch_history.py"))
-    print(get_schemas_from_db())
 
+
+    result = get_schemas_from_db()
+    ddls = json.loads(result)[-1][-1]
+    tables = gen_table_map(ddls)
+
+    new_dbname = os.getenv("DB_NAME") + "_1"
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+    host = os.getenv("DB_HOST")
+    port = os.getenv("DB_PORT")
+
+    apply_create_table_ddls(tables, os.getenv("DB_NAME"), new_dbname, user, password, host=host, port=port, drop_if_exists=True )
