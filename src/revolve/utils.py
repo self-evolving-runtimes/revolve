@@ -34,8 +34,8 @@ def create_schemas_endpoint(state: State):
     )
 
     api_code = read_python_code("api.py")
-    api_code = api_code.replace("###IMPORTS###", f"###IMPORTS###\nfrom schemas import SchemasResource")
-    api_code = api_code.replace("###ENDPOINTS###", f"###ENDPOINTS###\napp.add_route('/schemas', SchemasResource())")
+    api_code = api_code.replace("###IMPORTS###", "###IMPORTS###\nfrom schemas import SchemasResource")
+    api_code = api_code.replace("###ENDPOINTS###", "###ENDPOINTS###\napp.add_route('/schemas', SchemasResource())")
     save_python_code(
         api_code,
         "api.py"
@@ -88,7 +88,7 @@ def create_test_report(task,state):
             f.write(f"### 📄 {test_item['resource_file_name']}\n")
             f.write(f"- **Test Status:** `{test_item['status']}`\n")
             f.write(f"- **Iteration Count:** `{test_item['iteration_count']}`\n\n")
-            f.write(f"- **Test Summary:**\n")
+            f.write("- **Test Summary:**\n")
             if "code_history" in test_item and len(test_item['code_history']) > 0:
                 last_test = test_item['code_history'][-1]
                 last_summary = last_test['test_report_after_revising']["summary"]
