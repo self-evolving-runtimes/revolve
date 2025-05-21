@@ -18,7 +18,9 @@ def init_or_attach_git_repo():
     git_check = os.environ.get("GIT_PUSH_CHANGES", "false").lower() == "true"
     if git_check:
         repo_dir = os.environ.get("GIT_REPO_PATH", f"{get_source_folder()}")
-        remote_url = os.environ.get("GIT_REPO_URL", "https://github.com/maheshpec/revolve-generated")
+        remote_url = os.environ.get("GIT_REPO_URL", None)
+        if not remote_url:
+            raise ValueError("GIT_REPO_URL environment variable is not set.")
         user_name = os.environ.get("GIT_USER_NAME", "AutoCommitBot")
         user_email = os.environ.get("GIT_USER_EMAIL", "autocommit@example.com")
 
@@ -69,12 +71,3 @@ def commit_and_push_changes(message: str, description: str = None):
         current_branch = run_git_command(["rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_dir)
         run_git_command(["push", "-u", "origin", current_branch], cwd=repo_dir)
         print(f"Changes committed and pushed to branch: {current_branch}")
-
-
-if __name__ == "__main__":
-    repo_path = get_source_folder()
-    remote_url = "https://github.com/maheshpec/revolve-generated"
-
-    init_or_attach_git_repo(repo_path, remote_url)
-    create_branch_with_timestamp(repo_path)
-    commit_and_push_changes(repo_path, "test for creating a new branch and pushing")
