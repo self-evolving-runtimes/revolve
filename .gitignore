@@ -20,3 +20,5 @@ report.json
 .DS_Store
 ft
 ui/package-lock.json
+/src/revolve/ui/node_modules
+src/revolve/ui/package-lock.json
