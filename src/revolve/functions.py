@@ -527,7 +527,6 @@ def create_database_if_not_exists(existing_dbname, new_dbname, user, password, h
 def apply_create_table_ddls(table_ddl_map, existing_dbname, new_dbname, user, password, host='localhost', port=5432, drop_if_exists=False):
     method = "apply_create_table_ddls"
     create_database_if_not_exists(existing_dbname, new_dbname, user, password, host, port)
-
     conn = psycopg2.connect(
         dbname=new_dbname,
         user=user,
@@ -566,6 +565,21 @@ def apply_create_table_ddls(table_ddl_map, existing_dbname, new_dbname, user, pa
                 log(method, f"✅ Created table: {table}")
     conn.close()
 
+def clone_db():
+    result = get_schemas_from_db()
+    ddls = json.loads(result)[-1][-1]
+    tables = gen_table_map(ddls)
+
+    new_dbname = os.getenv("DB_NAME") + "_test"
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+    host = os.getenv("DB_HOST")
+    port = os.getenv("DB_PORT")
+
+    apply_create_table_ddls(tables, os.getenv("DB_NAME"), new_dbname, user, password, host=host, port=port, drop_if_exists=True)
+
+    os.environ["DB_NAME"] = new_dbname
+
 if __name__ =="__main__":
     # print(run_pytest("test_patients.py"))
     # print(run_pytest("test_doctors.py"))
@@ -576,17 +590,7 @@ if __name__ =="__main__":
     # print(run_pytest("test_customers.py"))
     # print(run_pytest("test_owners.py"))
     # print(run_pytest("test_students.py"))
-    # print(run_pytest("test_watch_history.py"))
+    print(run_pytest("test_watch_history.py"))
 
 
-    result = get_schemas_from_db()
-    ddls = json.loads(result)[-1][-1]
-    tables = gen_table_map(ddls)
 
-    new_dbname = os.getenv("DB_NAME") + "_1"
-    user = os.getenv("DB_USER")
-    password = os.getenv("DB_PASSWORD")
-    host = os.getenv("DB_HOST")
-    port = os.getenv("DB_PORT")
-
-    apply_create_table_ddls(tables, os.getenv("DB_NAME"), new_dbname, user, password, host=host, port=port, drop_if_exists=True )
