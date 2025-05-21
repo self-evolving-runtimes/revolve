@@ -36,6 +36,23 @@ class WorkflowResource:
             data = req.media 
             task = data.get("message", None)
             db_config = data.get("dbConfig", {})
+            settings = data.get("settings", {})
+
+            if not all([settings.get("openaiKey"), settings.get("sourceFolder")]):
+                resp.status = falcon.HTTP_400
+                resp.media = {"error": "Missing settings parameters."}
+                return
+            
+            source_folder = settings.get("sourceFolder")
+            if not os.path.exists(source_folder):
+                resp.status = falcon.HTTP_400
+                resp.media = {"error": f"Source folder {source_folder} does not exist."}
+                return
+            
+            #set env vars 
+            os.environ["SOURCE_FOLDER"] = source_folder
+            os.environ["OPENAI_API_KEY"] = settings.get("openaiKey")
+
             logger.info("Received task: %s", task)
         except Exception:
             resp.status = falcon.HTTP_400
