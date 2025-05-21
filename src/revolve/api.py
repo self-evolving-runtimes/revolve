@@ -217,7 +217,6 @@ def check_env_vars():
         sys.exit(1)
 
 if __name__ == "__main__":
-    check_env_vars()
     port = int(os.environ.get("API_PORT", "48001"))
     with make_server("", port, app, server_class=ThreadingWSGIServer, handler_class=LoggingWSGIRequestHandler) as httpd:
         logger.info(f"Serving on http://localhost:{port}/")
