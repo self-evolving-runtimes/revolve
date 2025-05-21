@@ -85,6 +85,43 @@ const promptItems = [
   },
 ];
 
+React.useEffect(() => {
+  const fetchEnvSettings = async () => {
+    try {
+      const response = await axios.get('/api/env/settings');
+      if (response.data) {
+        setSettings((prev) => ({
+          ...prev,
+          openaiKey: response.data.OPENAI_API_KEY || '',
+          sourceFolder: response.data.SOURCE_FOLDER || '',
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch environment settings:', error);
+    }
+  };
+
+  fetchEnvSettings();
+}, []);
+
+React.useEffect(() => {
+  const fetchDbConfig = async () => {
+    try {
+      const response = await axios.get('/api/env/db');
+      if (response.data) {
+        setDbConfig((prev) => ({
+          ...prev,
+          ...response.data,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch DB config:', error);
+    }
+  };
+
+  fetchDbConfig();
+}, []);
+
 const dbNameRef = React.useRef(null);
 const openAiKeyRef = React.useRef(null);
 const chatInputRef = React.useRef(null);
