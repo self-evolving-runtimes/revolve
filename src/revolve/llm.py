@@ -1,9 +1,11 @@
+import os
+
 from pydantic_core import ValidationError
 from revolve.data_types import *
 from langchain_openai import ChatOpenAI
 
 def invoke_llm(messages, max_attempts=3, validation_class=None, method="function_calling", logger=None, manual_validation=False):
-    llm  = ChatOpenAI(model="gpt-4.1", temperature=0.2, max_tokens=16000)
+    llm  = ChatOpenAI(model=os.getenv("OPENAI_MODEL", "gpt-4.1"), temperature=0.2, max_tokens=16000)
    
     if validation_class:
         llm = llm.with_structured_output(validation_class, method=method)
