@@ -185,7 +185,12 @@ const handleSendMessage = async (message) => {
     });
 
     if (!response.ok) {
-      throw new Error(`Server error: ${response.status}`);
+      const errorData = await response.json(); // <-- get error message
+      notification.error({
+        message: 'Failed',
+        description: errorData?.error || `Server error: ${response.status}`
+      });
+      return;
     }
 
     const reader = response.body.getReader();
@@ -226,6 +231,10 @@ const handleSendMessage = async (message) => {
 
   } catch (error) {
     console.error('Error sending message:', error);
+    notification.error({
+      message: 'Unexpected Error',
+      description: error.message || 'An unknown error occurred.'
+    });
   } finally {
     setIsLoading(false); // Stop spinner
   }
