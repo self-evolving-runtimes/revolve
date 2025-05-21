@@ -74,6 +74,15 @@ const [suggestions, setSuggestions] = React.useState([
 const handleSuggestionClick = (text) => {
   setInputValue(text);
   setSuggestions([]);
+
+  // Automatically send the message after a short delay to ensure state is updated
+  setTimeout(() => {
+    const message = text.trim();
+    if (message && !isLoading) {
+      handleSendMessage(message);
+      setInputValue('');
+    }
+  }, 100);
 };
 
   React.useEffect(() => {
