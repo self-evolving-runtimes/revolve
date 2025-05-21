@@ -529,7 +529,7 @@ def apply_create_table_ddls(table_ddl_map, existing_dbname, new_dbname, user, pa
     create_database_if_not_exists(existing_dbname, new_dbname, user, password, host, port)
 
     conn = psycopg2.connect(
-        dbname=existing_dbname,
+        dbname=new_dbname,
         user=user,
         password=password,
         host=host,
