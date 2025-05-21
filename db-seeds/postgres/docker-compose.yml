@@ -1,0 +1,42 @@
+# A Docker Compose must always start with the version tag.
+# We use '3' because it's the last version.
+version: '3'
+
+# You should know that Docker Compose works with services.
+# 1 service = 1 container.
+# For example, a service, a server, a client, a database...
+# We use the keyword 'services' to start to create services.
+services:
+  # The name of our service is "database"
+  # but you can use the name of your choice.
+  # Note: This may change the commands you are going to use a little bit.
+  database:
+    # Official Postgres image from DockerHub (we use the last version)
+    image: 'postgres:latest'
+
+    # By default, a Postgres database is running on the 5432 port.
+    # If we want to access the database from our computer (outside the container),
+    # we must share the port with our computer's port.
+    # The syntax is [port we want on our machine]:[port we want to retrieve in the container]
+    # Note: You are free to change your computer's port,
+    # but take into consideration that it will change the way
+    # you are connecting to your database.
+    ports:
+      - 5432:5432
+
+    environment:
+      POSTGRES_USER: postgres # The PostgreSQL user (useful to connect to the database)
+      POSTGRES_PASSWORD: admin # The PostgreSQL password (useful to connect to the database)
+      POSTGRES_DB: newdb # The PostgreSQL default database (automatically created a
+
+
+  db-seed:
+    image: "bitnami/postgresql:12" # postgres + network tools
+    depends_on:
+      - database
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - SEED_DB=${SEED_DB}
+    command: bash -c "until pg_isready -h database -U postgres -t 10; do echo '..waiting for db' ; sleep 1; done; echo 'db up'; cd /database;cat /database/ddl.sql /database/ddl_*.sql > /database/final_seed.sql && PGPASSWORD=admin psql -h database -U postgres -d newdb <  /database/final_seed.sql && rm /database/final_seed.sql"
+    volumes:
+      - './:/database'
