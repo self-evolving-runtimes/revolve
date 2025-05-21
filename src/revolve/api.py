@@ -11,12 +11,6 @@ from revolve.functions import test_db, get_file_list, read_python_code
 from revolve.utils import start_process, stop_process
 from wsgiref.simple_server import WSGIRequestHandler
 
-process_state = {
-    "pid": None,
-    "port": None,
-    "link": None
-}
-
 logging.basicConfig(level=logging.INFO, filename="api.log")
 logger = logging.getLogger(__name__)
 
