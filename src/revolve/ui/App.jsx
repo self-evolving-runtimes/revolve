@@ -45,6 +45,10 @@ const App = () => {
   DB_HOST: 'localhost',
   DB_PORT: '5432'
 });
+const dbNameRef = React.useRef(null);
+const openAiKeyRef = React.useRef(null);
+const chatInputRef = React.useRef(null);
+
 const [isConfigComplete, setIsConfigComplete] = React.useState(false);
 const [activePanels, setActivePanels] = React.useState(['1']); 
 
@@ -287,6 +291,11 @@ const handleSendMessage = async (message) => {
                           if (!updated.includes('2')) updated.push('2');
                           return updated;
                         });
+
+                        // Delay focus to wait for panel render
+                        setTimeout(() => {
+                          dbNameRef.current?.focus();
+                        }, 300);
                       }}
                     >
                       Next
@@ -296,19 +305,20 @@ const handleSendMessage = async (message) => {
                 <Panel header="Configuration" key="2">
                   {currentStep === 0 && (
                     <>
-                      <List
-                        dataSource={Object.entries(dbConfig)}
-                        renderItem={([key, value]) => (
-                          <List.Item>
-                            <Text strong style={{ marginRight: 8 }}>{key}:</Text>
-                            <Input
-                              style={{ width: '70%' }}
-                              value={value}
-                              onChange={(e) => updateDbField(key, e.target.value)}
-                            />
-                          </List.Item>
-                        )}
-                      />
+                    <List
+                      dataSource={Object.entries(dbConfig)}
+                      renderItem={([key, value], index) => (
+                        <List.Item>
+                          <Text strong style={{ marginRight: 8 }}>{key}:</Text>
+                          <Input
+                            ref={index === 0 ? dbNameRef : null} // Attach ref to first input
+                            style={{ width: '70%' }}
+                            value={value}
+                            onChange={(e) => updateDbField(key, e.target.value)}
+                          />
+                        </List.Item>
+                      )}
+                    />
                       <Divider />
                       <Button type="primary" onClick={handleTestConnection}>
                         Test Connection
@@ -322,6 +332,7 @@ const handleSendMessage = async (message) => {
                         <List.Item>
                           <Text strong style={{ marginRight: 8 }}>OpenAI Key:</Text>
                           <Input.Password
+                            ref={openAiKeyRef}
                             style={{ width: '70%' }}
                             value={settings.openaiKey}
                             onChange={(e) => setSettings(prev => ({ ...prev, openaiKey: e.target.value }))}
@@ -353,13 +364,18 @@ const handleSendMessage = async (message) => {
                           </Button>                    
                         )}
                     {currentStep < 1 && (
-                      <Button
-                        type="primary"
-                        disabled={!isDbValid}
-                        onClick={() => setCurrentStep(currentStep + 1)}
-                      >
-                        Next
-                      </Button>
+                        <Button
+                          type="primary"
+                          disabled={!isDbValid}
+                          onClick={() => {
+                            setCurrentStep(currentStep + 1);
+                            setTimeout(() => {
+                              openAiKeyRef.current?.focus();
+                            }, 300);
+                          }}
+                        >
+                          Next
+                        </Button>
                     )}
                     {currentStep === 1 && (
                         <Button
@@ -367,7 +383,12 @@ const handleSendMessage = async (message) => {
                           disabled={!settings.openaiKey || !settings.sourceFolder}
                           onClick={() => {
                             setIsConfigComplete(true);
-                            setActivePanels((prev) => prev.filter((key) => key !== '2')); // Collapse "Configuration"
+                            setActivePanels((prev) => prev.filter((key) => key !== '2'));
+
+                            // Focus chat input after short delay
+                            setTimeout(() => {
+                              chatInputRef.current?.focus();
+                            }, 300);
                           }}
                         >
                           Finish
@@ -465,6 +486,7 @@ const handleSendMessage = async (message) => {
                   </div>
                 </Spin>
                   <Input
+                    ref={chatInputRef}
                     placeholder="Type a message..."
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
@@ -475,7 +497,7 @@ const handleSendMessage = async (message) => {
                         setInputValue('');
                       }
                     }}
-                    disabled={isLoading} // 🔒 disable while loading
+                    disabled={isLoading}
                     style={{ marginTop: 16 }}
                   />
             </Col></>
