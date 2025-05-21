@@ -397,7 +397,7 @@ const handleSendMessage = async (message) => {
       </Sider>
 
       <Layout>
-        <Header style={{ background: '#001529', padding: '0 16px', color: '#fff' }}>Revolve Interface</Header>
+        {/* <Header style={{ background: '#001529', padding: '0 16px', color: '#fff' }}>Revolve Interface</Header> */}
         <Content style={{ padding: '16px' }}>
           <Row gutter={[16, 16]}>
             <Col span={24}>
