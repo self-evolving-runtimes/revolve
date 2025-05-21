@@ -5,8 +5,21 @@ build/
 dist/
 wheels/
 *.egg-info
+ui/node_modules/
 
 # Virtual environments
 .venv
 .env
 src/revolve/.env
+src/revolve/source_generated
+states
+.vscode/settings.json
+.webui_secret_key
+report.json
+/test.py
+.DS_Store
+ft
+ui/package-lock.json
+/src/revolve/ui/node_modules
+src/revolve/ui/package-lock.json
+api.log
