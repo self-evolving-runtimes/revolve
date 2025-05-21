@@ -11,7 +11,15 @@ import { notification } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-
+import { Prompts } from '@ant-design/x';
+import { App as AntApp } from 'antd';
+import {
+  BulbOutlined,
+  InfoCircleOutlined,
+  RocketOutlined,
+  SmileOutlined,
+  WarningOutlined,
+} from '@ant-design/icons';
 
 
 const readmeMd = `## Welcome to Revolve
@@ -45,6 +53,38 @@ const App = () => {
   DB_HOST: 'localhost',
   DB_PORT: '5432'
 });
+
+const promptItems = [
+  {
+    key: '1',
+    icon: <BulbOutlined style={{ color: '#FFD700' }} />,
+    label: 'Create CRUD Operations for all the tables',
+    description: 'Quickly scaffold all the CRUD endpoints.',
+    data: 'Create CRUD Operations for all the tables',
+  },
+  {
+    key: '2',
+    icon: <RocketOutlined style={{ color: '#722ED1' }} />,
+    label: 'Generate CRUD for doctors table',
+    description: 'Focus on generating for doctors only.',
+    data: 'Generate CRUD Operations for the doctors table',
+  },
+  {
+    key: '3',
+    icon: <SmileOutlined style={{ color: '#52C41A' }} />,
+    label: 'Run Unit Tests',
+    description: 'Verify that services are covered by tests.',
+    data: 'Run unit tests for all services',
+  },
+  {
+    key: '4',
+    icon: <InfoCircleOutlined style={{ color: '#1890FF' }} />,
+    label: 'Generate Satellite Service',
+    description: 'Create service for satellite and related tables.',
+    data: 'Generate a new service for the satellite and the related tables',
+  },
+];
+
 const dbNameRef = React.useRef(null);
 const openAiKeyRef = React.useRef(null);
 const chatInputRef = React.useRef(null);
@@ -478,35 +518,21 @@ const handleSendMessage = async (message) => {
   {isConfigComplete && (
     <>
           <Col span={24}>
-            <Space size="middle" wrap>
-              {suggestions.map((suggestion, index) => (
-                <div
-                  key={index}
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '20px',
-                    background: '#ffffff',
-                    color: '#001529',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    border: '1px solid #001529',
-                    transition: 'all 0.3s ease',
+              <Prompts
+                title="✨ Suggestions"
+                items={promptItems}
+                  onItemClick={(info) => {
+                    console.log('Prompt clicked:', info);
+
+                    const text = info?.data?.data || info?.data?.label;
+
+                    if (typeof text === 'string' && text.trim()) {
+                      handleSuggestionClick(text.trim());
+                    } else {
+                      console.warn('Prompt text is not a valid string:', text);
+                    }
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#001529';
-                    e.currentTarget.style.color = '#ffffff';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#ffffff';
-                    e.currentTarget.style.color = '#001529';
-                  }}
-                >
-                  {suggestion}
-                </div>
-              ))}
-            </Space>
+              />
           </Col>
         
             <Col span={24}>
@@ -587,4 +613,8 @@ const handleSendMessage = async (message) => {
   );
 };
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <AntApp>
+    <App />
+  </AntApp>
+);
