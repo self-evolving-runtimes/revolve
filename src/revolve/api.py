@@ -106,6 +106,24 @@ class _MockWorkflowResource:
 
         resp.stream = generate()
 
+class EnvResource:
+    def on_get(self, req, resp):
+        if req.path.endswith('/settings'):
+            env_vars = {
+            "SOURCE_FOLDER": os.environ.get("SOURCE_FOLDER", ""),
+            "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
+        }
+        elif req.path.endswith('/db'):
+            env_vars = {
+                "DB_NAME": os.environ.get("DB_NAME", ""),
+                "DB_USER": os.environ.get("DB_USER", ""),
+                "DB_PASSWORD": os.environ.get("DB_PASSWORD", ""),
+                "DB_HOST": os.environ.get("DB_HOST", ""),
+                "DB_PORT": os.environ.get("DB_PORT", ""),
+            }
+        resp.status = falcon.HTTP_200
+        resp.media = env_vars
+
 
 class FileResource:
     def on_get(self, req, resp):
@@ -190,6 +208,8 @@ app.add_route("/api/start", ServerControlResource())
 app.add_route("/api/stop", ServerControlResource())
 app.add_route("/api/get-file-list", FileResource())
 app.add_route("/api/get-file", FileResource())
+app.add_route("/api/env/settings", EnvResource())
+app.add_route("/api/env/db", EnvResource())
 
 #get current directory
 static_resource = f"{os.path.dirname(os.path.abspath(__file__))}/ui/dist"
