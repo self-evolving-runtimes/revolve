@@ -17,10 +17,12 @@ class Trace(TypedDict):
 
 
 class ForeignKey(TypedDict):
+    """ Captures details about a foreign key relation to be used for API generation """
     foreign_table: str
     foreign_column: str
 
 class Column(TypedDict):
+    """ Captures details about a specific column in a table for which API is being generated """
     column: str
     type: str
     is_primary_key: bool
@@ -30,11 +32,13 @@ class Column(TypedDict):
     is_uid: str
 
 class Table(TypedDict):
+    """ Captures details about an individual table for which API is being generated """
     individual_prompt: str
     table_name: str
     columns: list[Column]
 
 class DBSchema(TypedDict):
+    """Captures a list of tables for which APIs will get generated"""
     tables: list[Table]
 
 class ApiRoute(TypedDict):
