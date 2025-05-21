@@ -11,7 +11,7 @@ import { notification } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Prompts } from '@ant-design/x';
+import { Prompts, Sender } from '@ant-design/x';
 import { App as AntApp } from 'antd';
 import {
   BulbOutlined,
@@ -88,6 +88,7 @@ const promptItems = [
 const dbNameRef = React.useRef(null);
 const openAiKeyRef = React.useRef(null);
 const chatInputRef = React.useRef(null);
+const senderRef = React.useRef(null);
 
 const [sidePanelKeys, setSidePanelKeys] = React.useState(['1']); // only "System Messages" open by default
 
@@ -470,8 +471,8 @@ const handleSendMessage = async (message) => {
 
                             // Focus chat input after short delay
                             setTimeout(() => {
-                              chatInputRef.current?.focus();
-                            }, 300);
+                                  senderRef.current?.focus?.();
+                                }, 300);
                           }}
                         >
                           Finish
@@ -554,21 +555,19 @@ const handleSendMessage = async (message) => {
                     />
                   </div>
                 </Spin>
-                  <Input
-                    ref={chatInputRef}
-                    placeholder="Type a message..."
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onPressEnter={() => {
-                      const message = inputValue.trim();
-                      if (message && !isLoading) {
-                        handleSendMessage(message);
-                        setInputValue('');
-                      }
-                    }}
-                    disabled={isLoading}
-                    style={{ marginTop: 16 }}
-                  />
+                    <Sender
+                      ref={senderRef}
+                      disabled={isLoading}
+                      value={inputValue}
+                      onChange={setInputValue}
+                      onSubmit={(value) => {
+                        const message = value?.trim();
+                        if (message && !isLoading) {
+                          handleSendMessage(message);
+                          setInputValue('');
+                        }
+                      }}
+                    />
             </Col></>
             )}
 
