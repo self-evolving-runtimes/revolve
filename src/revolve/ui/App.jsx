@@ -4,7 +4,7 @@ import 'antd/dist/reset.css';
 import axios from 'axios';
 import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, List, Spin, Modal
 } from 'antd';
-import { RobotOutlined, UserOutlined,  FileTextOutlined, FileMarkdownOutlined, FileOutlined, FileUnknownOutlined } from '@ant-design/icons';
+import { RobotOutlined, UserOutlined,  FileTextOutlined, FileMarkdownOutlined, FileOutlined, FileUnknownOutlined, PlaySquareOutlined } from '@ant-design/icons';
 import './index.css';
 
 import { notification } from 'antd';
@@ -48,6 +48,10 @@ const App = () => {
 const dbNameRef = React.useRef(null);
 const openAiKeyRef = React.useRef(null);
 const chatInputRef = React.useRef(null);
+
+const [sidePanelKeys, setSidePanelKeys] = React.useState(['1']); // only "System Messages" open by default
+
+const [showServerControls, setShowServerControls] = React.useState(false);
 
 const [isConfigComplete, setIsConfigComplete] = React.useState(false);
 const [activePanels, setActivePanels] = React.useState(['1']); 
@@ -214,10 +218,24 @@ const handleSendMessage = async (message) => {
         }
 
         if (parsed.status === 'processing') {
-          setSystemMessages(prev => [
-            ...prev,
-            { name: parsed.name, text: parsed.text, level: parsed.level }
-          ]);
+          setSystemMessages(prev => {
+            const updatedMessages = [...prev, { name: parsed.name, text: parsed.text, level: parsed.level }];
+
+            if (parsed.text && parsed.text.includes('APIs are generated') && !showServerControls) {
+              setShowServerControls(true);
+              setSidePanelKeys((prev) => {
+                const updated = new Set(prev);
+                updated.add('2'); // Expand the Server Controls panel
+                return Array.from(updated);
+              });
+              notification.success({
+                message: 'APIs Generated',
+                description: parsed.text
+              });
+            }
+
+            return updatedMessages;
+          });
         } else if (parsed.status === 'done' || parsed.status === 'error') {
           assistantReply += parsed.text || '';
         }
@@ -243,7 +261,31 @@ const handleSendMessage = async (message) => {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider width={400} style={{ background: '#f0f2f5', padding: '16px' }}>
-        <Collapse defaultActiveKey={['1']}>
+        <Collapse activeKey={sidePanelKeys} onChange={setSidePanelKeys}>
+        {showServerControls && (
+    <Panel header="Server Controls" key="2">
+      <Button type="primary" block onClick={handleServerStart} style={{ marginBottom: 8 }}>
+        Start
+      </Button>
+      <Button type="primary" danger block onClick={handleServerStop}>
+        Stop
+      </Button>
+      <Divider />
+      {serverStatus.includes('http') ? (
+        <Text>
+          External server started at{' '}
+          <Typography.Link
+            href={serverStatus.match(/http:\/\/[^\s]+/)[0]}
+            target="_blank"
+          >
+            {serverStatus.match(/http:\/\/[^\s]+/)[0]}
+          </Typography.Link>
+        </Text>
+      ) : (
+        <Text>{serverStatus}</Text>
+      )}
+    </Panel>
+  )}
         <Panel header="System Messages" key="1">
           {systemMessages.length === 0 ? (
             <Text>No messages yet...</Text>
@@ -271,24 +313,7 @@ const handleSendMessage = async (message) => {
             </div>
           )}
         </Panel>
-          <Panel header="Server Controls" key="2">
-            <Button type="primary" block onClick={handleServerStart} style={{ marginBottom: 8 }}>Start</Button>
-            <Button type="primary" danger block onClick={handleServerStop}>Stop</Button>
-            <Divider />
-            {serverStatus.includes('http') ? (
-            <Text>
-              External server started at{' '}
-              <Typography.Link
-                href={serverStatus.match(/http:\/\/[^\s]+/)[0]}
-                target="_blank"
-              >
-                {serverStatus.match(/http:\/\/[^\s]+/)[0]}
-              </Typography.Link>
-            </Text>
-          ) : (
-            <Text>{serverStatus}</Text>
-          )}          
-            </Panel>
+
         </Collapse>
       </Sider>
 
