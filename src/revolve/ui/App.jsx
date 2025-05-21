@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import 'antd/dist/reset.css';
 import axios from 'axios';
-import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, List, Spin, Modal
+import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, List, Spin, Modal, Checkbox
 } from 'antd';
 import { RobotOutlined, UserOutlined,  FileTextOutlined, FileMarkdownOutlined, FileOutlined, FileUnknownOutlined, PlaySquareOutlined } from '@ant-design/icons';
 import './index.css';
@@ -51,7 +51,8 @@ const App = () => {
   DB_USER: 'postgres',
   DB_PASSWORD: 'admin',
   DB_HOST: 'localhost',
-  DB_PORT: '5432'
+  DB_PORT: '5432',
+  USE_CLONE_DB: false,
 });
 
 const promptItems = [
@@ -427,12 +428,12 @@ const handleSendMessage = async (message) => {
                   {currentStep === 0 && (
                     <>
                     <List
-                      dataSource={Object.entries(dbConfig)}
+                      dataSource={Object.entries(dbConfig).filter(([key]) => key !== 'USE_CLONE_DB')}
                       renderItem={([key, value], index) => (
                         <List.Item>
                           <Text strong style={{ marginRight: 8 }}>{key}:</Text>
                           <Input
-                            ref={index === 0 ? dbNameRef : null} // Attach ref to first input
+                            ref={index === 0 ? dbNameRef : null}
                             style={{ width: '70%' }}
                             value={value}
                             onChange={(e) => updateDbField(key, e.target.value)}
@@ -440,6 +441,15 @@ const handleSendMessage = async (message) => {
                         </List.Item>
                       )}
                     />
+
+                    <List.Item>
+                      <Checkbox
+                        checked={dbConfig.USE_CLONE_DB || false}
+                        onChange={(e) => updateDbField('USE_CLONE_DB', e.target.checked)}
+                      >
+                        Enable test mode (It will create a new DB named `{dbConfig.DB_NAME}_test` and use it for testing)
+                      </Checkbox>
+                    </List.Item>
                       <Divider />
                       <Button type="primary" onClick={handleTestConnection}>
                         Test Connection
