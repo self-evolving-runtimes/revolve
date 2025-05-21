@@ -6,6 +6,7 @@ from revolve.functions import test_db
 
 from langgraph.constants import Send
 from revolve.utils_git import *
+from revolve.functions import clone_db
 import os
 
 
@@ -32,6 +33,10 @@ def run_workflow(task=None, db_config=None, send=None):
         os.environ["DB_PASSWORD"] = db_config["DB_PASSWORD"]
         os.environ["DB_HOST"] = db_config["DB_HOST"]
         os.environ["DB_PORT"] = db_config["DB_PORT"]
+
+        if db_config["USE_CLONE_DB"]:
+            clone_db()
+
     
     db_test_result = test_db(db_user=os.environ["DB_USER"],
                              db_password=os.environ["DB_PASSWORD"],
