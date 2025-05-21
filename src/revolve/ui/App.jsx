@@ -276,8 +276,22 @@ const handleSendMessage = async (message) => {
           <Row gutter={[16, 16]}>
             <Col span={24}>
               <Collapse activeKey={activePanels} onChange={(keys) => setActivePanels(keys)}>                
-              <Panel header="Readme" key="1">
+                <Panel header="Readme" key="1">
                   <ReactMarkdown>{readmeMd}</ReactMarkdown>
+                  <div style={{ marginTop: 16, textAlign: 'left' }}>
+                    <Button
+                      type="primary"
+                      onClick={() => {
+                        setActivePanels((prev) => {
+                          const updated = prev.filter(key => key !== '1');
+                          if (!updated.includes('2')) updated.push('2');
+                          return updated;
+                        });
+                      }}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </Panel>
                 <Panel header="Configuration" key="2">
                   {currentStep === 0 && (
