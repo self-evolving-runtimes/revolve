@@ -45,6 +45,8 @@ const App = () => {
   DB_HOST: 'localhost',
   DB_PORT: '5432'
 });
+const [isConfigComplete, setIsConfigComplete] = React.useState(false);
+const [activePanels, setActivePanels] = React.useState(['1']); 
 
 const getFileIcon = (filename) => {
   if (filename.endsWith('.py')) return <FileTextOutlined />;
@@ -52,7 +54,12 @@ const getFileIcon = (filename) => {
   if (filename.endsWith('.json')) return <FileOutlined />; 
   return <FileUnknownOutlined />;
 };
-
+const [currentStep, setCurrentStep] = React.useState(0);
+const [settings, setSettings] = React.useState({
+  openaiKey: '',
+  sourceFolder: '',
+});
+const [isDbValid, setIsDbValid] = React.useState(false); 
 const [suggestions, setSuggestions] = React.useState([
   'Create CRUD Operations for all the tables',
   'Generate CRUD Operations for the doctors table',
@@ -111,20 +118,22 @@ const handleSuggestionClick = (text) => {
     { role: 'assistant', content: 'Hello! How can I assist you today?' }
   ]);
 
-  const handleTestConnection = async () => {
-    try {
-      const response = await axios.post('/api/test_db', dbConfig);
-      notification.success({
-        message: 'Connection Successful',
-        description: response.data?.message || 'Database is reachable.'
-      });
-    } catch (err) {
-      notification.error({
-        message: 'Connection Failed',
-        description: err.response?.data?.error || 'Unable to reach the database.'
-      });
-    }
-  };
+const handleTestConnection = async () => {
+  try {
+    const response = await axios.post('/api/test_db', dbConfig);
+    notification.success({
+      message: 'Connection Successful',
+      description: response.data?.message || 'Database is reachable.'
+    });
+    setIsDbValid(true);
+  } catch (err) {
+    notification.error({
+      message: 'Connection Failed',
+      description: err.response?.data?.error || 'Unable to reach the database.'
+    });
+    setIsDbValid(false);
+  }
+};
 
   const handleServerStart = async () => {
     try {
@@ -157,7 +166,8 @@ const handleSendMessage = async (message) => {
       },
       body: JSON.stringify({
         message,
-        dbConfig
+        dbConfig,
+        settings
       })
     });
 
@@ -265,29 +275,92 @@ const handleSendMessage = async (message) => {
         <Content style={{ padding: '16px' }}>
           <Row gutter={[16, 16]}>
             <Col span={24}>
-              <Collapse>
-                <Panel header="Readme" key="1">
+              <Collapse activeKey={activePanels} onChange={(keys) => setActivePanels(keys)}>                
+              <Panel header="Readme" key="1">
                   <ReactMarkdown>{readmeMd}</ReactMarkdown>
                 </Panel>
-                <Panel header="Database Configuration" key="2">
-                  <List
-                    dataSource={Object.entries(dbConfig)}
-                    renderItem={([key, value]) => (
-                      <List.Item>
-                        <Text strong style={{ marginRight: 8 }}>{key}:</Text>
-                        <Input
-                          style={{ width: '70%' }}
-                          value={value}
-                          onChange={(e) => updateDbField(key, e.target.value)}
-                        />
-                      </List.Item>
-                    )}
-                  />
+                <Panel header="Configuration" key="2">
+                  {currentStep === 0 && (
+                    <>
+                      <List
+                        dataSource={Object.entries(dbConfig)}
+                        renderItem={([key, value]) => (
+                          <List.Item>
+                            <Text strong style={{ marginRight: 8 }}>{key}:</Text>
+                            <Input
+                              style={{ width: '70%' }}
+                              value={value}
+                              onChange={(e) => updateDbField(key, e.target.value)}
+                            />
+                          </List.Item>
+                        )}
+                      />
+                      <Divider />
+                      <Button type="primary" onClick={handleTestConnection}>
+                        Test Connection
+                      </Button>
+                    </>
+                  )}
+
+                  {currentStep === 1 && (
+                    <>
+                      <List>
+                        <List.Item>
+                          <Text strong style={{ marginRight: 8 }}>OpenAI Key:</Text>
+                          <Input.Password
+                            style={{ width: '70%' }}
+                            value={settings.openaiKey}
+                            onChange={(e) => setSettings(prev => ({ ...prev, openaiKey: e.target.value }))}
+                          />
+                        </List.Item>
+                        <List.Item>
+                          <Text strong style={{ marginRight: 8 }}>Source Folder:</Text>
+                          <Input
+                            style={{ width: '70%' }}
+                            value={settings.sourceFolder}
+                            onChange={(e) => setSettings(prev => ({ ...prev, sourceFolder: e.target.value }))}
+                          />
+                        </List.Item>
+                      </List>
+                    </>
+                  )}
+
                   <Divider />
-                  <Button type="primary" onClick={handleTestConnection}>
-                    Test Connection
-                  </Button>
-                </Panel>           
+
+                  <Space>
+                    {currentStep > 0 && (
+                        <Button
+                            onClick={() => {
+                              setCurrentStep(currentStep - 1);
+                              setIsConfigComplete(false); // Reset config complete flag when stepping back
+                            }}
+                          >
+                            Previous
+                          </Button>                    
+                        )}
+                    {currentStep < 1 && (
+                      <Button
+                        type="primary"
+                        disabled={!isDbValid}
+                        onClick={() => setCurrentStep(currentStep + 1)}
+                      >
+                        Next
+                      </Button>
+                    )}
+                    {currentStep === 1 && (
+                        <Button
+                          type="primary"
+                          disabled={!settings.openaiKey || !settings.sourceFolder}
+                          onClick={() => {
+                            setIsConfigComplete(true);
+                            setActivePanels((prev) => prev.filter((key) => key !== '2')); // Collapse "Configuration"
+                          }}
+                        >
+                          Finish
+                        </Button>
+                    )}
+                  </Space>
+                </Panel>     
                 <Panel header="Generated Resources" key="3">
                   {fileList.length === 0 ? (
                     <Text type="secondary">No files generated yet.</Text>
@@ -324,7 +397,8 @@ const handleSendMessage = async (message) => {
               </Collapse>
             </Col>
 
-
+  {isConfigComplete && (
+    <>
           <Col span={24}>
             <Space size="middle" wrap>
               {suggestions.map((suggestion, index) => (
@@ -356,7 +430,7 @@ const handleSendMessage = async (message) => {
               ))}
             </Space>
           </Col>
-
+        
             <Col span={24}>
                 <Spin spinning={isLoading}>
                   <div style={{ background: '#fafafa', padding: '16px', minHeight: 300, overflowY: 'auto', marginBottom: 16 }}>
@@ -390,7 +464,9 @@ const handleSendMessage = async (message) => {
                     disabled={isLoading} // 🔒 disable while loading
                     style={{ marginTop: 16 }}
                   />
-            </Col>
+            </Col></>
+            )}
+
           </Row>
         </Content>
 
