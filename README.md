@@ -1,80 +1,131 @@
-## Set up
+# Revolve
 
-Run the following commands to set up the project
+**Revolve** is an agent-based Python code generation and editing tool that automates the creation of REST APIs, service logic, and test cases from natural language prompts. It features a modern React UI, PostgreSQL integration, and an iterative workflow for refining code and tests.
 
-```shell
+---
+
+## Features
+
+- **Prompt-driven API Generation:** Describe your requirements in natural language to generate Falcon-based REST APIs and service files.
+- **Automated Test Generation:** Creates comprehensive pytest-based test suites for all generated endpoints and services.
+- **Iterative Code Refinement:** Automatically revises code and tests based on test results until all tests pass or a stopping condition is met.
+- **Database Integration:** Supports PostgreSQL with configurable connection via `.env`.
+- **UI for Workflow Management:** React-based interface for configuring the database, sending prompts, viewing generated files, and monitoring test results.
+- **Version Control Integration:** Optionally auto-commits and pushes changes to a Git repository.
+- **Test Reporting:** Tracks test history and generates Markdown and JSON reports for all test runs.
+
+---
+
+## Quick Start
+
+### 1. Install Dependencies
+
+```sh
 brew install uv
 uv sync
 ```
 
-To run the project, create a `.env` with the `OPEN_AI_KEY` and use the `main` run configuration. 
-Right now, it should print something like the code snippet printed below
+### 2. Configure Environment
 
-To handle a GET request to fetch data about an account named "mahesh" from a PostgreSQL database using Python, you can use the `psycopg2` library. Below is a code snippet that demonstrates how to do this:
-
-```python
-import psycopg2
-from psycopg2 import sql
-
-def get_account_details(account_name):
-    # Database connection parameters
-    conn_params = {
-        'dbname': 'your_database_name',
-        'user': 'your_username',
-        'password': 'your_password',
-        'host': 'your_host',
-        'port': 'your_port'
-    }
-
-    try:
-        # Connect to the PostgreSQL database
-        connection = psycopg2.connect(**conn_params)
-        cursor = connection.cursor()
-
-        # Query to fetch account details
-        query = sql.SQL("SELECT * FROM accounts WHERE name = %s")
-        
-        # Execute the query
-        cursor.execute(query, (account_name,))
-        
-        # Fetch the results
-        account_details = cursor.fetchall()
-
-        # Close the cursor and connection
-        cursor.close()
-        connection.close()
-
-        return account_details
-
-    except Exception as e:
-        print(f"Error: {e}")
-        return None
-
-# Example usage
-account_name = "mahesh"
-account_data = get_account_details(account_name)
-
-if account_data:
-    for row in account_data:
-        print(row)
-else:
-    print("No data found or error occurred.")
+Create a `.env` file in the project root with the following variables:
+```env
+OPENAI_API_KEY=your-openai-key
+DB_NAME=your_db_name
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+DB_HOST=localhost
+DB_PORT=5433
+SOURCE_FOLDER=absolute/path/to/src/revolve/source_generated
+# Optional for Git integration:
+GIT_REPO_URL=https://github.com/your/repo
+GIT_USER_NAME=your-git-username
+GIT_USER_EMAIL=your-email@example.com
+GIT_PUSH_CHANGES=true
 ```
 
-### Explanation:
+---
 
-1. **Database Connection**: Update the connection parameters (`dbname`, `user`, `password`, `host`, `port`) with your database credentials.
+### 3. Unified Start (Recommended)
 
-2. **SQL Query**: The query uses a parameterized SQL statement to prevent SQL injection.
+Start both the backend and frontend together using:
 
-3. **Fetching Data**: The `fetchall()` method retrieves all rows matching the query.
-
-4. **Closing the Connection**: Ensure the connection is closed to free up resources.
-
-Make sure you have the `psycopg2` library installed. You can install it using pip:
-
-```bash
-pip install psycopg2-binary
+```sh
+python src/revolve/api.py
 ```
 
-This code assumes there's a table named `accounts` with a column `name`. If the table doesn't exist, use the `Database Administrator Agent` to create it.
+This will launch both the API server and the UI automatically.
+
+---
+
+### 4. (Optional) Run Backend and Frontend Separately
+
+If you prefer to run the backend and frontend independently:
+
+#### a. Run the Backend (Optional)
+
+```sh
+python src/revolve/main.py
+```
+
+#### b. Run the Frontend (Optional)
+
+```sh
+cd src/revolve/ui
+npm install
+npm run dev
+```
+
+The UI will be available at [http://localhost:5173](http://localhost:5173) by default.
+
+---
+
+## Usage
+
+1. **Configure Database:** Enter your PostgreSQL connection details in the UI or [`.env`](.env ).
+2. **Enter a Prompt:** Describe the API or service you want to generate (e.g., "Generate CRUD operations for the doctors table").
+3. **Review Generated Files:** Inspect and edit generated Python files and tests in the UI.
+4. **Run & Review Tests:** The system runs tests automatically and iteratively refines code until all tests pass.
+5. **Download or Push Code:** Download generated code or push to your configured Git repository.
+
+---
+
+## Project Structure
+
+- [`src/revolve/source_generated`](src/revolve/source_generated ) — Generated API, service, and test files.
+- [`src/revolve/ui`](src/revolve/ui ) — React frontend (see [`App.jsx`](src/revolve/ui/App.jsx )).
+- [`src/revolve`](src/revolve ) — Core backend logic, code generation, and workflow orchestration.
+- [`states`](states ) — Workflow state snapshots for debugging and traceability.
+- [`db-seeds`](db-seeds ) — Example database seed files.
+
+---
+
+## Testing
+
+- Tests are generated and run automatically for each resource.
+- Test results and history are saved in:
+  - [`src/revolve/source_generated/test_status_history.json`](src/revolve/source_generated/test_status_history.json )
+  - [`src/revolve/source_generated/test_status_report.md`](src/revolve/source_generated/test_status_report.md )
+
+---
+
+## Environment Variables
+
+- `OPENAI_API_KEY` — Required for code generation.
+- [`DB_NAME`](src/revolve/ui/App.jsx ), [`DB_USER`](src/revolve/ui/App.jsx ), [`DB_PASSWORD`](src/revolve/ui/App.jsx ), [`DB_HOST`](src/revolve/ui/App.jsx ), [`DB_PORT`](src/revolve/ui/App.jsx ) — PostgreSQL connection.
+- `SOURCE_FOLDER` — Where generated code is saved.
+- `GIT_*` variables — For optional Git integration.
+
+---
+
+## Development Notes
+
+- The backend uses Falcon for REST APIs and psycopg2 for PostgreSQL.
+- The frontend uses React, Ant Design, and Vite.
+- All generated code and tests are placed in the pat spesified in  `SOURCE_FOLDER`.
+- Static files can be served if `STATIC_DIR` is set in [`.env`](.env ).
+
+---
+
+## License
+
+MIT
