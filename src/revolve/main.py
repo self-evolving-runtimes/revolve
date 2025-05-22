@@ -26,7 +26,7 @@ def send_message(message):
 def run_workflow(task=None, db_config=None, send=None):
     if send is None:
         send = send_message
-
+    test_mode = False
     if db_config:
         os.environ["DB_NAME"] = db_config["DB_NAME"]
         os.environ["DB_USER"] = db_config["DB_USER"]
@@ -35,6 +35,7 @@ def run_workflow(task=None, db_config=None, send=None):
         os.environ["DB_PORT"] = db_config["DB_PORT"]
 
         if db_config["USE_CLONE_DB"]:
+            test_mode = True
             clone_db()
 
     
@@ -84,7 +85,7 @@ def run_workflow(task=None, db_config=None, send=None):
         #task = "Created crud operations for passes, satellites, ground stations and orbits"
         task = "Created crud operations for orbits"
 
-    for event in workflow.stream({"messages": [HumanMessage(task)], "send":send}):
+    for event in workflow.stream({"messages": [HumanMessage(task)], "send":send,"test_mode": test_mode}):
         name = ""
         text = ""
         key = list(event.keys())[0]

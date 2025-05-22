@@ -16,8 +16,8 @@ def test_node(state: State):
     api_code = read_python_code("api.py")
     for test_item in state["test_status"]:
         is_foreign_key_exist = check_schema_if_has_foreign_key(test_item["table"]["columns"])
-        if is_foreign_key_exist:
-            log("test_node", f"Skipping test generation for {test_item['resource_file_name']} as it has foreign key", send)
+        if is_foreign_key_exist or state["test_mode"]==False:
+            log("test_node", f"Skipping test generation for {test_item['resource_file_name']}", send)
             test_item["status"] = "skipped"
             continue
         resouce_file = read_python_code(test_item["resource_file_name"])
