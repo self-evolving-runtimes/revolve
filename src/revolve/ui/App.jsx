@@ -234,7 +234,19 @@ const handleTestConnection = async () => {
   } catch (err) {
     notification.error({
       message: 'Connection Failed',
-      description: err.response?.data?.error || 'Unable to reach the database.'
+      duration: 0,
+      style: {
+      width: 'auto',       // 👈 override the forced width
+      maxWidth: '90vw',    // 👈 or whatever you want
+      },
+      description: (
+        <div
+          dangerouslySetInnerHTML={{
+            __html: err.response?.data?.error || '<pre>Unable to reach the database.</pre>'
+          }}
+          style={{ maxHeight: 300, overflowY: 'auto', width:600 }}
+        />
+      ),
     });
     setIsDbValid(false);
   }
