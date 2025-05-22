@@ -1,5 +1,5 @@
-
-
+import inspect
+import sys
 from datetime import datetime
 import time
 import os
@@ -15,13 +15,16 @@ from revolve.external import get_source_folder
 import psycopg2
 from psycopg2 import errors, sql
 import sqlparse
+from loguru import logger
+logger.remove()
+logger.add(sys.stdout, level="INFO", format="{time} | {level} | {message}")
 
+def _log(method_name, description, level="INFO"):
+    logger.log(level, f"{method_name:<20} - {description:<30}")
 
-def _log(method_name, description):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{method_name:<20} - {timestamp:<20} - {description:<30}")
+def log(description, send=None, level="INFO"):
 
-def log(method_name, description, send=None):
+    method_name = inspect.currentframe().f_back.f_code.co_name
     if send:
         send({
             "name": method_name,
@@ -29,7 +32,7 @@ def log(method_name, description, send=None):
             "status":"processing",
             "level":"log"}
         )
-    _log(method_name, description)
+    _log(method_name, description, level)
     
 
 def save_state(state, state_name="state"):
@@ -41,7 +44,7 @@ def save_state(state, state_name="state"):
         with open(file_name, "wb") as f:
             pickle.dump(state, f)
     except Exception as e:
-        log("save_state", f"Error saving state: {e}")
+        log(f"Error saving state: {e}")
         return f"Error saving state: {e}"
 
 def retrieve_state(state_file_name="state_2025-05-01_16-28-50.pkl", reset_tests=True):
@@ -147,7 +150,7 @@ def run_query_on_db(query: str) -> str:
         conn.close()
 
     except Exception as e:
-        log("run_query_on_db", f"Error running query: {e}")
+        log(f"Error running query: {e}")
         return f"Error running query: {e}"
 
     # log("run_query_on_db", f"Query executed successfully.")
@@ -171,10 +174,10 @@ def save_python_code(python_code: str, file_name: str) -> str:
         with open(f"{get_source_folder()}/{file_name}", "w") as f:
             f.write(python_code)
     except Exception as e:
-        log("save_python_code", f"Error saving python code: {e}")
+        log(f"Error saving python code: {e}")
         return f"Error saving python code: {e}"
 
-    log("save_python_code", f"Python code saved successfully to {file_name}.")
+    log(f"Python code saved successfully to {file_name}.")
     return f"Python code saved to {file_name} successfully."
 
 def read_python_code(file_name: str) -> str:
@@ -188,7 +191,7 @@ def read_python_code(file_name: str) -> str:
         with open(f"{get_source_folder()}/{file_name}", "r") as f:
             python_code = f.read()
     except Exception as e:
-        log("get_python_code", f"Error getting python code: {e}")
+        log(f"Error getting python code: {e}")
         return f"Error getting python code: {e}"
 
     # log("get_python_code", f"Python code retrieved successfully.")
@@ -207,7 +210,7 @@ def read_python_code_template(file_name: str) -> str:
         with open(file_path, "r") as f:
             python_code = f.read()
     except Exception as e:
-        log("read_python_code_template", f"Error getting python code: {e}")
+        log(f"Error getting python code: {e}")
         return f"Error getting python code: {e}"
 
     # log("read_python_code_template", f"Python code retrieved successfully.")
@@ -222,7 +225,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
         List[Dict[str, Any]]: A list of dictionaries summarizing test failures,
                               collection errors, or a success message if all tests pass.
     """
-    log("run_pytest", "Running pytest with JSON reporting...")
+    log("Running pytest with JSON reporting...")
 
 
     report_path = Path("report.json")
@@ -247,10 +250,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
         if not report_path.exists():
             time.sleep(0.2)
         if not report_path.exists():
-            log(
-                "run_pytest",
-                "report.json not generated. Pytest might have failed before reporting.",
-            )
+            log("report.json not generated. Pytest might have failed before reporting.")
             return {
                 "status":"error",
                 "message": "report.json not generated. Pytest might have failed before reporting.",
@@ -262,7 +262,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
             try:
                 report_data = json.load(json_file)
             except json.JSONDecodeError as decode_err:
-                log("run_pytest", f"Error decoding JSON: {decode_err}")
+                log(f"Error decoding JSON: {decode_err}")
                 return {
                     "status":"error",
                     "message": f"Error decoding JSON: {decode_err}",
@@ -317,7 +317,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
             for collector in collectors:
                 if collector.get("outcome") == "failed":
                     nodeid = collector.get("nodeid", "unknown")
-                    log("run_pytest", f"Collector failed: {nodeid}")
+                    log(f"Collector failed: {nodeid}")
                     test_results.append(
                         {
                             "name": nodeid,
@@ -332,7 +332,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
                     )
 
         if not test_results:
-            log("run_pytest", "All tests passed.")
+            log("All tests passed.")
             report = {"status":"success","message": "All tests passed.", "test_results": [], "summary": summary}
             pprint(report)
             return report
@@ -360,7 +360,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
         }
 
     except Exception as e:
-        log("run_pytest", f"Error running pytest: {e}")
+        log(f"Error running pytest: {e}")
         print(f"Error running pytest: {e}")
         return {
                 "status": "error",
@@ -373,7 +373,7 @@ def get_file_list():
     try:
         file_list = os.listdir(f"{get_source_folder()}")
     except Exception as e:
-        log("get_file_list", f"Error getting file list: {e}")
+        log(f"Error getting file list: {e}", level="DEBUG")
         return f"Error getting file list: {e}"
     return file_list
 
@@ -389,7 +389,7 @@ def test_db(
         db_host (str): The host of the database.
         db_port (str): The port of the database.
     """
-    log("test_db", "Testing database connection...")
+    log("Testing database connection...")
     try:
         conn = psycopg2.connect(
             dbname=db_name,
@@ -514,14 +514,14 @@ def create_database_if_not_exists(existing_dbname, new_dbname, user, password, h
         with conn.cursor() as cur:
             cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (new_dbname,))
             if cur.fetchone():
-                log(method, f"ℹ️ Database '{new_dbname}' already exists.")
+                log(f"ℹ️ Database '{new_dbname}' already exists.")
             else:
-                log(method, f"📦 Creating database '{new_dbname}' owned by '{user}'...")
+                log(f"📦 Creating database '{new_dbname}' owned by '{user}'...")
                 cur.execute(
                     sql.SQL("CREATE DATABASE {} OWNER {}")
                     .format(sql.Identifier(new_dbname), sql.Identifier(user))
                 )
-                log(method, f"✅ Database '{new_dbname}' created.")
+                log(f"✅ Database '{new_dbname}' created.")
         conn.close()
     except Exception as e:
         raise RuntimeError(f"[{method}] ❌ Failed to create database '{new_dbname}': {e}")
@@ -541,31 +541,31 @@ def apply_create_table_ddls(table_ddl_map, existing_dbname, new_dbname, user, pa
 
     with conn.cursor() as cur:
         for table, ddl in table_ddl_map.items():
-            log(method, f"▶️ Creating table: {table}")
+            log(f"▶️ Creating table: {table}")
             try:
                 cur.execute(ddl)
             except errors.DuplicateTable:
-                log(method, f"⚠️ Table '{table}' already exists.")
+                log(f"⚠️ Table '{table}' already exists.")
                 conn.rollback()
                 if drop_if_exists:
                     try:
-                        log(method, f"🔁 Dropping and recreating table '{table}'...")
+                        log(f"🔁 Dropping and recreating table '{table}'...")
                         cur.execute(sql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(sql.Identifier(table)))
                         conn.commit()
                         cur.execute(ddl)
                         conn.commit()
-                        log(method, f"✅ Recreated table: {table}")
+                        log(f"✅ Recreated table: {table}")
                     except Exception as drop_err:
-                        log(method, f"❌ Error recreating '{table}': {drop_err}")
+                        log(f"❌ Error recreating '{table}': {drop_err}")
                         conn.rollback()
                 else:
-                    log(method, f"⏩ Skipping '{table}' (already exists)")
+                    log(f"⏩ Skipping '{table}' (already exists)")
             except Exception as e:
-                log(method, f"❌ Error creating '{table}': {e}")
+                log(f"❌ Error creating '{table}': {e}")
                 conn.rollback()
             else:
                 conn.commit()
-                log(method, f"✅ Created table: {table}")
+                log(f"✅ Created table: {table}")
     conn.close()
 
 def clone_db():
