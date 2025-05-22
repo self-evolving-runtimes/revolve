@@ -1,3 +1,4 @@
+import random
 import time
 import falcon
 import logging
@@ -7,7 +8,7 @@ import os
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
 from revolve.workflow_generator import run_workflow_generator
-from revolve.functions import test_db, get_file_list, read_python_code, check_permissions
+from revolve.functions import test_db, get_file_list, read_python_code, check_permissions, get_schemas_from_db
 from revolve.utils import start_process, stop_process
 from wsgiref.simple_server import WSGIRequestHandler
 
@@ -183,13 +184,19 @@ class TestDBResource:
                 resp.media = permissions
                 return
 
+            schemas_raw = get_schemas_from_db()
+            schemas = json.loads(schemas_raw)[0][0]
+            table_names = list(schemas.keys())
+            random.shuffle(table_names)
+            
             if result:
                 resp.status = falcon.HTTP_200
-                resp.media = {"message": "Connection to DB was successful!"}
+                resp.media = {"message": "Connection to DB was successful!", "tables": table_names}
             else:
                 resp.status = falcon.HTTP_500
                 resp.media = {"error": "Connection to DB failed. Please check your credentials."}
-        except Exception:
+        except Exception as e:
+            print(e)
             resp.status = falcon.HTTP_500
             resp.media = {"error": "Database connection failed."}
 
