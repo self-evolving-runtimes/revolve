@@ -1,7 +1,7 @@
 
 from datetime import datetime
 from revolve.data_types import CodeHistoryMessage, GeneratedCode, State
-from revolve.functions import check_schema_if_has_foreign_key, log, read_python_code, read_python_code_template, run_pytest, save_python_code
+from revolve.functions import check_schema_for_unsupported_types, log, read_python_code, read_python_code_template, run_pytest, save_python_code
 from revolve.prompts import get_test_generation_prompt, get_test_generation_prompt_ft, get_test_revising_prompt, get_test_revising_prompt_ft
 from revolve.llm import invoke_llm
 from revolve.utils import create_report_json
@@ -15,8 +15,8 @@ def test_node(state: State):
     utils = read_python_code_template("utils.py")
     api_code = read_python_code("api.py")
     for test_item in state["test_status"]:
-        is_foreign_key_exist = check_schema_if_has_foreign_key(test_item["table"]["columns"])
-        if is_foreign_key_exist or state["test_mode"]==False:
+        is_unsupported_type_exist = check_schema_for_unsupported_types(test_item["table"]["columns"])
+        if is_unsupported_type_exist or state["test_mode"]==False:
             log("test_node", f"Skipping test generation for {test_item['resource_file_name']}", send)
             test_item["status"] = "skipped"
             continue

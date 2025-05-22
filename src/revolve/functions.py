@@ -52,9 +52,12 @@ def retrieve_state(state_file_name="state_2025-05-01_16-28-50.pkl", reset_tests=
         backup_state["test_status"] = None
     return backup_state
 
-def check_schema_if_has_foreign_key(columns: Dict[str, Any]) -> bool:
+def check_schema_for_unsupported_types(columns: Dict[str, Any]) -> bool:
     for column in columns:
         if column.get("foreign_key"):
+            return True
+        column_type = column.get("type")
+        if column_type == "USER-DEFINED":
             return True
     return False
 
@@ -632,6 +635,7 @@ if __name__ =="__main__":
     # print(run_pytest("test_owners.py"))
     # print(run_pytest("test_students.py"))
     print(run_pytest("test_watch_history.py"))
+    
 
 
 
