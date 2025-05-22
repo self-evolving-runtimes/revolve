@@ -577,8 +577,7 @@ def clone_db():
     port = os.getenv("DB_PORT")
 
     apply_create_table_ddls(tables, os.getenv("DB_NAME"), new_dbname, user, password, host=host, port=port, drop_if_exists=True)
-
-    os.environ["DB_NAME"] = new_dbname
+    os.environ["DB_NAME_TEST"] = new_dbname
 
 if __name__ =="__main__":
     # print(run_pytest("test_patients.py"))
