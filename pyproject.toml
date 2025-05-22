@@ -30,6 +30,12 @@ dev = [
     "ruff>=0.11.10",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/revolve"]
+exclude = [
+    "*.env.*",
+]
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
