@@ -57,36 +57,9 @@ const App = () => {
   DB_TYPE: 'Postgres',
 });
 
-const promptItems = [
-  {
-    key: '1',
-    icon: <BulbOutlined style={{ color: '#FFD700' }} />,
-    label: 'Create CRUD Operations for all the tables',
-    description: 'Quickly scaffold all the CRUD endpoints.',
-    data: 'Create CRUD Operations for all the tables',
-  },
-  {
-    key: '2',
-    icon: <RocketOutlined style={{ color: '#722ED1' }} />,
-    label: 'Generate CRUD for doctors table',
-    description: 'Focus on generating for doctors only.',
-    data: 'Generate CRUD Operations for the doctors table',
-  },
-  {
-    key: '3',
-    icon: <SmileOutlined style={{ color: '#52C41A' }} />,
-    label: 'Run Unit Tests',
-    description: 'Verify that services are covered by tests.',
-    data: 'Run unit tests for all services',
-  },
-  {
-    key: '4',
-    icon: <InfoCircleOutlined style={{ color: '#1890FF' }} />,
-    label: 'Generate Satellite Service',
-    description: 'Create service for satellite and related tables.',
-    data: 'Generate a new service for the satellite and the related tables',
-  },
-];
+const [promptItems, setPromptItems] = React.useState([]);
+
+
 
 React.useEffect(() => {
   const fetchEnvSettings = async () => {
@@ -219,11 +192,45 @@ const handleSuggestionClick = (text) => {
 const handleTestConnection = async () => {
   try {
     const response = await axios.post('/api/test_db', dbConfig);
+    const data = response.data;
+
     notification.success({
       message: 'Connection Successful',
-      description: response.data?.message || 'Database is reachable.'
+      description: data?.message || 'Database is reachable.'
     });
+
     setIsDbValid(true);
+
+    // If table names are returned, create smart prompts
+    if (Array.isArray(data.tables) && data.tables.length > 1) {
+      const firstTable = data.tables[0];
+      const secondTable = data.tables[1];
+
+      setPromptItems([
+        {
+          key: '1',
+          icon: <RocketOutlined style={{ color: '#722ED1' }} />,
+          label: `Create CRUD for ${firstTable} table`,
+          description: `Generate CRUD endpoints for the ${firstTable} table.`,
+          data: `Create CRUD operations for the ${firstTable} table`,
+        },
+        {
+          key: '2',
+          icon: <SmileOutlined style={{ color: '#52C41A' }} />,
+          label: `CRUD for all except ${secondTable}`,
+          description: `Generate CRUD excluding the ${secondTable} table.`,
+          data: `Create CRUD operations for all the tables except ${secondTable}`,
+        },
+        {
+          key: '3',
+          icon: <BulbOutlined style={{ color: '#FFD700' }} />,
+          label: 'CRUD for all tables',
+          description: 'Quickly scaffold all the CRUD endpoints.',
+          data: 'Create CRUD operations for all the tables',
+        },
+      ]);
+    }
+
   } catch (err) {
     notification.error({
       message: 'Connection Failed',
@@ -580,21 +587,17 @@ const handleSendMessage = async (message) => {
   {isConfigComplete && (
     <>
           <Col span={24}>
-              <Prompts
-                title="✨ Suggestions"
-                items={promptItems}
-                  onItemClick={(info) => {
-                    console.log('Prompt clicked:', info);
+            <Prompts
+              title="✨ Suggestions"
+              items={promptItems}
+              onItemClick={(info) => {
+                const text = info?.data?.data || info?.data?.label;
 
-                    const text = info?.data?.data || info?.data?.label;
-
-                    if (typeof text === 'string' && text.trim()) {
-                      handleSuggestionClick(text.trim());
-                    } else {
-                      console.warn('Prompt text is not a valid string:', text);
-                    }
-                  }}
-              />
+                if (typeof text === 'string' && text.trim()) {
+                  handleSuggestionClick(text.trim());
+                }
+              }}
+            />
           </Col>
         
             <Col span={24}>
