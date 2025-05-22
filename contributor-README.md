@@ -123,7 +123,7 @@ The UI will be available at [http://localhost:5173](http://localhost:5173) by de
 
 - The backend uses Falcon for REST APIs and psycopg2 for PostgreSQL.
 - The frontend uses React, Ant Design, and Vite.
-- All generated code and tests are placed in the pat spesified in  `SOURCE_FOLDER`.
+- All generated code and tests are placed in the path specified in  `SOURCE_FOLDER`.
 - Static files can be served if `STATIC_DIR` is set in [`.env`](.env ).
 
 ---
