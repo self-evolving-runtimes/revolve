@@ -9,7 +9,7 @@ from revolve.llm import invoke_llm
 
 def generate_prompt_for_code_generation(state: State):
     send  = state.get("send")
-    log("generate_prompt_for_code_generation", "Started", send)
+    log("Started", send)
     last_message_content = state["messages"][-1].content
     schemas = get_schemas_from_db()
 
@@ -36,7 +36,7 @@ def generate_prompt_for_code_generation(state: State):
         "description": "Table schemas extracted from the database and prompts generated for each table."
     }
 
-    log("generate_prompt_for_code_generation", "Completed", send)
+    log("Completed", send)
 
     return {
         "DBSchema": structured_db_response,

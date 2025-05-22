@@ -9,7 +9,7 @@ from revolve.llm import invoke_llm
 
 def check_user_request(state: State):
     send  = state.get("send")
-    log("check_user_request", "Started", send)
+    log("Started", send)
     last_message_content = state["messages"][-1].content
 
     messages = get_classification_prompt(last_message_content)
@@ -25,7 +25,7 @@ def check_user_request(state: State):
         "description": structured_db_response["message"],
     }
 
-    log("check_user_request", "Completed", send)
+    log("Completed", send)
 
     return {
         "classification": structured_db_response["classification"],
