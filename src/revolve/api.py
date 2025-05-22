@@ -7,7 +7,7 @@ import os
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
 from revolve.workflow_generator import run_workflow_generator
-from revolve.functions import test_db, get_file_list, read_python_code
+from revolve.functions import test_db, get_file_list, read_python_code, check_permissions
 from revolve.utils import start_process, stop_process
 from wsgiref.simple_server import WSGIRequestHandler
 
@@ -157,6 +157,13 @@ class TestDBResource:
             db_password = data.get("DB_PASSWORD", None)
             db_host = data.get("DB_HOST", None)
             db_port = data.get("DB_PORT", None)
+
+            os.environ["DB_NAME"] = db_name
+            os.environ["DB_USER"] = db_user
+            os.environ["DB_PASSWORD"] = db_password
+            os.environ["DB_HOST"] = db_host
+            os.environ["DB_PORT"] = db_port
+
             if not all([db_name, db_user, db_password, db_host, db_port]):
                 resp.status = falcon.HTTP_400
                 resp.media = {"error": "Missing database connection parameters."}
@@ -169,6 +176,12 @@ class TestDBResource:
                 db_host=db_host,
                 db_port=db_port
             )
+
+            permissions = check_permissions()
+            if permissions["status"]=="error":
+                resp.status = falcon.HTTP_403
+                resp.media = permissions
+                return
 
             if result:
                 resp.status = falcon.HTTP_200

@@ -579,6 +579,48 @@ def clone_db():
     apply_create_table_ddls(tables, os.getenv("DB_NAME"), new_dbname, user, password, host=host, port=port, drop_if_exists=True)
     os.environ["DB_NAME_TEST"] = new_dbname
 
+def check_permissions():
+    db_user_name = os.getenv("DB_USER")
+    query = f"""
+SELECT jsonb_build_object(
+  'can_connect', has_database_privilege('postgres', current_database(), 'CONNECT'),
+  'can_use_schema', has_schema_privilege('postgres', 'public', 'USAGE'),
+  'can_create_db', rolcreatedb,
+  'can_create_role', rolcreaterole,
+  'is_superuser', rolsuper
+) AS permissions
+FROM pg_roles
+WHERE rolname = '{db_user_name}';
+"""
+    result = run_query_on_db(query)
+    permissions = json.loads(result)[-1][-1]
+
+    suggested_queries_template ={
+    'can_connect': "GRANT CONNECT ON DATABASE {database} TO {username};",
+    'is_superuser': "ALTER ROLE {username} WITH SUPERUSER;",
+    'can_create_db': "ALTER ROLE {username} WITH CREATEDB;",
+    'can_use_schema': "GRANT USAGE ON SCHEMA public TO {username};",
+    'can_create_role': "ALTER ROLE {username} WITH CREATEROLE;",
+    }
+    suggested_queries = {}
+    for key, value in permissions.items():
+        if value == False:
+            suggested_queries[key] = suggested_queries_template[key].format(database=os.getenv("DB_NAME"), username=db_user_name)
+
+    if all(value == True for value in permissions.values()):
+        return {
+            "status": "success",
+            "permissions": permissions,
+            "message": f"All required permissions are already granted. "
+        }
+    else:
+        suggested_queries_str = "\n".join([f"{key}: {value}" for key, value in suggested_queries.items()])
+        return {
+            "status": "error",
+            "permissions": permissions,
+            "error": f"You do not have the necessary permissions to perform this operation. You can use the following SQL statements to grant the required permissions:\n{suggested_queries_str}",
+        }
+
 if __name__ =="__main__":
     # print(run_pytest("test_patients.py"))
     # print(run_pytest("test_doctors.py"))
@@ -589,7 +631,8 @@ if __name__ =="__main__":
     # print(run_pytest("test_customers.py"))
     # print(run_pytest("test_owners.py"))
     # print(run_pytest("test_students.py"))
-    print(run_pytest("test_watch_history.py"))
+    # print(run_pytest("test_watch_history.py"))
+    print(check_permissions())
 
 
 
