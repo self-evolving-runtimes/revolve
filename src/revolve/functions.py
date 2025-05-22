@@ -621,7 +621,9 @@ WHERE rolname = '{db_user_name}';
         return {
             "status": "error",
             "permissions": permissions,
-            "error": f"You do not have the necessary permissions to perform this operation. You can use the following SQL statements to grant the required permissions:\n{suggested_queries_str}",
+            "error": f"You do not have the necessary permissions to perform this operation. You can use the following "
+                     f"SQL statements to grant the required permissions:<pre style={{ whiteSpace: 'pre-wrap', "
+                     f"background: '#f6f8fa', padding: 10, borderRadius: 4 }}>{suggested_queries_str}</pre>",
         }
 
 if __name__ =="__main__":
