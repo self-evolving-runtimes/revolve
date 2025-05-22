@@ -22,19 +22,19 @@ import {
 } from '@ant-design/icons';
 
 
-const readmeMd = `## Welcome to Revolve
+const readmeMd = `
 
-**Revolve** is an agent-based code generation and editing tool designed to streamline your development workflow.
+**Revolve** is an agentic code and editing tool that produces code and tests it.
 
 ### Getting Started
 
 1. Configure your database connection.
-2. Enter a task prompt describing what you want to build.
+2. Enter a task prompt describing what you want to build (limited to CRUD operations for now).
 
 ### What Can Revolve Do?
 
-- Generate API endpoints based on your prompt.
-- Create service files with the required business logic.
+- Generate CRUD API endpoints 
+- UI which works with the generated APIs.
 - Automatically write and include test cases for the generated code.
 - Continuously edit and refine existing code to match evolving requirements.
 `;

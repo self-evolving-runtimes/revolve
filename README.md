@@ -1,8 +1,10 @@
 # Revolve
 
-**Revolve** is an agent-based Python code generation and editing tool that automates the creation of REST APIs, service logic, and test cases from natural language prompts. It features a modern React UI, PostgreSQL integration, and an iterative workflow for refining code and tests.
+**Revolve** is an agentic Python code generation and editing tool that automates the creation of REST APIs, service logic, and test cases from natural language prompts. 
+It uses the generated apps in a modern react UI to enable CRUD operations on tables. See our [Roadmap] for future features.
 
 ---
+![Revolve](./screenshots/animated.gif)
 
 ## Features
 
