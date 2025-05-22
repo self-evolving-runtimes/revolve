@@ -13,6 +13,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Prompts, Sender } from '@ant-design/x';
 import { App as AntApp } from 'antd';
+import { Select } from 'antd';
 import {
   BulbOutlined,
   InfoCircleOutlined,
@@ -53,6 +54,7 @@ const App = () => {
   DB_HOST: 'localhost',
   DB_PORT: '5432',
   USE_CLONE_DB: false,
+  DB_TYPE: 'Postgres',
 });
 
 const promptItems = [
@@ -427,8 +429,20 @@ const handleSendMessage = async (message) => {
                 <Panel header="Configuration" key="2">
                   {currentStep === 0 && (
                     <>
+                    <List>
+                      <List.Item>
+                        <Text strong style={{ marginRight: 8 }}>DB Type:</Text>
+                        <Select
+                          value={dbConfig.DB_TYPE}
+                          style={{ width: '70%' }}
+                          onChange={(value) => updateDbField('DB_TYPE', value)}
+                        >
+                          <Select.Option value="Postgres">Postgres</Select.Option>
+                        </Select>
+                      </List.Item>
+                    </List>
                     <List
-                      dataSource={Object.entries(dbConfig).filter(([key]) => key !== 'USE_CLONE_DB')}
+                    dataSource={Object.entries(dbConfig).filter(([key]) => !['USE_CLONE_DB', 'DB_TYPE'].includes(key))}
                       renderItem={([key, value], index) => (
                         <List.Item>
                           <Text strong style={{ marginRight: 8 }}>{key}:</Text>
