@@ -5,6 +5,8 @@ from revolve.data_types import State
 from revolve.functions import test_db
 
 from langgraph.constants import Send
+
+from revolve.nodes.check_user_request import check_user_request
 from revolve.utils_git import *
 from revolve.functions import clone_db
 import os
@@ -57,6 +59,7 @@ def run_workflow(task=None, db_config=None, send=None):
     graph = StateGraph(State)
 
     graph.add_node("router_node", router_node)
+    graph.add_node("check_user_request", check_user_request)
     graph.add_node("generate_prompt_for_code_generation", generate_prompt_for_code_generation)
     graph.add_node("process_table", process_table)
     graph.add_node("generate_api", generate_api)
@@ -65,7 +68,8 @@ def run_workflow(task=None, db_config=None, send=None):
 
 
 
-    graph.add_edge(START, "router_node")
+    graph.add_edge(START, "check_user_request")
+    graph.add_conditional_edges("check_user_request", lambda state: state["classification"], {"router_node" : "router_node",  "__end__":END})
     graph.add_conditional_edges(
         "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "report_node": "report_node", "__end__":END}
     )
