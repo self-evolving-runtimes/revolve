@@ -95,6 +95,7 @@ class State(TypedDict):
     next_node:str
     test_status:list[TestStatus]
     send: Callable[[dict], None]
+    test_mode:bool
 
 class Readme(TypedDict):
     md_content:str
