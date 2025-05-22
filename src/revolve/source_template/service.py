@@ -8,8 +8,9 @@ import json
 
 class HelloDBResource:
     def on_get(self, req, resp):
+        _test_mode = req.get_header('X-Test-Request') == 'true'
         try:
-            with get_db_connection() as conn:
+            with get_db_connection(test_mode=_test_mode) as conn:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                     cur.execute("SELECT * FROM helloDB")
                     results = cur.fetchall()
