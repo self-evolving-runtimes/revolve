@@ -2,7 +2,7 @@ from langgraph.graph import StateGraph, START, END
 from langchain_core.messages import HumanMessage
 
 from revolve.data_types import State
-from revolve.functions import test_db
+from revolve.functions import check_db
 
 from langgraph.constants import Send
 
@@ -41,11 +41,11 @@ def run_workflow(task=None, db_config=None, send=None):
             clone_db()
 
     
-    db_test_result = test_db(db_user=os.environ["DB_USER"],
-                             db_password=os.environ["DB_PASSWORD"],
-                             db_host=os.environ["DB_HOST"],
-                             db_port=os.environ["DB_PORT"],
-                             db_name=os.environ["DB_NAME"])
+    db_test_result = check_db(db_user=os.environ["DB_USER"],
+                              db_password=os.environ["DB_PASSWORD"],
+                              db_host=os.environ["DB_HOST"],
+                              db_port=os.environ["DB_PORT"],
+                              db_name=os.environ["DB_NAME"])
     if not db_test_result:
         send({
             "status":"error",
