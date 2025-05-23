@@ -8,7 +8,7 @@ import os
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
 from revolve.workflow_generator import run_workflow_generator
-from revolve.functions import test_db, get_file_list, read_python_code, check_permissions, get_schemas_from_db
+from revolve.functions import check_db, get_file_list, read_python_code, check_permissions, get_schemas_from_db
 from revolve.utils import start_process, stop_process
 from wsgiref.simple_server import WSGIRequestHandler
 
@@ -171,7 +171,7 @@ class TestDBResource:
                 resp.media = {"error": "Missing database connection parameters."}
                 return
             
-            result = test_db(
+            result = check_db(
                 db_name=db_name,
                 db_user=db_user,
                 db_password=db_password,
