@@ -88,40 +88,50 @@ def get_schemas_from_db():
     ) AS sub;""")
 
     query_result = run_query_on_db("""
-SELECT jsonb_object_agg(
-           table_name,
-           columns
-       ) AS schema_dict
-FROM (
-    SELECT
-        c.table_name,
-        jsonb_agg(
-            jsonb_strip_nulls(
-                jsonb_build_object(
-                    'column_name', c.column_name,
-                    'data_type', c.data_type,
-                    'is_nullable', c.is_nullable,
-                    'foreign_key', jsonb_build_object(
-                        'foreign_table', ccu.table_name,
-                        'foreign_column', ccu.column_name
+        SELECT jsonb_object_agg(
+                   table_name,
+                   columns
+               ) AS schema_dict
+        FROM (
+            SELECT
+                c.table_name,
+                jsonb_agg(
+                    jsonb_strip_nulls(
+                        jsonb_build_object(
+                            'column_name', c.column_name,
+                            'data_type', c.data_type,
+                            'is_nullable', c.is_nullable,
+                            'character_max_length', c.character_maximum_length,
+                            'numeric_precision', c.numeric_precision,
+                            'numeric_scale', c.numeric_scale,
+                            'enum_values', ev.enum_values,
+                            'foreign_key', jsonb_build_object(
+                                'foreign_table', ccu.table_name,
+                                'foreign_column', ccu.column_name
+                            )
+                        )
                     )
-                )
-            )
-        ) AS columns
-    FROM information_schema.columns c
-    LEFT JOIN information_schema.key_column_usage kcu
-        ON c.table_name = kcu.table_name
-        AND c.column_name = kcu.column_name
-        AND c.table_schema = kcu.table_schema
-    LEFT JOIN information_schema.table_constraints tc
-        ON kcu.constraint_name = tc.constraint_name
-        AND tc.constraint_type = 'FOREIGN KEY'
-    LEFT JOIN information_schema.constraint_column_usage ccu
-        ON tc.constraint_name = ccu.constraint_name
-    WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
-    GROUP BY c.table_name
-) AS sub;
-""")
+                ) AS columns
+            FROM information_schema.columns c
+            LEFT JOIN information_schema.key_column_usage kcu
+                ON c.table_name = kcu.table_name
+                AND c.column_name = kcu.column_name
+                AND c.table_schema = kcu.table_schema
+            LEFT JOIN information_schema.table_constraints tc
+                ON kcu.constraint_name = tc.constraint_name
+                AND tc.constraint_type = 'FOREIGN KEY'
+            LEFT JOIN information_schema.constraint_column_usage ccu
+                ON tc.constraint_name = ccu.constraint_name
+            LEFT JOIN LATERAL (
+                SELECT jsonb_agg(e.enumlabel) AS enum_values
+                FROM pg_type t
+                JOIN pg_enum e ON t.oid = e.enumtypid
+                JOIN pg_namespace ns ON ns.oid = t.typnamespace
+                WHERE t.typname = c.udt_name
+            ) ev ON true
+            WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
+            GROUP BY c.table_name
+        ) AS sub;""")
 
     return query_result
 
@@ -184,7 +194,7 @@ def get_table_dependencies():
 
     """)
 
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 def order_tables_by_dependencies(dependencies: Dict[str, Any]) -> List[str]:
     # Extract child tables and all referenced parent tables
@@ -768,7 +778,7 @@ WHERE rolname = '{db_user_name}';
         return {
             "status": "success",
             "permissions": permissions,
-            "message": f"All required permissions are already granted. "
+            "message": "All required permissions are already granted. "
         }
     else:
         suggested_queries_str = "\n".join([f"{key}: {value}" for key, value in suggested_queries.items()])
