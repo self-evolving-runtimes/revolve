@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 from socketserver import ThreadingMixIn
 from wsgiref.simple_server import make_server, WSGIServer
 import traceback
