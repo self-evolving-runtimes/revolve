@@ -14,6 +14,8 @@ import json
 from revolve.external import get_source_folder
 import psycopg2
 from psycopg2 import errors, sql
+from collections import defaultdict, deque
+
 import sqlparse
 from loguru import logger
 logger.remove()
@@ -122,7 +124,159 @@ FROM (
 """)
 
     return query_result
-    
+
+def get_table_dependencies():
+    query_result = run_query_on_db("""
+        WITH fk_info AS (
+        SELECT
+            kcu.table_name AS from_table,
+            kcu.column_name AS from_column,
+            ccu.table_name AS to_table,
+            ccu.column_name AS to_column,
+            -- Check if from_column is unique or part of primary key
+            EXISTS (
+                SELECT 1 FROM information_schema.table_constraints tc2
+                JOIN information_schema.key_column_usage kcu2
+                  ON tc2.constraint_name = kcu2.constraint_name
+                WHERE tc2.table_name = kcu.table_name
+                  AND kcu2.column_name = kcu.column_name
+                  AND tc2.constraint_type IN ('PRIMARY KEY', 'UNIQUE')
+            ) AS is_from_unique,
+            -- Check if to_column is unique or primary
+            EXISTS (
+                SELECT 1 FROM information_schema.table_constraints tc3
+                JOIN information_schema.key_column_usage kcu3
+                  ON tc3.constraint_name = kcu3.constraint_name
+                WHERE tc3.table_name = ccu.table_name
+                  AND kcu3.column_name = ccu.column_name
+                  AND tc3.constraint_type IN ('PRIMARY KEY', 'UNIQUE')
+            ) AS is_to_unique
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+            ON tc.constraint_name = kcu.constraint_name
+        JOIN information_schema.constraint_column_usage ccu
+            ON tc.constraint_name = ccu.constraint_name
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND tc.table_schema NOT IN ('pg_catalog', 'information_schema')
+    )
+    SELECT jsonb_object_agg(
+        from_table,
+        column_mappings
+    ) AS fk_relationships
+    FROM (
+        SELECT
+            from_table,
+            jsonb_object_agg(
+                from_column,
+                jsonb_build_object(
+                    'links_to_table', to_table,
+                    'reltype',
+                        CASE
+                            WHEN is_from_unique AND is_to_unique THEN 'one-to-one'
+                            WHEN NOT is_from_unique AND is_to_unique THEN 'many-to-one'
+                            ELSE 'uncertain' -- fallback
+                        END
+                )
+            ) AS column_mappings
+        FROM fk_info
+        GROUP BY from_table
+    ) AS rels;
+
+    """)
+
+from typing import Dict, Any, List
+
+def order_tables_by_dependencies(dependencies: Dict[str, Any]) -> List[str]:
+    # Extract child tables and all referenced parent tables
+    child_tables = set(dependencies)
+    referenced_parents = {
+        info["links_to_table"]
+        for links in dependencies.values()
+        for info in links.values()
+    }
+
+    # Build dependency map: table -> list of tables it links to
+    final_dependency_map = {
+        table: [info["links_to_table"] for info in links.values()]
+        for table, links in dependencies.items()
+    }
+
+    # Identify and remove tables that are only referenced and have no outgoing links
+    for table in list(final_dependency_map):
+        if table in referenced_parents and not final_dependency_map[table]:
+            del final_dependency_map[table]
+
+    tp_sorted = topological_sort(dependencies)
+
+    return final_dependency_map, tp_sorted
+
+
+def topological_sort(dependencies: Dict[str, Any]) -> List[str]:
+    graph = defaultdict(list)  # parent -> list of children
+    in_degree = defaultdict(int)
+    all_tables = set(dependencies)  # explicitly defined tables
+
+    # Parse dependencies to construct graph and in-degrees
+    for child, columns in dependencies.items():
+        if isinstance(columns, dict):
+            for col_info in columns.values():
+                if isinstance(col_info, dict) and "links_to_table" in col_info:
+                    parent = col_info["links_to_table"]
+                    graph[parent].append(child)
+                    in_degree[child] += 1
+                    all_tables.add(parent)  # include implicit parent tables
+
+    # Start with all tables that have no incoming edges
+    queue = deque([table for table in all_tables if in_degree[table] == 0])
+    sorted_tables = []
+
+    # Kahn’s Algorithm for topological sorting
+    while queue:
+        table = queue.popleft()
+        sorted_tables.append(table)
+
+        for dependent in graph[table]:
+            in_degree[dependent] -= 1
+            if in_degree[dependent] == 0:
+                queue.append(dependent)
+
+    # Detect cycles
+    if len(sorted_tables) != len(all_tables):
+        raise ValueError("Cycle detected in table dependencies.")
+
+    return sorted_tables
+
+def order_tables_by_dependencies_(dependencies: Dict[str, Any]) -> List[str]:
+    # Step 1: Track all tables that are children and referenced parents
+    child_tables = set(dependencies.keys())
+    referenced_parents = set()
+
+    for links in dependencies.values():
+        for info in links.values():
+            referenced_parents.add(info["links_to_table"])
+
+    # Step 3: Build final dependency map (children only) and include isolated tables with []
+    final_dependency_map = {
+        table: [info["links_to_table"] for info in links.values()]
+        for table, links in dependencies.items()
+    }
+
+    all_linked_values = {
+        info["links_to_table"]
+        for links in dependencies.values()
+        for info in links.values()
+    }
+
+    remove_list = []
+    for table , links in final_dependency_map.items():
+        if table in all_linked_values and len(links) == 0:
+            remove_list.append(table)
+
+    #remove the tables in remove_list from final_dependency_map
+    for table in remove_list:
+        final_dependency_map.pop(table)
+    return final_dependency_map
+
 
 def run_query_on_db(query: str) -> str:
     """
@@ -377,7 +531,7 @@ def get_file_list():
         return f"Error getting file list: {e}"
     return file_list
 
-def test_db(
+def check_db(
     db_name: str, db_user: str, db_password: str, db_host: str, db_port: str
 ) -> str:
     """
@@ -636,7 +790,33 @@ if __name__ =="__main__":
     # print(run_pytest("test_customers.py"))
     # print(run_pytest("test_owners.py"))
     # print(run_pytest("test_students.py"))
-    print(run_pytest("test_watch_history.py"))
+    #print(run_pytest("test_watch_history.py"))
+    d_map = {"users": {}, "orders": {"customer_id": {"reltype": "many-to-one", "links_to_table": "customers"}}, "courses": {}, "devices": {}, "patients": {}, "students": {}, "customers": {}, "employees": {}, "device_logs": {"device_id": {"reltype": "many-to-one", "links_to_table": "devices"}}, "enrollments": {"course_id": {"reltype": "one-to-one", "links_to_table": "courses"}, "student_id": {"reltype": "one-to-one", "links_to_table": "students"}}, "order_items": {"order_id": {"reltype": "many-to-one", "links_to_table": "orders"}}, "appointments": {"patient_id": {"reltype": "many-to-one", "links_to_table": "patients"}}, "employee_details": {"employee_id": {"reltype": "one-to-one", "links_to_table": "employees"}}}
+    d_map = {
+  "orders": {
+    "user_id": {
+      "reltype": "many-to-one",
+      "links_to_table": "users"
+    },
+    "product_id": {
+      "reltype": "many-to-one",
+      "links_to_table": "products"
+    }
+  },
+  "products": {
+    "supplier_id": {
+      "reltype": "many-to-one",
+      "links_to_table": "suppliers"
+    }
+  },
+  "users": {},
+  "suppliers": {}
+}
+    d_map = {"orders":{"customer_id":{"reltype":"many-to-one","links_to_table":"customers"},"payment_id":{"reltype":"one-to-one","links_to_table":"payments"}},"payments":{"transaction_id":{"reltype":"many-to-one","links_to_table":"transactions"}},"transactions":{"processor_id":{"reltype":"many-to-one","links_to_table":"payment_processors"}},"customers":{"referrer_id":{"reltype":"many-to-one","links_to_table":"users"}},"users":{},"products":{"supplier_id":{"reltype":"many-to-one","links_to_table":"suppliers"},"category_id":{"reltype":"many-to-one","links_to_table":"categories"}},"suppliers":{"region_id":{"reltype":"many-to-one","links_to_table":"regions"}},"categories":{},"regions":{},"order_items":{"order_id":{"reltype":"many-to-one","links_to_table":"orders"},"product_id":{"reltype":"many-to-one","links_to_table":"products"}},"inventory":{"product_id":{"reltype":"one-to-one","links_to_table":"products"},"warehouse_id":{"reltype":"many-to-one","links_to_table":"warehouses"}},"warehouses":{"region_id":{"reltype":"many-to-one","links_to_table":"regions"}},"students":{},"courses":{},"enrollments":{"student_id":{"reltype":"many-to-one","links_to_table":"students"},"course_id":{"reltype":"many-to-one","links_to_table":"courses"}},"appointments":{"patient_id":{"reltype":"many-to-one","links_to_table":"patients"},"doctor_id":{"reltype":"many-to-one","links_to_table":"employees"}},"patients":{},"employees":{"department_id":{"reltype":"many-to-one","links_to_table":"departments"}},"departments":{},"device_logs":{"device_id":{"reltype":"many-to-one","links_to_table":"devices"},"user_id":{"reltype":"many-to-one","links_to_table":"users"}},"devices":{"assigned_to":{"reltype":"many-to-one","links_to_table":"employees"}},"audit_trail":{"user_id":{"reltype":"many-to-one","links_to_table":"users"}},"payment_processors":{},"feedback":{"order_id":{"reltype":"many-to-one","links_to_table":"orders"},"customer_id":{"reltype":"many-to-one","links_to_table":"customers"}},"alerts":{"device_id":{"reltype":"many-to-one","links_to_table":"devices"}},"settings":{}}
+    d_map = {"users": {}, "alerts": {"device_id": {"reltype": "many-to-one", "links_to_table": "devices"}}, "orders": {"payment_id": {"reltype": "one-to-one", "links_to_table": "payments"}, "customer_id": {"reltype": "many-to-one", "links_to_table": "customers"}}, "courses": {}, "devices": {"assigned_to": {"reltype": "many-to-one", "links_to_table": "employees"}}, "regions": {}, "feedback": {"order_id": {"reltype": "many-to-one", "links_to_table": "orders"}, "customer_id": {"reltype": "many-to-one", "links_to_table": "customers"}}, "patients": {}, "payments": {"transaction_id": {"reltype": "many-to-one", "links_to_table": "transactions"}}, "products": {"category_id": {"reltype": "many-to-one", "links_to_table": "categories"}, "supplier_id": {"reltype": "many-to-one", "links_to_table": "suppliers"}}, "settings": {}, "students": {}, "customers": {"referrer_id": {"reltype": "many-to-one", "links_to_table": "users"}}, "employees": {"department_id": {"reltype": "many-to-one", "links_to_table": "departments"}}, "inventory": {"product_id": {"reltype": "one-to-one", "links_to_table": "products"}, "warehouse_id": {"reltype": "many-to-one", "links_to_table": "warehouses"}}, "suppliers": {"region_id": {"reltype": "many-to-one", "links_to_table": "regions"}}, "categories": {}, "warehouses": {"region_id": {"reltype": "many-to-one", "links_to_table": "regions"}}, "audit_trail": {"user_id": {"reltype": "many-to-one", "links_to_table": "users"}}, "departments": {}, "device_logs": {"user_id": {"reltype": "many-to-one", "links_to_table": "users"}, "device_id": {"reltype": "many-to-one", "links_to_table": "devices"}}, "enrollments": {"course_id": {"reltype": "many-to-one", "links_to_table": "courses"}, "student_id": {"reltype": "many-to-one", "links_to_table": "students"}}, "order_items": {"order_id": {"reltype": "many-to-one", "links_to_table": "orders"}, "product_id": {"reltype": "many-to-one", "links_to_table": "products"}}, "appointments": {"doctor_id": {"reltype": "many-to-one", "links_to_table": "employees"}, "patient_id": {"reltype": "many-to-one", "links_to_table": "patients"}}, "transactions": {"processor_id": {"reltype": "many-to-one", "links_to_table": "payment_processors"}}, "payment_processors": {}}
+    #d_map = {"users": {}, "courses": {}, "regions": {}, "patients": {}, "students": {}, "customers": {}, "employees": {}, "categories": {}, "departments": {}, "payment_processors": {}}
+    d_map, _ = order_tables_by_dependencies(d_map)
+    print(d_map)
     
 
 
