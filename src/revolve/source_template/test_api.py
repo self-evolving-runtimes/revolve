@@ -1,12 +1,9 @@
 import json
-import logging
-import os
 
 import pytest
 from falcon import testing
 
 from api import app
-from utils import get_unique_id
 
 @pytest.fixture
 def client():
