@@ -318,29 +318,31 @@ const handleSendMessage = async (message) => {
           continue;
         }
 
-        if (parsed.status === 'processing') {
-          setSystemMessages(prev => {
-            const updatedMessages = [...prev, { name: parsed.name, text: parsed.text, level: parsed.level }];
+       
+      switch (parsed.level) {
+        case 'system':
+          setSystemMessages(prev => [...prev, { name: parsed.name, text: parsed.text, level: parsed.level }]);
+          break;
 
-            if (parsed.text && parsed.text.includes('APIs are generated') && !showServerControls) {
-              setShowServerControls(true);
-              setSidePanelKeys((prev) => {
-                const updated = new Set(prev);
-                updated.add('2'); // Expand the Server Controls panel
-                return Array.from(updated);
-              });
-              notification.success({
-                message: 'APIs Generated',
-                description: parsed.text
-              });
-            }
+        case 'workflow':
+          setChatMessages(prev => [
+            ...prev,
+            { role: 'assistant', content: parsed.text || '' }
+          ]);
+          break;
 
-            return updatedMessages;
+        case 'notification':
+          notification.info({
+            message: parsed.name || 'Notification',
+            description: parsed.text || '',
           });
-        } else if (parsed.status === 'done' || parsed.status === 'error') {
-          assistantReply += parsed.text || '';
-        }
+          break;
+
+        default:
+          console.warn('Unknown message level:', parsed.level);
       }
+        } 
+      
     }
 
     if (assistantReply) {

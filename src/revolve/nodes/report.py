@@ -2,7 +2,7 @@
 from datetime import datetime
 import os
 from revolve.data_types import Readme, State
-from revolve.functions import read_python_code, save_python_code
+from revolve.functions import read_python_code, save_python_code, log
 from revolve.prompts import get_readme_prompt
 from revolve.utils import create_ft_data, create_test_report
 from revolve.external import get_source_folder
@@ -65,14 +65,14 @@ def report_node(state: State):
         description=""
     )
 
-    
+    log(description="Report created and README file updated.", send=state.get("send"))
     new_trace = {
         "node_name": "report_node",
         "node_type": "report",
         "node_input": state["test_status"],
         "node_output": state["test_status"],
         "trace_timestamp": datetime.now(),
-        "description": "Test report created and README file generated."
+        "description": "Task completed. You can now use the API and check the README file for more information."
     }
 
     return {
