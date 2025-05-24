@@ -7,7 +7,8 @@ import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, 
 import { RobotOutlined, UserOutlined,  FileTextOutlined, FileMarkdownOutlined, FileOutlined, FileUnknownOutlined, PlaySquareOutlined } from '@ant-design/icons';
 import './index.css';
 
-import { notification } from 'antd';
+import { notification, Badge } from 'antd';
+
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -103,7 +104,7 @@ const openAiKeyRef = React.useRef(null);
 const chatInputRef = React.useRef(null);
 const senderRef = React.useRef(null);
 
-const [sidePanelKeys, setSidePanelKeys] = React.useState(['1']); // only "System Messages" open by default
+const [sidePanelKeys, setSidePanelKeys] = React.useState([]); 
 
 const [showServerControls, setShowServerControls] = React.useState(false);
 
@@ -386,8 +387,20 @@ const handleSendMessage = async (message) => {
       )}
     </Panel>
   )}
-        <Panel header="System Messages" key="1">
-          {systemMessages.length === 0 ? (
+            <Panel
+              key="1"
+              header={
+                <span>
+                  System Messages{' '}
+                  <Badge
+                    count={systemMessages.length}
+                    style={{ backgroundColor: '#f5222d', marginLeft: 8 }}
+                    overflowCount={99}
+                  />
+                </span>
+              }
+            >
+            {systemMessages.length === 0 ? (
             <Text>No messages yet...</Text>
           ) : (
             <div style={{ maxHeight: 500, overflowY: 'auto', paddingRight: 8 }}>
