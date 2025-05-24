@@ -1,3 +1,4 @@
+import random
 import time
 import falcon
 import logging
@@ -7,9 +8,10 @@ import os
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
 from revolve.workflow_generator import run_workflow_generator
-from revolve.functions import test_db, get_file_list, read_python_code
+from revolve.functions import check_db, get_file_list, read_python_code, check_permissions, get_schemas_from_db
 from revolve.utils import start_process, stop_process
 from wsgiref.simple_server import WSGIRequestHandler
+
 
 logging.basicConfig(level=logging.INFO, filename="api.log")
 logger = logging.getLogger(__name__)
@@ -79,16 +81,17 @@ class _MockWorkflowResource:
         resp.content_type = 'application/x-ndjson'
 
         def generate():
-            # Simulate 3 intermediate messages and 1 final message
+            levels = ["system", "workflow", "notification"]
             for i in range(10):
+                random_level = random.choice(levels)
                 message = {
                     "status": "processing",
                     "name": "node",
-                    "level":"log",
-                    "text": f"Step {i+1} kljhslkdhj lksahlkdfhsal dfhklshalkf haslkhf lksahklfh aslkdfh laskhfs alkhfkl saklfhsal kflsahlkfhsa lkflkashlk flsakhf lksahflk hasklhf lskahflksa flkahsl kfhklashf lksahklfh alskfhak lsflkas alfhla ksfh lshfkla completed"
+                    "level":random_level,
+                    "text": f"Step {i+1} test completed puya..."
                 }
                 yield (json.dumps(message) + "\n").encode("utf-8")
-                time.sleep(2)  # Delay of 1 second
+                time.sleep(1)  # Delay of 1 second
 
             final_message = {
                 "status": "done",
@@ -157,12 +160,19 @@ class TestDBResource:
             db_password = data.get("DB_PASSWORD", None)
             db_host = data.get("DB_HOST", None)
             db_port = data.get("DB_PORT", None)
+
+            os.environ["DB_NAME"] = db_name
+            os.environ["DB_USER"] = db_user
+            os.environ["DB_PASSWORD"] = db_password
+            os.environ["DB_HOST"] = db_host
+            os.environ["DB_PORT"] = db_port
+
             if not all([db_name, db_user, db_password, db_host, db_port]):
                 resp.status = falcon.HTTP_400
                 resp.media = {"error": "Missing database connection parameters."}
                 return
             
-            result = test_db(
+            result = check_db(
                 db_name=db_name,
                 db_user=db_user,
                 db_password=db_password,
@@ -170,13 +180,25 @@ class TestDBResource:
                 db_port=db_port
             )
 
+            permissions = check_permissions()
+            if permissions["status"]=="error":
+                resp.status = falcon.HTTP_403
+                resp.media = permissions
+                return
+
+            schemas_raw = get_schemas_from_db()
+            schemas = json.loads(schemas_raw)[0][0]
+            table_names = list(schemas.keys())
+            random.shuffle(table_names)
+            
             if result:
                 resp.status = falcon.HTTP_200
-                resp.media = {"message": "Connection to DB was successful!"}
+                resp.media = {"message": "Connection to DB was successful!", "tables": table_names}
             else:
                 resp.status = falcon.HTTP_500
                 resp.media = {"error": "Connection to DB failed. Please check your credentials."}
-        except Exception:
+        except Exception as e:
+            print(e)
             resp.status = falcon.HTTP_500
             resp.media = {"error": "Database connection failed."}
 
@@ -230,7 +252,7 @@ def check_env_vars():
         #raise exception and exit
         sys.exit(1)
 
-if __name__ == "__main__":
+def main():
     port = int(os.environ.get("API_PORT", "48001"))
     with make_server("", port, app, server_class=ThreadingWSGIServer, handler_class=LoggingWSGIRequestHandler) as httpd:
         logger.info(f"Serving on http://localhost:{port}/")
@@ -238,3 +260,6 @@ if __name__ == "__main__":
         print("\033[92m" + "✅" + "\033[0m", end=" ")
         print(f"Serving on http://localhost:{port}/")
         httpd.serve_forever()
+
+if __name__ == "__main__":
+    main()

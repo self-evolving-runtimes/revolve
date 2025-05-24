@@ -41,6 +41,11 @@ class DBSchema(TypedDict):
     """Captures a list of tables for which APIs will get generated"""
     tables: list[Table]
 
+class ClassifyUserRequest(TypedDict):
+    """ Classify the user prompt if it is a generate CRUD task or reply with a message """
+    classification: str
+    message: str
+
 class ApiRoute(TypedDict):
     uri: str
     resource_object: str
@@ -95,6 +100,8 @@ class State(TypedDict):
     next_node:str
     test_status:list[TestStatus]
     send: Callable[[dict], None]
+    test_mode:bool
+    classification:str
 
 class Readme(TypedDict):
     md_content:str
