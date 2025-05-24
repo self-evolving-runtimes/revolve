@@ -81,16 +81,17 @@ class _MockWorkflowResource:
         resp.content_type = 'application/x-ndjson'
 
         def generate():
-            # Simulate 3 intermediate messages and 1 final message
+            levels = ["system", "workflow", "notification"]
             for i in range(10):
+                random_level = random.choice(levels)
                 message = {
                     "status": "processing",
                     "name": "node",
-                    "level":"log",
-                    "text": f"Step {i+1} kljhslkdhj lksahlkdfhsal dfhklshalkf haslkhf lksahklfh aslkdfh laskhfs alkhfkl saklfhsal kflsahlkfhsa lkflkashlk flsakhf lksahflk hasklhf lskahflksa flkahsl kfhklashf lksahklfh alskfhak lsflkas alfhla ksfh lshfkla completed"
+                    "level":random_level,
+                    "text": f"Step {i+1} test completed puya..."
                 }
                 yield (json.dumps(message) + "\n").encode("utf-8")
-                time.sleep(2)  # Delay of 1 second
+                time.sleep(1)  # Delay of 1 second
 
             final_message = {
                 "status": "done",

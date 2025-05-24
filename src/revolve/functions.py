@@ -24,7 +24,7 @@ logger.add(sys.stdout, level="INFO", format="{time} | {level} | {message}")
 def _log(method_name, description, level="INFO"):
     logger.log(level, f"{method_name:<20} - {description:<30}")
 
-def log(description, send=None, level="INFO"):
+def log(description, send=None, level="system"):
 
     method_name = inspect.currentframe().f_back.f_code.co_name
     if send:
@@ -32,9 +32,9 @@ def log(description, send=None, level="INFO"):
             "name": method_name,
             "text": description,
             "status":"processing",
-            "level":"log"}
+            "level":level}
         )
-    _log(method_name, description, level)
+    _log(method_name, description)
     
 
 def save_state(state, state_name="state"):
