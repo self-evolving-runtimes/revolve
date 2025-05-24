@@ -2,7 +2,7 @@
 from datetime import datetime
 import os
 from revolve.data_types import Readme, State
-from revolve.functions import read_python_code, save_python_code
+from revolve.functions import read_python_code, save_python_code, log
 from revolve.prompts import get_readme_prompt
 from revolve.utils import create_ft_data, create_test_report
 from revolve.external import get_source_folder
@@ -26,12 +26,22 @@ def report_node(state: State):
         description="All done"
     )
     
+    db_name = os.environ.get("DB_NAME")
+    db_user = os.environ.get("DB_USER")
+    db_password = os.environ.get("DB_PASSWORD")
+    db_host = os.environ.get("DB_HOST")
+    db_port = os.environ.get("DB_PORT")
+
     env_file = open(f"{get_source_folder()}/.env", "w")
-    env_file.write(f"DB_NAME={os.environ['DB_NAME']}\n")
-    env_file.write(f"DB_USER={os.environ['DB_USER']}\n")
-    env_file.write(f"DB_PASSWORD={os.environ['DB_PASSWORD']}\n")
-    env_file.write(f"DB_HOST={os.environ['DB_HOST']}\n")
-    env_file.write(f"DB_PORT={os.environ['DB_PORT']}\n")
+    env_file.write(f"DB_NAME={db_name}\n")
+    if state["test_mode"]:
+        db_name_test = os.environ.get("DB_NAME_TEST", "")
+        env_file.write(f"DB_NAME_TEST={db_name_test}\n")
+    env_file.write(f"DB_USER={db_user}\n")
+    env_file.write(f"DB_PASSWORD={db_password}\n")
+    env_file.write(f"DB_HOST={db_host}\n")
+    env_file.write(f"DB_PORT={db_port}\n")
+
     env_file.close()
     api_code = read_python_code("api.py")
 
@@ -55,14 +65,14 @@ def report_node(state: State):
         description=""
     )
 
-    
+    log(description="Report created and README file updated.", send=state.get("send"))
     new_trace = {
         "node_name": "report_node",
         "node_type": "report",
         "node_input": state["test_status"],
         "node_output": state["test_status"],
         "trace_timestamp": datetime.now(),
-        "description": "Test report created and README file generated."
+        "description": "Task completed. You can now use the API and check the README file for more information."
     }
 
     return {

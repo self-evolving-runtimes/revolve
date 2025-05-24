@@ -7,12 +7,14 @@ import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, 
 import { RobotOutlined, UserOutlined,  FileTextOutlined, FileMarkdownOutlined, FileOutlined, FileUnknownOutlined, PlaySquareOutlined } from '@ant-design/icons';
 import './index.css';
 
-import { notification } from 'antd';
+import { notification, Badge } from 'antd';
+
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Prompts, Sender } from '@ant-design/x';
 import { App as AntApp } from 'antd';
+import { Select } from 'antd';
 import {
   BulbOutlined,
   InfoCircleOutlined,
@@ -52,39 +54,13 @@ const App = () => {
   DB_PASSWORD: 'admin',
   DB_HOST: 'localhost',
   DB_PORT: '5432',
-  USE_CLONE_DB: false,
+  USE_CLONE_DB: true,
+  DB_TYPE: 'Postgres',
 });
 
-const promptItems = [
-  {
-    key: '1',
-    icon: <BulbOutlined style={{ color: '#FFD700' }} />,
-    label: 'Create CRUD Operations for all the tables',
-    description: 'Quickly scaffold all the CRUD endpoints.',
-    data: 'Create CRUD Operations for all the tables',
-  },
-  {
-    key: '2',
-    icon: <RocketOutlined style={{ color: '#722ED1' }} />,
-    label: 'Generate CRUD for doctors table',
-    description: 'Focus on generating for doctors only.',
-    data: 'Generate CRUD Operations for the doctors table',
-  },
-  {
-    key: '3',
-    icon: <SmileOutlined style={{ color: '#52C41A' }} />,
-    label: 'Run Unit Tests',
-    description: 'Verify that services are covered by tests.',
-    data: 'Run unit tests for all services',
-  },
-  {
-    key: '4',
-    icon: <InfoCircleOutlined style={{ color: '#1890FF' }} />,
-    label: 'Generate Satellite Service',
-    description: 'Create service for satellite and related tables.',
-    data: 'Generate a new service for the satellite and the related tables',
-  },
-];
+const [promptItems, setPromptItems] = React.useState([]);
+
+
 
 React.useEffect(() => {
   const fetchEnvSettings = async () => {
@@ -128,7 +104,7 @@ const openAiKeyRef = React.useRef(null);
 const chatInputRef = React.useRef(null);
 const senderRef = React.useRef(null);
 
-const [sidePanelKeys, setSidePanelKeys] = React.useState(['1']); // only "System Messages" open by default
+const [sidePanelKeys, setSidePanelKeys] = React.useState([]); 
 
 const [showServerControls, setShowServerControls] = React.useState(false);
 
@@ -217,15 +193,61 @@ const handleSuggestionClick = (text) => {
 const handleTestConnection = async () => {
   try {
     const response = await axios.post('/api/test_db', dbConfig);
+    const data = response.data;
+
     notification.success({
       message: 'Connection Successful',
-      description: response.data?.message || 'Database is reachable.'
+      description: data?.message || 'Database is reachable.'
     });
+
     setIsDbValid(true);
+
+    // If table names are returned, create smart prompts
+    if (Array.isArray(data.tables) && data.tables.length > 1) {
+      const firstTable = data.tables[0];
+      const secondTable = data.tables[1];
+
+      setPromptItems([
+        {
+          key: '1',
+          icon: <RocketOutlined style={{ color: '#722ED1' }} />,
+          label: `Create CRUD for ${firstTable} table`,
+          description: `Generate CRUD endpoints for the ${firstTable} table.`,
+          data: `Create CRUD operations for the ${firstTable} table`,
+        },
+        {
+          key: '2',
+          icon: <SmileOutlined style={{ color: '#52C41A' }} />,
+          label: `CRUD for all except ${secondTable}`,
+          description: `Generate CRUD excluding the ${secondTable} table.`,
+          data: `Create CRUD operations for all the tables except ${secondTable}`,
+        },
+        {
+          key: '3',
+          icon: <BulbOutlined style={{ color: '#FFD700' }} />,
+          label: 'CRUD for all tables',
+          description: 'Quickly scaffold all the CRUD endpoints.',
+          data: 'Create CRUD operations for all the tables',
+        },
+      ]);
+    }
+
   } catch (err) {
     notification.error({
       message: 'Connection Failed',
-      description: err.response?.data?.error || 'Unable to reach the database.'
+      duration: 0,
+      style: {
+      width: 'auto',       // 👈 override the forced width
+      maxWidth: '90vw',    // 👈 or whatever you want
+      },
+      description: (
+        <div
+          dangerouslySetInnerHTML={{
+            __html: err.response?.data?.error || '<pre>Unable to reach the database.</pre>'
+          }}
+          style={{ maxHeight: 300, overflowY: 'auto', width:600 }}
+        />
+      ),
     });
     setIsDbValid(false);
   }
@@ -296,29 +318,42 @@ const handleSendMessage = async (message) => {
           continue;
         }
 
-        if (parsed.status === 'processing') {
-          setSystemMessages(prev => {
-            const updatedMessages = [...prev, { name: parsed.name, text: parsed.text, level: parsed.level }];
+       
+      switch (parsed.level) {
+        case 'system':
+          setSystemMessages(prev => [...prev, { name: parsed.name, text: parsed.text, level: parsed.level }]);
+          break;
 
-            if (parsed.text && parsed.text.includes('APIs are generated') && !showServerControls) {
-              setShowServerControls(true);
-              setSidePanelKeys((prev) => {
-                const updated = new Set(prev);
-                updated.add('2'); // Expand the Server Controls panel
-                return Array.from(updated);
-              });
-              notification.success({
-                message: 'APIs Generated',
-                description: parsed.text
-              });
-            }
+        case 'workflow':
+          setChatMessages(prev => [
+            ...prev,
+            { role: 'assistant', content: parsed.text || '' }
+          ]);
+          break;
 
-            return updatedMessages;
+        case 'notification':
+          notification.info({
+            message: parsed.name || 'Notification',
+            description: parsed.text || '',
           });
-        } else if (parsed.status === 'done' || parsed.status === 'error') {
-          assistantReply += parsed.text || '';
-        }
+          break;
+
+        default:
+          console.warn('Unknown message level:', parsed.level);
       }
+      if (parsed.text?.includes('APIs are generated.') && !showServerControls) {
+          setShowServerControls(true);
+          setSidePanelKeys((prev) => {
+            const updated = new Set(prev);
+            updated.add('2');
+            return Array.from(updated);
+          });
+        }
+        }
+    
+        
+
+      
     }
 
     if (assistantReply) {
@@ -365,8 +400,20 @@ const handleSendMessage = async (message) => {
       )}
     </Panel>
   )}
-        <Panel header="System Messages" key="1">
-          {systemMessages.length === 0 ? (
+            <Panel
+              key="1"
+              header={
+                <span>
+                  System Messages{' '}
+                  <Badge
+                    count={systemMessages.length}
+                    style={{ backgroundColor: '#f5222d', marginLeft: 8 }}
+                    overflowCount={99}
+                  />
+                </span>
+              }
+            >
+            {systemMessages.length === 0 ? (
             <Text>No messages yet...</Text>
           ) : (
             <div style={{ maxHeight: 500, overflowY: 'auto', paddingRight: 8 }}>
@@ -427,8 +474,20 @@ const handleSendMessage = async (message) => {
                 <Panel header="Configuration" key="2">
                   {currentStep === 0 && (
                     <>
+                    <List>
+                      <List.Item>
+                        <Text strong style={{ marginRight: 8 }}>DB Type:</Text>
+                        <Select
+                          value={dbConfig.DB_TYPE}
+                          style={{ width: '70%' }}
+                          onChange={(value) => updateDbField('DB_TYPE', value)}
+                        >
+                          <Select.Option value="Postgres">Postgres</Select.Option>
+                        </Select>
+                      </List.Item>
+                    </List>
                     <List
-                      dataSource={Object.entries(dbConfig).filter(([key]) => key !== 'USE_CLONE_DB')}
+                    dataSource={Object.entries(dbConfig).filter(([key]) => !['USE_CLONE_DB', 'DB_TYPE'].includes(key))}
                       renderItem={([key, value], index) => (
                         <List.Item>
                           <Text strong style={{ marginRight: 8 }}>{key}:</Text>
@@ -444,7 +503,7 @@ const handleSendMessage = async (message) => {
 
                     <List.Item>
                       <Checkbox
-                        checked={dbConfig.USE_CLONE_DB || false}
+                        checked={dbConfig.USE_CLONE_DB}
                         onChange={(e) => updateDbField('USE_CLONE_DB', e.target.checked)}
                       >
                         Enable test mode (It will create a new DB named `{dbConfig.DB_NAME}_test` and use it for testing)
@@ -566,21 +625,17 @@ const handleSendMessage = async (message) => {
   {isConfigComplete && (
     <>
           <Col span={24}>
-              <Prompts
-                title="✨ Suggestions"
-                items={promptItems}
-                  onItemClick={(info) => {
-                    console.log('Prompt clicked:', info);
+            <Prompts
+              title="✨ Suggestions"
+              items={promptItems}
+              onItemClick={(info) => {
+                const text = info?.data?.data || info?.data?.label;
 
-                    const text = info?.data?.data || info?.data?.label;
-
-                    if (typeof text === 'string' && text.trim()) {
-                      handleSuggestionClick(text.trim());
-                    } else {
-                      console.warn('Prompt text is not a valid string:', text);
-                    }
-                  }}
-              />
+                if (typeof text === 'string' && text.trim()) {
+                  handleSuggestionClick(text.trim());
+                }
+              }}
+            />
           </Col>
         
             <Col span={24}>
