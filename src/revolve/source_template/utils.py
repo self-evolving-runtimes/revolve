@@ -5,10 +5,11 @@ from datetime import datetime, date
 import json
 from uuid import UUID
 
-def get_db_connection():
+def get_db_connection(test_mode):
     try:
+        _db_name = os.getenv("DB_NAME") if not test_mode else os.getenv("DB_NAME_TEST")
         return psycopg2.connect(
-            dbname=os.getenv("DB_NAME"),
+            dbname=_db_name,
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD"),
             host=os.getenv("DB_HOST"),

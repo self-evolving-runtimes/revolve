@@ -16,14 +16,31 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "falcon-cors>=1.1.7",
     "sqlparse>=0.5.3",
+    "loguru>=0.7.3",
 ]
 
 [project.scripts]
-revolve = "revolve:main"
+revolve-api = "revolve.api:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build]
+# Tells Hatch that packages live under `src/`
+sources = ["src"]
+
+# Static files to include in the wheel
+artifacts = [
+  "src/revolve/ui/dist/**",
+  "src/revolve/resources/**"
+]
+
+[tool.hatch.build.targets.wheel]
+# Include all Python + resource files
+include = [
+  "src/revolve/**"
+]
 
 [dependency-groups]
 dev = [

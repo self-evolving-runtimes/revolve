@@ -9,7 +9,7 @@ from revolve.llm import invoke_llm
 
 def process_table(table_state:Table):
     table_name = table_state["table_name"]
-    log("process_table", f"Processing table: {table_name}")
+    log(f"Processing table: {table_name}")
     columns = table_state["columns"]
 
     code_template = read_python_code_template("service.py")
@@ -21,8 +21,7 @@ def process_table(table_state:Table):
     
     structured_resource_response = invoke_llm(messages, max_attempts=3, validation_class=Resource, method="function_calling")
 
-
-    log("process_table", f"Resource generated for  {table_name}")
+    log(f"Resource generated for  {table_name}")
     save_python_code(
         structured_resource_response["resource_code"],
         structured_resource_response["resource_file_name"],

@@ -126,6 +126,24 @@ The UI will be available at [http://localhost:5173](http://localhost:5173) by de
 - All generated code and tests are placed in the path specified in  `SOURCE_FOLDER`.
 - Static files can be served if `STATIC_DIR` is set in [`.env`](.env ).
 
+## Building the package for distribution
+To build the package for distribution, run:
+
+```sh
+uv pip install hatch
+hatch build
+```
+This will create a `dist` directory with the built package.
+You can then install the package using:
+
+```sh
+pip install dist/revolve-0.1.0-py3-none-any.whl
+```
+and then run the app using:
+
+```sh
+revolve-api
+
 ---
 
 ## License
