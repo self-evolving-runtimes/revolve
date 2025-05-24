@@ -251,7 +251,7 @@ def check_env_vars():
         #raise exception and exit
         sys.exit(1)
 
-if __name__ == "__main__":
+def main():
     port = int(os.environ.get("API_PORT", "48001"))
     with make_server("", port, app, server_class=ThreadingWSGIServer, handler_class=LoggingWSGIRequestHandler) as httpd:
         logger.info(f"Serving on http://localhost:{port}/")
@@ -259,3 +259,6 @@ if __name__ == "__main__":
         print("\033[92m" + "✅" + "\033[0m", end=" ")
         print(f"Serving on http://localhost:{port}/")
         httpd.serve_forever()
+
+if __name__ == "__main__":
+    main()
