@@ -54,7 +54,7 @@ const App = () => {
   DB_PASSWORD: 'admin',
   DB_HOST: 'localhost',
   DB_PORT: '5432',
-  USE_CLONE_DB: false,
+  USE_CLONE_DB: true,
   DB_TYPE: 'Postgres',
 });
 
@@ -503,7 +503,7 @@ const handleSendMessage = async (message) => {
 
                     <List.Item>
                       <Checkbox
-                        checked={dbConfig.USE_CLONE_DB || true}
+                        checked={dbConfig.USE_CLONE_DB}
                         onChange={(e) => updateDbField('USE_CLONE_DB', e.target.checked)}
                       >
                         Enable test mode (It will create a new DB named `{dbConfig.DB_NAME}_test` and use it for testing)
