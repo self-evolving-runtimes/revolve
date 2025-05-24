@@ -790,45 +790,6 @@ WHERE rolname = '{db_user_name}';
                      f"background: '#f6f8fa', padding: 10, borderRadius: 4 }}>{suggested_queries_str}</pre>",
         }
 
-if __name__ =="__main__":
-    # print(run_pytest("test_patients.py"))
-    # print(run_pytest("test_doctors.py"))
-    # print(run_pytest("test_appointments.py"))
-    # print(run_pytest("test_courses.py"))
-    # print(run_pytest("test_movies.py"))
-    # print(run_pytest("test_users.py"))
-    # print(run_pytest("test_customers.py"))
-    # print(run_pytest("test_owners.py"))
-    # print(run_pytest("test_students.py"))
-    #print(run_pytest("test_watch_history.py"))
-    d_map = {"users": {}, "orders": {"customer_id": {"reltype": "many-to-one", "links_to_table": "customers"}}, "courses": {}, "devices": {}, "patients": {}, "students": {}, "customers": {}, "employees": {}, "device_logs": {"device_id": {"reltype": "many-to-one", "links_to_table": "devices"}}, "enrollments": {"course_id": {"reltype": "one-to-one", "links_to_table": "courses"}, "student_id": {"reltype": "one-to-one", "links_to_table": "students"}}, "order_items": {"order_id": {"reltype": "many-to-one", "links_to_table": "orders"}}, "appointments": {"patient_id": {"reltype": "many-to-one", "links_to_table": "patients"}}, "employee_details": {"employee_id": {"reltype": "one-to-one", "links_to_table": "employees"}}}
-    d_map = {
-  "orders": {
-    "user_id": {
-      "reltype": "many-to-one",
-      "links_to_table": "users"
-    },
-    "product_id": {
-      "reltype": "many-to-one",
-      "links_to_table": "products"
-    }
-  },
-  "products": {
-    "supplier_id": {
-      "reltype": "many-to-one",
-      "links_to_table": "suppliers"
-    }
-  },
-  "users": {},
-  "suppliers": {}
-}
-    d_map = {"orders":{"customer_id":{"reltype":"many-to-one","links_to_table":"customers"},"payment_id":{"reltype":"one-to-one","links_to_table":"payments"}},"payments":{"transaction_id":{"reltype":"many-to-one","links_to_table":"transactions"}},"transactions":{"processor_id":{"reltype":"many-to-one","links_to_table":"payment_processors"}},"customers":{"referrer_id":{"reltype":"many-to-one","links_to_table":"users"}},"users":{},"products":{"supplier_id":{"reltype":"many-to-one","links_to_table":"suppliers"},"category_id":{"reltype":"many-to-one","links_to_table":"categories"}},"suppliers":{"region_id":{"reltype":"many-to-one","links_to_table":"regions"}},"categories":{},"regions":{},"order_items":{"order_id":{"reltype":"many-to-one","links_to_table":"orders"},"product_id":{"reltype":"many-to-one","links_to_table":"products"}},"inventory":{"product_id":{"reltype":"one-to-one","links_to_table":"products"},"warehouse_id":{"reltype":"many-to-one","links_to_table":"warehouses"}},"warehouses":{"region_id":{"reltype":"many-to-one","links_to_table":"regions"}},"students":{},"courses":{},"enrollments":{"student_id":{"reltype":"many-to-one","links_to_table":"students"},"course_id":{"reltype":"many-to-one","links_to_table":"courses"}},"appointments":{"patient_id":{"reltype":"many-to-one","links_to_table":"patients"},"doctor_id":{"reltype":"many-to-one","links_to_table":"employees"}},"patients":{},"employees":{"department_id":{"reltype":"many-to-one","links_to_table":"departments"}},"departments":{},"device_logs":{"device_id":{"reltype":"many-to-one","links_to_table":"devices"},"user_id":{"reltype":"many-to-one","links_to_table":"users"}},"devices":{"assigned_to":{"reltype":"many-to-one","links_to_table":"employees"}},"audit_trail":{"user_id":{"reltype":"many-to-one","links_to_table":"users"}},"payment_processors":{},"feedback":{"order_id":{"reltype":"many-to-one","links_to_table":"orders"},"customer_id":{"reltype":"many-to-one","links_to_table":"customers"}},"alerts":{"device_id":{"reltype":"many-to-one","links_to_table":"devices"}},"settings":{}}
-    d_map = {"users": {}, "alerts": {"device_id": {"reltype": "many-to-one", "links_to_table": "devices"}}, "orders": {"payment_id": {"reltype": "one-to-one", "links_to_table": "payments"}, "customer_id": {"reltype": "many-to-one", "links_to_table": "customers"}}, "courses": {}, "devices": {"assigned_to": {"reltype": "many-to-one", "links_to_table": "employees"}}, "regions": {}, "feedback": {"order_id": {"reltype": "many-to-one", "links_to_table": "orders"}, "customer_id": {"reltype": "many-to-one", "links_to_table": "customers"}}, "patients": {}, "payments": {"transaction_id": {"reltype": "many-to-one", "links_to_table": "transactions"}}, "products": {"category_id": {"reltype": "many-to-one", "links_to_table": "categories"}, "supplier_id": {"reltype": "many-to-one", "links_to_table": "suppliers"}}, "settings": {}, "students": {}, "customers": {"referrer_id": {"reltype": "many-to-one", "links_to_table": "users"}}, "employees": {"department_id": {"reltype": "many-to-one", "links_to_table": "departments"}}, "inventory": {"product_id": {"reltype": "one-to-one", "links_to_table": "products"}, "warehouse_id": {"reltype": "many-to-one", "links_to_table": "warehouses"}}, "suppliers": {"region_id": {"reltype": "many-to-one", "links_to_table": "regions"}}, "categories": {}, "warehouses": {"region_id": {"reltype": "many-to-one", "links_to_table": "regions"}}, "audit_trail": {"user_id": {"reltype": "many-to-one", "links_to_table": "users"}}, "departments": {}, "device_logs": {"user_id": {"reltype": "many-to-one", "links_to_table": "users"}, "device_id": {"reltype": "many-to-one", "links_to_table": "devices"}}, "enrollments": {"course_id": {"reltype": "many-to-one", "links_to_table": "courses"}, "student_id": {"reltype": "many-to-one", "links_to_table": "students"}}, "order_items": {"order_id": {"reltype": "many-to-one", "links_to_table": "orders"}, "product_id": {"reltype": "many-to-one", "links_to_table": "products"}}, "appointments": {"doctor_id": {"reltype": "many-to-one", "links_to_table": "employees"}, "patient_id": {"reltype": "many-to-one", "links_to_table": "patients"}}, "transactions": {"processor_id": {"reltype": "many-to-one", "links_to_table": "payment_processors"}}, "payment_processors": {}}
-    #d_map = {"users": {}, "courses": {}, "regions": {}, "patients": {}, "students": {}, "customers": {}, "employees": {}, "categories": {}, "departments": {}, "payment_processors": {}}
-    d_map, _ = order_tables_by_dependencies(d_map)
-    print(d_map)
-    
-
 
 
 
