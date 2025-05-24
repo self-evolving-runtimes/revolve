@@ -1,5 +1,5 @@
-
-
+import inspect
+import sys
 from datetime import datetime
 import time
 import os
@@ -14,20 +14,25 @@ import json
 from revolve.external import get_source_folder
 import psycopg2
 from psycopg2 import errors, sql
+from collections import defaultdict, deque
+
 import sqlparse
+from loguru import logger
+logger.remove()
+logger.add(sys.stdout, level="INFO", format="{time} | {level} | {message}")
 
+def _log(method_name, description, level="INFO"):
+    logger.log(level, f"{method_name:<20} - {description:<30}")
 
-def _log(method_name, description):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{method_name:<20} - {timestamp:<20} - {description:<30}")
+def log(description, send=None, level="system"):
 
-def log(method_name, description, send=None):
+    method_name = inspect.currentframe().f_back.f_code.co_name
     if send:
         send({
             "name": method_name,
             "text": description,
             "status":"processing",
-            "level":"log"}
+            "level":level}
         )
     _log(method_name, description)
     
@@ -41,7 +46,7 @@ def save_state(state, state_name="state"):
         with open(file_name, "wb") as f:
             pickle.dump(state, f)
     except Exception as e:
-        log("save_state", f"Error saving state: {e}")
+        log(f"Error saving state: {e}")
         return f"Error saving state: {e}"
 
 def retrieve_state(state_file_name="state_2025-05-01_16-28-50.pkl", reset_tests=True):
@@ -52,9 +57,12 @@ def retrieve_state(state_file_name="state_2025-05-01_16-28-50.pkl", reset_tests=
         backup_state["test_status"] = None
     return backup_state
 
-def check_schema_if_has_foreign_key(columns: Dict[str, Any]) -> bool:
+def check_schema_for_unsupported_types(columns: Dict[str, Any]) -> bool:
     for column in columns:
         if column.get("foreign_key"):
+            return True
+        column_type = column.get("type")
+        if column_type == "USER-DEFINED":
             return True
     return False
 
@@ -80,43 +88,205 @@ def get_schemas_from_db():
     ) AS sub;""")
 
     query_result = run_query_on_db("""
-SELECT jsonb_object_agg(
-           table_name,
-           columns
-       ) AS schema_dict
-FROM (
-    SELECT
-        c.table_name,
-        jsonb_agg(
-            jsonb_strip_nulls(
-                jsonb_build_object(
-                    'column_name', c.column_name,
-                    'data_type', c.data_type,
-                    'is_nullable', c.is_nullable,
-                    'foreign_key', jsonb_build_object(
-                        'foreign_table', ccu.table_name,
-                        'foreign_column', ccu.column_name
+        SELECT jsonb_object_agg(
+                   table_name,
+                   columns
+               ) AS schema_dict
+        FROM (
+            SELECT
+                c.table_name,
+                jsonb_agg(
+                    jsonb_strip_nulls(
+                        jsonb_build_object(
+                            'column_name', c.column_name,
+                            'data_type', c.data_type,
+                            'is_nullable', c.is_nullable,
+                            'character_max_length', c.character_maximum_length,
+                            'numeric_precision', c.numeric_precision,
+                            'numeric_scale', c.numeric_scale,
+                            'enum_values', ev.enum_values,
+                            'foreign_key', jsonb_build_object(
+                                'foreign_table', ccu.table_name,
+                                'foreign_column', ccu.column_name
+                            )
+                        )
                     )
-                )
-            )
-        ) AS columns
-    FROM information_schema.columns c
-    LEFT JOIN information_schema.key_column_usage kcu
-        ON c.table_name = kcu.table_name
-        AND c.column_name = kcu.column_name
-        AND c.table_schema = kcu.table_schema
-    LEFT JOIN information_schema.table_constraints tc
-        ON kcu.constraint_name = tc.constraint_name
-        AND tc.constraint_type = 'FOREIGN KEY'
-    LEFT JOIN information_schema.constraint_column_usage ccu
-        ON tc.constraint_name = ccu.constraint_name
-    WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
-    GROUP BY c.table_name
-) AS sub;
-""")
+                ) AS columns
+            FROM information_schema.columns c
+            LEFT JOIN information_schema.key_column_usage kcu
+                ON c.table_name = kcu.table_name
+                AND c.column_name = kcu.column_name
+                AND c.table_schema = kcu.table_schema
+            LEFT JOIN information_schema.table_constraints tc
+                ON kcu.constraint_name = tc.constraint_name
+                AND tc.constraint_type = 'FOREIGN KEY'
+            LEFT JOIN information_schema.constraint_column_usage ccu
+                ON tc.constraint_name = ccu.constraint_name
+            LEFT JOIN LATERAL (
+                SELECT jsonb_agg(e.enumlabel) AS enum_values
+                FROM pg_type t
+                JOIN pg_enum e ON t.oid = e.enumtypid
+                JOIN pg_namespace ns ON ns.oid = t.typnamespace
+                WHERE t.typname = c.udt_name
+            ) ev ON true
+            WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
+            GROUP BY c.table_name
+        ) AS sub;""")
 
     return query_result
-    
+
+def get_table_dependencies():
+    query_result = run_query_on_db("""
+        WITH fk_info AS (
+        SELECT
+            kcu.table_name AS from_table,
+            kcu.column_name AS from_column,
+            ccu.table_name AS to_table,
+            ccu.column_name AS to_column,
+            -- Check if from_column is unique or part of primary key
+            EXISTS (
+                SELECT 1 FROM information_schema.table_constraints tc2
+                JOIN information_schema.key_column_usage kcu2
+                  ON tc2.constraint_name = kcu2.constraint_name
+                WHERE tc2.table_name = kcu.table_name
+                  AND kcu2.column_name = kcu.column_name
+                  AND tc2.constraint_type IN ('PRIMARY KEY', 'UNIQUE')
+            ) AS is_from_unique,
+            -- Check if to_column is unique or primary
+            EXISTS (
+                SELECT 1 FROM information_schema.table_constraints tc3
+                JOIN information_schema.key_column_usage kcu3
+                  ON tc3.constraint_name = kcu3.constraint_name
+                WHERE tc3.table_name = ccu.table_name
+                  AND kcu3.column_name = ccu.column_name
+                  AND tc3.constraint_type IN ('PRIMARY KEY', 'UNIQUE')
+            ) AS is_to_unique
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+            ON tc.constraint_name = kcu.constraint_name
+        JOIN information_schema.constraint_column_usage ccu
+            ON tc.constraint_name = ccu.constraint_name
+        WHERE tc.constraint_type = 'FOREIGN KEY'
+          AND tc.table_schema NOT IN ('pg_catalog', 'information_schema')
+    )
+    SELECT jsonb_object_agg(
+        from_table,
+        column_mappings
+    ) AS fk_relationships
+    FROM (
+        SELECT
+            from_table,
+            jsonb_object_agg(
+                from_column,
+                jsonb_build_object(
+                    'links_to_table', to_table,
+                    'reltype',
+                        CASE
+                            WHEN is_from_unique AND is_to_unique THEN 'one-to-one'
+                            WHEN NOT is_from_unique AND is_to_unique THEN 'many-to-one'
+                            ELSE 'uncertain' -- fallback
+                        END
+                )
+            ) AS column_mappings
+        FROM fk_info
+        GROUP BY from_table
+    ) AS rels;
+
+    """)
+
+from typing import Dict, Any
+
+def order_tables_by_dependencies(dependencies: Dict[str, Any]) -> List[str]:
+    # Extract child tables and all referenced parent tables
+    child_tables = set(dependencies)
+    referenced_parents = {
+        info["links_to_table"]
+        for links in dependencies.values()
+        for info in links.values()
+    }
+
+    # Build dependency map: table -> list of tables it links to
+    final_dependency_map = {
+        table: [info["links_to_table"] for info in links.values()]
+        for table, links in dependencies.items()
+    }
+
+    # Identify and remove tables that are only referenced and have no outgoing links
+    for table in list(final_dependency_map):
+        if table in referenced_parents and not final_dependency_map[table]:
+            del final_dependency_map[table]
+
+    tp_sorted = topological_sort(dependencies)
+
+    return final_dependency_map, tp_sorted
+
+
+def topological_sort(dependencies: Dict[str, Any]) -> List[str]:
+    graph = defaultdict(list)  # parent -> list of children
+    in_degree = defaultdict(int)
+    all_tables = set(dependencies)  # explicitly defined tables
+
+    # Parse dependencies to construct graph and in-degrees
+    for child, columns in dependencies.items():
+        if isinstance(columns, dict):
+            for col_info in columns.values():
+                if isinstance(col_info, dict) and "links_to_table" in col_info:
+                    parent = col_info["links_to_table"]
+                    graph[parent].append(child)
+                    in_degree[child] += 1
+                    all_tables.add(parent)  # include implicit parent tables
+
+    # Start with all tables that have no incoming edges
+    queue = deque([table for table in all_tables if in_degree[table] == 0])
+    sorted_tables = []
+
+    # Kahn’s Algorithm for topological sorting
+    while queue:
+        table = queue.popleft()
+        sorted_tables.append(table)
+
+        for dependent in graph[table]:
+            in_degree[dependent] -= 1
+            if in_degree[dependent] == 0:
+                queue.append(dependent)
+
+    # Detect cycles
+    if len(sorted_tables) != len(all_tables):
+        raise ValueError("Cycle detected in table dependencies.")
+
+    return sorted_tables
+
+def order_tables_by_dependencies_(dependencies: Dict[str, Any]) -> List[str]:
+    # Step 1: Track all tables that are children and referenced parents
+    child_tables = set(dependencies.keys())
+    referenced_parents = set()
+
+    for links in dependencies.values():
+        for info in links.values():
+            referenced_parents.add(info["links_to_table"])
+
+    # Step 3: Build final dependency map (children only) and include isolated tables with []
+    final_dependency_map = {
+        table: [info["links_to_table"] for info in links.values()]
+        for table, links in dependencies.items()
+    }
+
+    all_linked_values = {
+        info["links_to_table"]
+        for links in dependencies.values()
+        for info in links.values()
+    }
+
+    remove_list = []
+    for table , links in final_dependency_map.items():
+        if table in all_linked_values and len(links) == 0:
+            remove_list.append(table)
+
+    #remove the tables in remove_list from final_dependency_map
+    for table in remove_list:
+        final_dependency_map.pop(table)
+    return final_dependency_map
+
 
 def run_query_on_db(query: str) -> str:
     """
@@ -144,7 +314,7 @@ def run_query_on_db(query: str) -> str:
         conn.close()
 
     except Exception as e:
-        log("run_query_on_db", f"Error running query: {e}")
+        log(f"Error running query: {e}")
         return f"Error running query: {e}"
 
     # log("run_query_on_db", f"Query executed successfully.")
@@ -168,10 +338,10 @@ def save_python_code(python_code: str, file_name: str) -> str:
         with open(f"{get_source_folder()}/{file_name}", "w") as f:
             f.write(python_code)
     except Exception as e:
-        log("save_python_code", f"Error saving python code: {e}")
+        log(f"Error saving python code: {e}")
         return f"Error saving python code: {e}"
 
-    log("save_python_code", f"Python code saved successfully to {file_name}.")
+    log(f"Python code saved successfully to {file_name}.")
     return f"Python code saved to {file_name} successfully."
 
 def read_python_code(file_name: str) -> str:
@@ -185,7 +355,7 @@ def read_python_code(file_name: str) -> str:
         with open(f"{get_source_folder()}/{file_name}", "r") as f:
             python_code = f.read()
     except Exception as e:
-        log("get_python_code", f"Error getting python code: {e}")
+        log(f"Error getting python code: {e}")
         return f"Error getting python code: {e}"
 
     # log("get_python_code", f"Python code retrieved successfully.")
@@ -204,7 +374,7 @@ def read_python_code_template(file_name: str) -> str:
         with open(file_path, "r") as f:
             python_code = f.read()
     except Exception as e:
-        log("read_python_code_template", f"Error getting python code: {e}")
+        log(f"Error getting python code: {e}")
         return f"Error getting python code: {e}"
 
     # log("read_python_code_template", f"Python code retrieved successfully.")
@@ -219,7 +389,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
         List[Dict[str, Any]]: A list of dictionaries summarizing test failures,
                               collection errors, or a success message if all tests pass.
     """
-    log("run_pytest", "Running pytest with JSON reporting...")
+    log("Running pytest with JSON reporting...")
 
 
     report_path = Path("report.json")
@@ -244,10 +414,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
         if not report_path.exists():
             time.sleep(0.2)
         if not report_path.exists():
-            log(
-                "run_pytest",
-                "report.json not generated. Pytest might have failed before reporting.",
-            )
+            log("report.json not generated. Pytest might have failed before reporting.")
             return {
                 "status":"error",
                 "message": "report.json not generated. Pytest might have failed before reporting.",
@@ -259,7 +426,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
             try:
                 report_data = json.load(json_file)
             except json.JSONDecodeError as decode_err:
-                log("run_pytest", f"Error decoding JSON: {decode_err}")
+                log(f"Error decoding JSON: {decode_err}")
                 return {
                     "status":"error",
                     "message": f"Error decoding JSON: {decode_err}",
@@ -314,7 +481,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
             for collector in collectors:
                 if collector.get("outcome") == "failed":
                     nodeid = collector.get("nodeid", "unknown")
-                    log("run_pytest", f"Collector failed: {nodeid}")
+                    log(f"Collector failed: {nodeid}")
                     test_results.append(
                         {
                             "name": nodeid,
@@ -329,7 +496,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
                     )
 
         if not test_results:
-            log("run_pytest", "All tests passed.")
+            log("All tests passed.")
             report = {"status":"success","message": "All tests passed.", "test_results": [], "summary": summary}
             pprint(report)
             return report
@@ -357,7 +524,7 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
         }
 
     except Exception as e:
-        log("run_pytest", f"Error running pytest: {e}")
+        log(f"Error running pytest: {e}")
         print(f"Error running pytest: {e}")
         return {
                 "status": "error",
@@ -370,11 +537,11 @@ def get_file_list():
     try:
         file_list = os.listdir(f"{get_source_folder()}")
     except Exception as e:
-        log("get_file_list", f"Error getting file list: {e}")
+        log(f"Error getting file list: {e}", level="DEBUG")
         return f"Error getting file list: {e}"
     return file_list
 
-def test_db(
+def check_db(
     db_name: str, db_user: str, db_password: str, db_host: str, db_port: str
 ) -> str:
     """
@@ -386,7 +553,7 @@ def test_db(
         db_host (str): The host of the database.
         db_port (str): The port of the database.
     """
-    log("test_db", "Testing database connection...")
+    log("Testing database connection...")
     try:
         conn = psycopg2.connect(
             dbname=db_name,
@@ -511,14 +678,14 @@ def create_database_if_not_exists(existing_dbname, new_dbname, user, password, h
         with conn.cursor() as cur:
             cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (new_dbname,))
             if cur.fetchone():
-                log(method, f"ℹ️ Database '{new_dbname}' already exists.")
+                log(f"ℹ️ Database '{new_dbname}' already exists.")
             else:
-                log(method, f"📦 Creating database '{new_dbname}' owned by '{user}'...")
+                log(f"📦 Creating database '{new_dbname}' owned by '{user}'...")
                 cur.execute(
                     sql.SQL("CREATE DATABASE {} OWNER {}")
                     .format(sql.Identifier(new_dbname), sql.Identifier(user))
                 )
-                log(method, f"✅ Database '{new_dbname}' created.")
+                log(f"✅ Database '{new_dbname}' created.")
         conn.close()
     except Exception as e:
         raise RuntimeError(f"[{method}] ❌ Failed to create database '{new_dbname}': {e}")
@@ -538,31 +705,31 @@ def apply_create_table_ddls(table_ddl_map, existing_dbname, new_dbname, user, pa
 
     with conn.cursor() as cur:
         for table, ddl in table_ddl_map.items():
-            log(method, f"▶️ Creating table: {table}")
+            log(f"▶️ Creating table: {table}")
             try:
                 cur.execute(ddl)
             except errors.DuplicateTable:
-                log(method, f"⚠️ Table '{table}' already exists.")
+                log(f"⚠️ Table '{table}' already exists.")
                 conn.rollback()
                 if drop_if_exists:
                     try:
-                        log(method, f"🔁 Dropping and recreating table '{table}'...")
+                        log(f"🔁 Dropping and recreating table '{table}'...")
                         cur.execute(sql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(sql.Identifier(table)))
                         conn.commit()
                         cur.execute(ddl)
                         conn.commit()
-                        log(method, f"✅ Recreated table: {table}")
+                        log(f"✅ Recreated table: {table}")
                     except Exception as drop_err:
-                        log(method, f"❌ Error recreating '{table}': {drop_err}")
+                        log(f"❌ Error recreating '{table}': {drop_err}")
                         conn.rollback()
                 else:
-                    log(method, f"⏩ Skipping '{table}' (already exists)")
+                    log(f"⏩ Skipping '{table}' (already exists)")
             except Exception as e:
-                log(method, f"❌ Error creating '{table}': {e}")
+                log(f"❌ Error creating '{table}': {e}")
                 conn.rollback()
             else:
                 conn.commit()
-                log(method, f"✅ Created table: {table}")
+                log(f"✅ Created table: {table}")
     conn.close()
 
 def clone_db():
@@ -577,20 +744,57 @@ def clone_db():
     port = os.getenv("DB_PORT")
 
     apply_create_table_ddls(tables, os.getenv("DB_NAME"), new_dbname, user, password, host=host, port=port, drop_if_exists=True)
+    os.environ["DB_NAME_TEST"] = new_dbname
 
-    os.environ["DB_NAME"] = new_dbname
+def check_permissions():
+    db_user_name = os.getenv("DB_USER")
+    query = f"""
+SELECT jsonb_build_object(
+  'can_connect', has_database_privilege('postgres', current_database(), 'CONNECT'),
+  'can_use_schema', has_schema_privilege('postgres', 'public', 'USAGE'),
+  'can_create_db', rolcreatedb,
+  'can_create_role', rolcreaterole,
+  'is_superuser', rolsuper
+) AS permissions
+FROM pg_roles
+WHERE rolname = '{db_user_name}';
+"""
+    result = run_query_on_db(query)
+    result_data = json.loads(result)
+    # Assuming the result is a list of dictionaries and the last dictionary contains the 'permissions' key
+    if isinstance(result_data, list) and result_data and isinstance(result_data[-1], dict) and 'permissions' in result_data[-1]:
+        permissions = result_data[-1]['permissions']
+    else:
+        raise ValueError("Unexpected result structure: 'permissions' key not found in the expected location.")
 
-if __name__ =="__main__":
-    # print(run_pytest("test_patients.py"))
-    # print(run_pytest("test_doctors.py"))
-    # print(run_pytest("test_appointments.py"))
-    # print(run_pytest("test_courses.py"))
-    # print(run_pytest("test_movies.py"))
-    # print(run_pytest("test_users.py"))
-    # print(run_pytest("test_customers.py"))
-    # print(run_pytest("test_owners.py"))
-    # print(run_pytest("test_students.py"))
-    print(run_pytest("test_watch_history.py"))
+    suggested_queries_template ={
+    'can_connect': "GRANT CONNECT ON DATABASE {database} TO {username};",
+    'is_superuser': "ALTER ROLE {username} WITH SUPERUSER;",
+    'can_create_db': "ALTER ROLE {username} WITH CREATEDB;",
+    'can_use_schema': "GRANT USAGE ON SCHEMA public TO {username};",
+    'can_create_role': "ALTER ROLE {username} WITH CREATEROLE;",
+    }
+    suggested_queries = {}
+    for key, value in permissions.items():
+        if value == False:
+            suggested_queries[key] = suggested_queries_template[key].format(database=os.getenv("DB_NAME"), username=db_user_name)
+
+    if all(value == True for value in permissions.values()):
+        return {
+            "status": "success",
+            "permissions": permissions,
+            "message": "All required permissions are already granted. "
+        }
+    else:
+        suggested_queries_str = "\n".join([f"{key}: {value}" for key, value in suggested_queries.items()])
+        return {
+            "status": "error",
+            "permissions": permissions,
+            "error": f"You do not have the necessary permissions to perform this operation. You can use the following "
+                     f"SQL statements to grant the required permissions:<pre style={{ whiteSpace: 'pre-wrap', "
+                     f"background: '#f6f8fa', padding: 10, borderRadius: 4 }}>{suggested_queries_str}</pre>",
+        }
+
 
 
 

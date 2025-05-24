@@ -7,7 +7,7 @@ from revolve.utils_git import commit_and_push_changes
 
 def generate_api(state:State):
     send = state.get("send")
-    log("generate_api", "Started", send)
+    log("Started", send)
     resources = state.get("resources", [])
     added_sources = []
     if resources:
@@ -50,6 +50,8 @@ def generate_api(state:State):
         "trace_timestamp": datetime.now(),
         "description": "APIs are generated. You can take a look by clicking Start under Server Controls (on the left). I am still going to run tests."
     }
+
+    log("APIs are generated. You can take a look by clicking Start under Server Controls (on the left). I am still going to run tests.", send=send, level="notification") 
 
     return {
         "trace": [new_trace]

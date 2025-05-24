@@ -17,7 +17,7 @@ def router_node(state: State):
     #         "role": "user",
     #         "content": state["messages"][-1].content
     #     }
-    # ] 
+    # ]
 
     # llm_router_response = llm_router.invoke(messages)
     # return {
@@ -37,8 +37,8 @@ def router_node(state: State):
 
         init_or_attach_git_repo()
         branch_name = create_branch_with_timestamp()
-        log("router_node", f"Branch created: {branch_name}",send)
-        log("router_node", "defaulting to generate_prompt_for_code_generation", send)
+        log(f"Branch created: {branch_name}", send)
+        log("defaulting to generate_prompt_for_code_generation", send)
         new_trace = {
             "node_name": "router_node",
             "node_type": "router",
@@ -64,8 +64,8 @@ def router_node(state: State):
             new_test["iteration_count"] = 0
             new_test["table"] = table_object
             test_status.append(new_test)
-                    
-        log("router_node", "Routing to test_node", send)
+
+        log("Routing to test_node", send)
         new_trace = {
             "node_name": "router_node",
             "node_type": "router",
@@ -81,7 +81,7 @@ def router_node(state: State):
         }
     elif next_node == "test_node":
         next_node = "report_node"
-        log("router_node", "Routing to report_node")
+        log("Routing to report_node")
         new_trace = {
             "node_name": "router_node",
             "node_type": "router",
@@ -97,7 +97,7 @@ def router_node(state: State):
 
     else:
         save_state(state, "after_test")
-        log("router_node", "routing to END", send)
+        log("routing to END", send)
         return {
             "next_node": "__end__",
         }
