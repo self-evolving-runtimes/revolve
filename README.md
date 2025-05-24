@@ -1,12 +1,27 @@
-# Revolve
+## 🚀 **AI-Powered Database CRUD & UI Generator**  
+#### _Instantly generate full-stack admin panels, APIs, and UI from your database schema—powered by AI agents & LLMs_
 
-**Revolve** is an agentic Python code generation and editing tool that automates the creation of REST APIs, service logic, and test cases from natural language prompts. 
-It uses the generated apps in a modern React UI to enable CRUD operations on tables. See our [Roadmap] for future features.
+**⚡ Automate 80% of your boilerplate code** – Say goodbye to manual CRUD coding! Let AI generate clean, production-ready database interfaces in seconds.  
+
+### ✨ Key Features:  
+- **🤖 AI Agents** analyze your schema and generate optimized REST/GraphQL APIs  
+- **🖥️ Auto-generated Admin UI** with filters, search, and CRUD operations  
+- **🔌 Multi-DB Support** (SQL & NoSQL) with intelligent schema detection  
+- **🎨 Customizable Templates** (React, Vue, Svelte, etc.)  
+- **🔒 Built-in Auth & Permissions** scaffolding  
+- **📦 One-Codebase Export** for easy integration  
+
+### 🚀 Perfect for:  
+- Anyone wanting to quickly interact with their data for admin / internal purposes
+- Devs tired of writing repetitive CRUD code  
+- Teams managing complex data without dedicated frontend resources  
+- AI engineers who want database UIs without full-stack work  
 
 ---
 ![Revolve](./screenshots/animated.gif)
 
-## Features
+
+### Features
 
 - **Prompt-driven API Generation:** Describe your requirements in natural language to generate Falcon-based REST APIs and service files.
 - **Automated Test Generation:** Creates comprehensive pytest-based test suites for all generated endpoints and services.
@@ -16,28 +31,28 @@ It uses the generated apps in a modern React UI to enable CRUD operations on tab
 - **Test Reporting:** Tracks test history and generates Markdown and JSON reports for all test runs.
 
 ---
-## Pre-requisites
+### Pre-requisites
 - Python 3.11
 - OPENAI API Key
 - PostgreSQL database with tables
 
-## Quick Start
+### Quick Start
 
-### 1. Install Dependencies
+#### 1. Install Dependencies
 
 ```sh
 brew install uv
 uv sync
 ```
 
-### 2. Start
+#### 2. Start
 
 ```sh
 python src/revolve/api.py
 ```
 
 
-## Roadmap
+### Roadmap
 
 - Authz and Authn configuration
 - Support for other databases
@@ -48,6 +63,6 @@ python src/revolve/api.py
 - Add fine-tuned Qwen 3 support in addition to paid model support.
 
 
-## License
+### License
 
 MIT
