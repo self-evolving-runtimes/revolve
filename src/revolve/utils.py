@@ -112,10 +112,7 @@ def start_process():
 
     # get directory of current file
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    # get parent directory
-    parent_dir = os.path.dirname(current_dir)
-    # get grandparent directory
-    grandparent_dir = os.path.dirname(parent_dir) + "/" + "resources"
+    resources = current_dir + "/" + "resources"
 
 
 
@@ -129,7 +126,7 @@ def start_process():
     #get current directory
 
 
-    env_vars["STATIC_DIR"] = env_vars.get("STATIC_DIR", grandparent_dir)
+    env_vars["STATIC_DIR"] = env_vars.get("STATIC_DIR", resources)
 
     try:
         code_dir = f"{get_source_folder()}"
