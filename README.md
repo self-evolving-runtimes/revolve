@@ -6,7 +6,7 @@
 - **✨ AI Agents** analyze your schema and generate optimized REST/GraphQL APIs  
 - **🖥️ Auto-generated Admin UI** with filters, search, and CRUD operations  
 - **🔌 Multi-DB Support** (SQL & NoSQL) with intelligent schema detection  
-- **🎨 Customizable Templates** (React, Vue, Svelte, etc.)  
+- **🎨 Customizable Templates** (React + MUI DataGrid)
 - **🔒 Built-in Auth & Permissions** scaffolding  
 - **📦 One-Codebase Export** for easy integration  
 
