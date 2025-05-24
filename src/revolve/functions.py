@@ -760,7 +760,12 @@ FROM pg_roles
 WHERE rolname = '{db_user_name}';
 """
     result = run_query_on_db(query)
-    permissions = json.loads(result)[-1][-1]
+    result_data = json.loads(result)
+    # Assuming the result is a list of dictionaries and the last dictionary contains the 'permissions' key
+    if isinstance(result_data, list) and result_data and isinstance(result_data[-1], dict) and 'permissions' in result_data[-1]:
+        permissions = result_data[-1]['permissions']
+    else:
+        raise ValueError("Unexpected result structure: 'permissions' key not found in the expected location.")
 
     suggested_queries_template ={
     'can_connect': "GRANT CONNECT ON DATABASE {database} TO {username};",
