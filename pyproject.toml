@@ -20,11 +20,27 @@ dependencies = [
 ]
 
 [project.scripts]
-revolve = "revolve:main"
+revolve-api = "revolve.api:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build]
+# Tells Hatch that packages live under `src/`
+sources = ["src"]
+
+# Static files to include in the wheel
+artifacts = [
+  "src/revolve/ui/dist/**",
+  "src/revolve/resources/**"
+]
+
+[tool.hatch.build.targets.wheel]
+# Include all Python + resource files
+include = [
+  "src/revolve/**"
+]
 
 [dependency-groups]
 dev = [
