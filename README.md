@@ -3,8 +3,7 @@
 
 **⚡ Automate 80% of your boilerplate code** – Say goodbye to manual CRUD coding! Let AI generate clean, production-ready database interfaces in seconds.  
 
-### ✨ Key Features:  
-- **🤖 AI Agents** analyze your schema and generate optimized REST/GraphQL APIs  
+- **✨ AI Agents** analyze your schema and generate optimized REST/GraphQL APIs  
 - **🖥️ Auto-generated Admin UI** with filters, search, and CRUD operations  
 - **🔌 Multi-DB Support** (SQL & NoSQL) with intelligent schema detection  
 - **🎨 Customizable Templates** (React, Vue, Svelte, etc.)  
