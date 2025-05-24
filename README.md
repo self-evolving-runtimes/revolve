@@ -19,16 +19,6 @@
 ---
 ![Revolve](./screenshots/animated.gif)
 
-
-### Features
-
-- **Prompt-driven API Generation:** Describe your requirements in natural language to generate Falcon-based REST APIs and service files.
-- **Automated Test Generation:** Creates comprehensive pytest-based test suites for all generated endpoints and services.
-- **Iterative Code Refinement:** Automatically revises code and tests based on test results until all tests pass or a stopping condition is met.
-- **UI for Workflow Management:** React-based interface for configuring the database, sending prompts, viewing generated files, and monitoring test results.
-- **Version Control Integration:** Optionally auto-commits and pushes changes to a Git repository.
-- **Test Reporting:** Tracks test history and generates Markdown and JSON reports for all test runs.
-
 ---
 ### Pre-requisites
 - Python 3.11
