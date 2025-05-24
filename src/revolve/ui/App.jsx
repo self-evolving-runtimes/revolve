@@ -7,7 +7,8 @@ import { Layout, Button, Typography, Input, Collapse, Row, Col, Space, Divider, 
 import { RobotOutlined, UserOutlined,  FileTextOutlined, FileMarkdownOutlined, FileOutlined, FileUnknownOutlined, PlaySquareOutlined } from '@ant-design/icons';
 import './index.css';
 
-import { notification } from 'antd';
+import { notification, Badge } from 'antd';
+
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -103,7 +104,7 @@ const openAiKeyRef = React.useRef(null);
 const chatInputRef = React.useRef(null);
 const senderRef = React.useRef(null);
 
-const [sidePanelKeys, setSidePanelKeys] = React.useState(['1']); // only "System Messages" open by default
+const [sidePanelKeys, setSidePanelKeys] = React.useState([]); 
 
 const [showServerControls, setShowServerControls] = React.useState(false);
 
@@ -317,29 +318,42 @@ const handleSendMessage = async (message) => {
           continue;
         }
 
-        if (parsed.status === 'processing') {
-          setSystemMessages(prev => {
-            const updatedMessages = [...prev, { name: parsed.name, text: parsed.text, level: parsed.level }];
+       
+      switch (parsed.level) {
+        case 'system':
+          setSystemMessages(prev => [...prev, { name: parsed.name, text: parsed.text, level: parsed.level }]);
+          break;
 
-            if (parsed.text && parsed.text.includes('APIs are generated') && !showServerControls) {
-              setShowServerControls(true);
-              setSidePanelKeys((prev) => {
-                const updated = new Set(prev);
-                updated.add('2'); // Expand the Server Controls panel
-                return Array.from(updated);
-              });
-              notification.success({
-                message: 'APIs Generated',
-                description: parsed.text
-              });
-            }
+        case 'workflow':
+          setChatMessages(prev => [
+            ...prev,
+            { role: 'assistant', content: parsed.text || '' }
+          ]);
+          break;
 
-            return updatedMessages;
+        case 'notification':
+          notification.info({
+            message: parsed.name || 'Notification',
+            description: parsed.text || '',
           });
-        } else if (parsed.status === 'done' || parsed.status === 'error') {
-          assistantReply += parsed.text || '';
-        }
+          break;
+
+        default:
+          console.warn('Unknown message level:', parsed.level);
       }
+      if (parsed.text?.includes('APIs are generated.') && !showServerControls) {
+          setShowServerControls(true);
+          setSidePanelKeys((prev) => {
+            const updated = new Set(prev);
+            updated.add('2');
+            return Array.from(updated);
+          });
+        }
+        }
+    
+        
+
+      
     }
 
     if (assistantReply) {
@@ -386,8 +400,20 @@ const handleSendMessage = async (message) => {
       )}
     </Panel>
   )}
-        <Panel header="System Messages" key="1">
-          {systemMessages.length === 0 ? (
+            <Panel
+              key="1"
+              header={
+                <span>
+                  System Messages{' '}
+                  <Badge
+                    count={systemMessages.length}
+                    style={{ backgroundColor: '#f5222d', marginLeft: 8 }}
+                    overflowCount={99}
+                  />
+                </span>
+              }
+            >
+            {systemMessages.length === 0 ? (
             <Text>No messages yet...</Text>
           ) : (
             <div style={{ maxHeight: 500, overflowY: 'auto', paddingRight: 8 }}>
