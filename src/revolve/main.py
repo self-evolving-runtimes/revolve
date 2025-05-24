@@ -97,18 +97,19 @@ def run_workflow(task=None, db_config=None, send=None):
             if "description" in event[key]["trace"][-1]:
                 name = event[key]["trace"][-1]["node_name"]
                 text = event[key]["trace"][-1]["description"]
+                level = "workflow" if name == "report_node" else "system"
                 send({
                     "status":"processing",
                     "text":text,
                     "name":name,
-                    "level":"workflow"
+                    "level":level
                 })
-    send({
-        "status":"done",
-        "text":"Task completed.",
-        "name":"Workflow",
-        "level":"workflow"
-    })
+    # send({
+    #     "status":"done",
+    #     "text":"Task completed.",
+    #     "name":"Workflow",
+    #     "level":"workflow"
+    # })
     
 if __name__ == "__main__":
     run_workflow()

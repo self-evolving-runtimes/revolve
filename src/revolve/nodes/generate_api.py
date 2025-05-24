@@ -51,6 +51,8 @@ def generate_api(state:State):
         "description": "APIs are generated. You can take a look by clicking Start under Server Controls (on the left). I am still going to run tests."
     }
 
+    log("APIs are generated. You can take a look by clicking Start under Server Controls (on the left). I am still going to run tests.", send=send, level="notification") 
+
     return {
         "trace": [new_trace]
     }
