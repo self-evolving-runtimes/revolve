@@ -341,7 +341,18 @@ const handleSendMessage = async (message) => {
         default:
           console.warn('Unknown message level:', parsed.level);
       }
-        } 
+      if (parsed.text?.includes('APIs are generated.') && !showServerControls) {
+          setShowServerControls(true);
+          setSidePanelKeys((prev) => {
+            const updated = new Set(prev);
+            updated.add('2');
+            return Array.from(updated);
+          });
+        }
+        }
+    
+        
+
       
     }
 
