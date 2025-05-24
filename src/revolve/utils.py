@@ -109,6 +109,13 @@ process_state = {
 }
 
 def start_process():
+
+    # get directory of current file
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    resources = current_dir + "/" + "resources"
+
+
+
     if process_state["pid"] is not None:
         return {"message": f"Server already running at {process_state['link']}"}
 
@@ -116,7 +123,10 @@ def start_process():
     env_vars = os.environ.copy()
     port = os.environ.get("PORT", str(random.randint(1024, 65535)))
     env_vars["PORT"] = port
-    env_vars["STATIC_DIR"] = env_vars.get("STATIC_DIR", "-")
+    #get current directory
+
+
+    env_vars["STATIC_DIR"] = env_vars.get("STATIC_DIR", resources)
 
     try:
         code_dir = f"{get_source_folder()}"
