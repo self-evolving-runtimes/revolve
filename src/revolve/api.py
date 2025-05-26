@@ -186,8 +186,7 @@ class TestDBResource:
                 resp.media = permissions
                 return
 
-            schemas_raw = get_schemas_from_db()
-            schemas = json.loads(schemas_raw)[0][0]
+            schemas = get_schemas_from_db()
             table_names = list(schemas.keys())
             random.shuffle(table_names)
             
