@@ -33,17 +33,12 @@ class Column(TypedDict):
     is_uid: bool
     enum_values: list[str]
 
-class RelatedTable(TypedDict):
-    """ Captures details about a related table to be used for API generation """
-    table_name: str
-    related_column: Column
 
 class Table(TypedDict):
     """ Captures details about an individual table for which API is being generated """
     individual_prompt: str
     table_name: str
     columns: list[Column]
-    related_tables: list[RelatedTable]
 
 class DBSchema(TypedDict):
     """Captures a list of tables for which APIs will get generated"""
