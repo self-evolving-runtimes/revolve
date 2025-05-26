@@ -18,6 +18,7 @@ from collections import defaultdict, deque
 
 import sqlparse
 from loguru import logger
+
 logger.remove()
 logger.add(sys.stdout, level="INFO", format="{time} | {level} | {message}")
 
@@ -66,28 +67,8 @@ def check_schema_for_unsupported_types(columns: Dict[str, Any]) -> bool:
             return True
     return False
 
-def get_schemas_from_db():
-
-    query_result = run_query_on_db("""SELECT jsonb_object_agg(
-            table_name,
-            columns
-        ) AS schema_dict
-    FROM (
-        SELECT
-            table_name,
-            jsonb_agg(
-                jsonb_build_object(
-                    'column_name', column_name,
-                    'data_type', data_type,
-                    'is_nullable', is_nullable
-                )
-            ) AS columns
-        FROM information_schema.columns
-        WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-        GROUP BY table_name
-    ) AS sub;""")
-
-    query_result = run_query_on_db("""
+def get_raw_schemas():
+    schemas_raw = run_query_on_db("""
         SELECT jsonb_object_agg(
                    table_name,
                    columns
@@ -132,8 +113,8 @@ def get_schemas_from_db():
             WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
             GROUP BY c.table_name
         ) AS sub;""")
+    return schemas_raw
 
-    return query_result
 
 def get_table_dependencies():
     query_result = run_query_on_db("""
@@ -193,8 +174,28 @@ def get_table_dependencies():
     ) AS rels;
 
     """)
+    return query_result
 
-from typing import Dict, Any
+def get_schemas_from_db():
+
+    schemas_raw = get_raw_schemas()
+    dependencies_raw = get_table_dependencies()
+
+    schemas = json.loads(schemas_raw)[0][0]
+    dependencies = json.loads(dependencies_raw)[0][0]
+
+    for table, columns in schemas.items():
+        dep_columns = dependencies.get(table, {})
+        for column in columns:
+            col_name = column.get("column_name")
+            if col_name in dep_columns:
+                # Merge the reltype and links_to_table
+                column.update(dep_columns[col_name])
+
+    
+    return schemas
+
+
 
 def order_tables_by_dependencies(dependencies: Dict[str, Any]) -> List[str]:
     # Extract child tables and all referenced parent tables
@@ -733,8 +734,7 @@ def apply_create_table_ddls(table_ddl_map, existing_dbname, new_dbname, user, pa
     conn.close()
 
 def clone_db():
-    result = get_schemas_from_db()
-    ddls = json.loads(result)[-1][-1]
+    ddls = get_schemas_from_db()
     tables = gen_table_map(ddls)
 
     new_dbname = os.getenv("DB_NAME") + "_test"
