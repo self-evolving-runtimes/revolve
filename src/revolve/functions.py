@@ -564,7 +564,8 @@ def check_db(
             port=db_port,
         )
         conn.close()
-    except Exception:
+    except Exception as e:
+        log(f"Database connection failed: {e}", level="ERROR")
         return False
 
     return True
