@@ -6,6 +6,10 @@ It uses the generated apps in a modern react UI to enable CRUD operations on tab
 ---
 ![Revolve](./screenshots/animated.gif)
 
+
+## Langgraph model flow
+![Revolve Architecture](./workflow.png)
+
 ## Features
 
 - **Prompt-driven API Generation:** Describe your requirements in natural language to generate Falcon-based REST APIs and service files.
@@ -31,6 +35,7 @@ uv sync
 
 Create a `.env` file in the project root with the following variables:
 ```env
+# prepopulate env variables in the UI
 OPENAI_API_KEY=your-openai-key
 DB_NAME=your_db_name
 DB_USER=your_db_user
@@ -38,11 +43,21 @@ DB_PASSWORD=your_db_password
 DB_HOST=localhost
 DB_PORT=5433
 SOURCE_FOLDER=absolute/path/to/src/revolve/source_generated
+
+
+# Optional for LangSmith tracing:
+LANGSMITH_TRACING=false # Set to true to enable LangSmith tracing
+LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
+LANGSMITH_API_KEY=<your-langsmith-api-key>
+LANGSMITH_PROJECT=<your-langsmith-project-name>
+
+
+
 # Optional for Git integration:
 GIT_REPO_URL=https://github.com/your/repo
 GIT_USER_NAME=your-git-username
 GIT_USER_EMAIL=your-email@example.com
-GIT_PUSH_CHANGES=true
+GIT_PUSH_CHANGES=false  # Set to true to enable auto-commit and push
 ```
 
 ---
