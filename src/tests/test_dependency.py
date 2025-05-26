@@ -1,6 +1,8 @@
 import unittest
 from revolve.functions import *
 
+from src.revolve.functions import order_tables_by_dependencies
+
 
 class MyTestCase(unittest.TestCase):
     def test_dependency_1(self):
