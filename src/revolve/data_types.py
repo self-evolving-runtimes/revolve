@@ -18,8 +18,9 @@ class Trace(TypedDict):
 
 class ForeignKey(TypedDict):
     """ Captures details about a foreign key relation to be used for API generation """
-    foreign_table: str
+    links_to_table: str
     foreign_column: str
+    rel_type:str
 
 class Column(TypedDict):
     """ Captures details about a specific column in a table for which API is being generated """
@@ -29,7 +30,9 @@ class Column(TypedDict):
     foreign_key: ForeignKey
     is_unique: bool
     is_nullable: bool
-    is_uid: str
+    is_uid: bool
+    enum_values: list[str]
+
 
 class Table(TypedDict):
     """ Captures details about an individual table for which API is being generated """
