@@ -182,8 +182,8 @@ def get_schemas_from_db():
     dependencies_raw = get_table_dependencies()
 
     schemas = json.loads(schemas_raw)[0][0]
-    dependencies = json.loads(dependencies_raw)[0][0]
-
+    dependencies = json.loads(dependencies_raw)[0][0] if json.loads(dependencies_raw)[0][0] is not None else {}
+    
     for table, columns in schemas.items():
         dep_columns = dependencies.get(table, {})
         for column in columns:
