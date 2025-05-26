@@ -59,12 +59,12 @@ def retrieve_state(state_file_name="state_2025-05-01_16-28-50.pkl", reset_tests=
     return backup_state
 
 def check_schema_for_unsupported_types(columns: Dict[str, Any]) -> bool:
-    for column in columns:
-        if column.get("foreign_key"):
-            return True
-        column_type = column.get("type")
-        if column_type == "USER-DEFINED":
-            return True
+    # for column in columns:
+    #     if column.get("foreign_key"):
+    #         return True
+    #     column_type = column.get("type")
+    #     if column_type == "USER-DEFINED":
+    #         return True
     return False
 
 def get_raw_schemas():
