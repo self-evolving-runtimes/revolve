@@ -44,5 +44,7 @@ class HelloDBSchemaResource:
         {"field": "name", "headerName": "Name", "type": "string", "width": 150},
         {"field": "age", "headerName": "Age", "type": "number", "width": 100},
         {"field": "email", "headerName": "Email", "type": "string", "width": 200},
+        {"field": "gender", "headerName": "Gender", "type": "enum", "enumValues":["Male","Female"], "width": 200},
+        {"field": "companyId", "headerName": "Company Id", "type": "foreignKey", "relatedTable":"company", "relatedColumn":"id", "width": 200},
     ]
 
