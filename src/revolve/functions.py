@@ -746,6 +746,29 @@ def clone_db():
     apply_create_table_ddls(tables, os.getenv("DB_NAME"), new_dbname, user, password, host=host, port=port, drop_if_exists=True)
     os.environ["DB_NAME_TEST"] = new_dbname
 
+def extract_permissions(result_data):
+    if not isinstance(result_data, list):
+        raise ValueError("Expected result_data to be a list.")
+
+    if not result_data:
+        raise ValueError("result_data is an empty list.")
+
+    last_element = result_data[-1]
+    if not isinstance(last_element, list):
+        raise ValueError("Expected last element of result_data to be a list.")
+
+    if not last_element:
+        raise ValueError("The last list inside result_data is empty.")
+
+    last_dict = last_element[-1]
+    if not isinstance(last_dict, dict):
+        raise ValueError("Expected last element of the nested list to be a dict.")
+
+    if not last_dict:
+        raise ValueError("The final dictionary is empty.")
+
+    return last_dict
+
 def check_permissions():
     db_user_name = os.getenv("DB_USER")
     query = f"""
@@ -761,11 +784,7 @@ WHERE rolname = '{db_user_name}';
 """
     result = run_query_on_db(query)
     result_data = json.loads(result)
-    # Assuming the result is a list of dictionaries and the last dictionary contains the 'permissions' key
-    if isinstance(result_data, list) and result_data and isinstance(result_data[-1], dict) and 'permissions' in result_data[-1]:
-        permissions = result_data[-1]['permissions']
-    else:
-        raise ValueError("Unexpected result structure: 'permissions' key not found in the expected location.")
+    permissions = extract_permissions(result_data)
 
     suggested_queries_template ={
     'can_connect': "GRANT CONNECT ON DATABASE {database} TO {username};",
