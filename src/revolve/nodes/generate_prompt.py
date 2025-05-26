@@ -11,7 +11,7 @@ def generate_prompt_for_code_generation(state: State):
     send  = state.get("send")
     log("Started", send)
     last_message_content = state["messages"][-1].content
-    schemas = get_schemas_from_db()
+    schemas = str(get_schemas_from_db())
 
     messages = [
         {
