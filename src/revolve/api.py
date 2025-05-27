@@ -41,9 +41,12 @@ class WorkflowResource:
             
             source_folder = settings.get("sourceFolder")
             if not os.path.exists(source_folder):
-                resp.status = falcon.HTTP_400
-                resp.media = {"error": f"Source folder {source_folder} does not exist."}
-                return
+                try:
+                    os.makedirs(source_folder)
+                except Exception as e:
+                    resp.status = falcon.HTTP_400
+                    resp.media = {"error": f"Source folder {source_folder} does not exist."}
+                    return
             
             #set env vars 
             os.environ["SOURCE_FOLDER"] = source_folder
@@ -135,11 +138,29 @@ class FileResource:
             resp.media = {"error": "Unknown file endpoint"}
 
     def get_file_list(self, req, resp):
-        file_list = get_file_list()
-        file_list = [f for f in file_list if f.endswith(('.py', '.json', '.md'))]
-        file_list.sort()
+        source_folder = req.get_param("source", default=None)
+        if source_folder:
+            os.environ["SOURCE_FOLDER"] = source_folder
+
+        try:
+            file_list = get_file_list(),
+            file_list = [f for f in file_list if f.endswith(('.py', '.json', '.md'))]
+            file_list.sort()
+            resp.status = falcon.HTTP_200
+            resp.media = {"files": file_list}
+        except Exception as e:
+            resp.status = falcon.HTTP_500
+            resp.media = {"error": str(e)}
+
+    def get_file(self, req, resp):
+        file_name = req.get_param("name")
+        content = read_python_code(file_name)
+        if file_name.endswith(".py"):
+            content = f"```python\n{content}\n```"
+        elif file_name.endswith(".json"):
+            content = f"```json\n{content}\n```"
         resp.status = falcon.HTTP_200
-        resp.media = {"files": file_list}
+        resp.media = {"content": content}
 
     def get_file(self, req, resp):
         file_name = req.get_param("name")
