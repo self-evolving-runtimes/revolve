@@ -650,7 +650,7 @@ const handleSendMessage = async (message) => {
                               item.role === 'user' ? <UserOutlined /> : <RobotOutlined />
                             }
                             title={item.role === 'user' ? 'You' : 'Assistant'}
-                            description={item.content}
+                            description={<ReactMarkdown>{item.content}</ReactMarkdown>}
                           />
                         </List.Item>
                       )}
