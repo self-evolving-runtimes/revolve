@@ -39,7 +39,7 @@ def init_or_attach_git_repo():
 def create_branch_with_timestamp(prefix="source-generated"):
     git_check = os.environ.get("GIT_PUSH_CHANGES", "false").lower() == "true"
     if git_check:
-        repo_dir = os.environ.get("GIT_REPO_PATH", f"{get_source_folder()}")
+        repo_dir = get_source_folder()
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         user_suffix = os.getenv("GIT_BRANCH_NAME_USER_SUFFIX")
         if user_suffix:
@@ -54,7 +54,7 @@ def create_branch_with_timestamp(prefix="source-generated"):
 def commit_and_push_changes(message: str, description: str = None):
     git_check = os.environ.get("GIT_PUSH_CHANGES", "false").lower() == "true"
     if git_check:    
-        repo_dir = os.environ.get("GIT_REPO_PATH", f"{get_source_folder()}")
+        repo_dir = get_source_folder()
         run_git_command(["add", "."], cwd=repo_dir)
 
         status = run_git_command(["status", "--porcelain"], cwd=repo_dir)
