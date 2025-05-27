@@ -7,7 +7,7 @@ from pathlib import Path
 from pprint import pprint
 
 import subprocess
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 import pickle
 
 import json
@@ -69,7 +69,7 @@ def check_schema_for_unsupported_types(columns: Dict[str, Any]) -> bool:
 
 def get_raw_schemas():
     schemas_raw = run_query_on_db("""
-        SELECT jsonb_object_agg(
+    SELECT jsonb_object_agg(
            table_name,
            columns
        ) AS schema_dict
@@ -100,7 +100,8 @@ FROM (
                     'foreign_key', jsonb_build_object(
                         'foreign_table', ccu.table_name,
                         'foreign_column', ccu.column_name
-                    )
+                    ),
+                    'default_value', def.column_default
                 )
             )
         ) AS columns
@@ -133,7 +134,9 @@ FROM (
     LEFT JOIN pg_type pt ON pt.typname = c.udt_name
     WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
     GROUP BY c.table_name
-) AS sub""")
+) AS sub;
+
+    """)
     return schemas_raw
 
 
@@ -732,21 +735,66 @@ def restore_schema_with_psycopg2(
     conn.close()
     print(f"✅ Schema restored to '{dbname}'")
 
-
 def generate_create_table_sql(table_name: str, columns: List[Dict]) -> str:
     col_lines = []
+    enum_defs = []
+    requires_uuid_ossp = False
+
     for col in columns:
         data_type = col["data_type_s"]
-        # Fix for ARRAY type
-        if data_type == "ARRAY":
-            data_type = "text[]"  # Default assumption; adjust per actual use-case
-        line = f"  {col['column_name']} {data_type}"
-        if col['is_nullable'] == 'NO':
+        column_name = col["column_name"]
+
+        # Handle user-defined enums
+        if data_type == "USER-DEFINED" and col.get("enum_values"):
+            enum_type_name = f"{table_name}_{column_name}_enum"
+            data_type = enum_type_name
+            enum_vals = ', '.join(f"'{v}'" for v in col["enum_values"])
+            enum_defs.append(
+                f"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '{enum_type_name}') "
+                f"THEN CREATE TYPE {enum_type_name} AS ENUM ({enum_vals}); END IF; END $$;"
+            )
+
+        elif data_type == "ARRAY":
+            data_type = "text[]"  # Customize as needed
+
+        # Build column line
+        line = f"  {column_name} {data_type}"
+
+        # Add default value if present (skip if serial type)
+        default_value = col.get("default_value")
+        if default_value and not (data_type.lower() == "serial" and "nextval" in default_value.lower()):
+            if (
+                col["data_type_s"] == "USER-DEFINED"
+                and "::" in default_value
+                and col.get("enum_values")
+            ):
+                # Replace generic cast with the correct enum type name
+                enum_type_name = f"{table_name}_{column_name}_enum"
+                default_value = default_value.split("::")[0] + f"::{enum_type_name}"
+            line += f" DEFAULT {default_value}"
+            if "uuid_generate_v4()" in default_value:
+                requires_uuid_ossp = True
+
+        # Add NOT NULL constraint
+        if col["is_nullable"] == "NO":
             line += " NOT NULL"
+
         col_lines.append(line)
+
+    ddl_parts = []
+
+    # Add CREATE EXTENSION if required
+    if requires_uuid_ossp:
+        ddl_parts.append('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
+
+    # Add ENUM definitions if any
+    ddl_parts.extend(enum_defs)
+
+    # Final CREATE TABLE statement
     body = ",\n".join(col_lines)
-    ddl = f"CREATE TABLE {table_name} (\n{body}\n);"
-    return ddl
+    ddl_parts.append(f"CREATE TABLE {table_name} (\n{body}\n);")
+
+    return "\n".join(ddl_parts)
 
 def gen_table_map(map : Dict) -> Dict:
     # Regenerate with fixed function
