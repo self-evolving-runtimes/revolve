@@ -289,3 +289,26 @@ def get_classification_prompt(user_message):
             "content": user_prompt
         }
     ]
+
+def get_run_test_prompt(test_report: str) -> list:
+    system_prompt = """
+You are a test report summarizer. Your task is to analyze the provided test report and generate a concise summary of the test results.
+Include the total number of tests executed, along with the number of tests passed and failed.
+Provide a  list (not table) each test with the following details: test name, status (passed or failed), and a brief error message (if applicable).
+Keep it simple — do not include long error tracebacks or any additional information.
+Format the output in Markdown.
+"""
+    user_prompt = f"""
+Here is the test reports:\n
+{test_report}
+"""
+    return [
+        {
+            "role": "system",
+            "content": system_prompt
+        },
+        {
+            "role": "user",
+            "content": user_prompt
+        }
+    ]
