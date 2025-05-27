@@ -18,7 +18,8 @@ from revolve.nodes import (
     process_table,
     generate_api,
     test_node,
-    report_node
+    report_node,
+    run_tests
 )
 
 
@@ -65,14 +66,17 @@ def run_workflow(task=None, db_config=None, send=None):
     graph.add_node("generate_api", generate_api)
     graph.add_node("test_node", test_node)
     graph.add_node("report_node", report_node)
+    graph.add_node("run_tests", run_tests)
 
 
 
     graph.add_edge(START, "check_user_request")
-    graph.add_conditional_edges("check_user_request", lambda state: state["classification"], {"router_node" : "router_node",  "__end__":END})
+    graph.add_conditional_edges("check_user_request", lambda state: state["classification"], {"generate_api" : "router_node",  "__end__":END, "response_back": END, "run_tests": "run_tests"})
     graph.add_conditional_edges(
         "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "report_node": "report_node", "__end__":END}
     )
+
+    graph.add_edge("run_tests","__end__")
 
     graph.add_conditional_edges(
         "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
@@ -97,7 +101,7 @@ def run_workflow(task=None, db_config=None, send=None):
             if "description" in event[key]["trace"][-1]:
                 name = event[key]["trace"][-1]["node_name"]
                 text = event[key]["trace"][-1]["description"]
-                level = "workflow" if name == "report_node" else "system"
+                level = "workflow" if name in ["report_node","run_tests"] else "system"
                 send({
                     "status":"processing",
                     "text":text,
