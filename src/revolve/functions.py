@@ -14,6 +14,8 @@ import json
 from revolve.external import get_source_folder
 import psycopg2
 from psycopg2 import errors, sql
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+
 from collections import defaultdict, deque
 
 import sqlparse
@@ -735,17 +737,50 @@ def apply_create_table_ddls(table_ddl_map, existing_dbname, new_dbname, user, pa
     conn.close()
 
 def clone_db():
-    ddls = get_schemas_from_db()
-    tables = gen_table_map(ddls)
+    db_name = os.getenv("DB_NAME")
+    new_dbname = db_name + "_test"
+    os.environ["DB_NAME_TEST"] = new_dbname
 
-    new_dbname = os.getenv("DB_NAME") + "_test"
     user = os.getenv("DB_USER")
     password = os.getenv("DB_PASSWORD")
     host = os.getenv("DB_HOST")
     port = os.getenv("DB_PORT")
 
-    apply_create_table_ddls(tables, os.getenv("DB_NAME"), new_dbname, user, password, host=host, port=port, drop_if_exists=True)
-    os.environ["DB_NAME_TEST"] = new_dbname
+    conn = None
+    try:
+        conn = psycopg2.connect(
+            dbname="postgres", user=user, host=host, port=port, password=password
+        )
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = conn.cursor()
+
+        # 1. Terminate sessions on the target (clone) DB if it exists
+        cur.execute("""
+            SELECT pg_terminate_backend(pid)
+            FROM pg_stat_activity
+            WHERE datname = %s AND pid <> pg_backend_pid();
+        """, (new_dbname,))
+
+        # 2. Drop the clone DB if it exists
+        cur.execute(f"DROP DATABASE IF EXISTS {new_dbname};")
+
+        # 3. Terminate sessions on the source DB
+        cur.execute("""
+            SELECT pg_terminate_backend(pid)
+            FROM pg_stat_activity
+            WHERE datname = %s AND pid <> pg_backend_pid();
+        """, (db_name,))
+
+        # 4. Create the clone
+        cur.execute(f"CREATE DATABASE {new_dbname} TEMPLATE {db_name};")
+
+        print(f"✅ Database '{new_dbname}' cloned successfully from '{db_name}'.")
+
+    except Exception as e:
+        print(f"❌ Error cloning database: {e}")
+    finally:
+        if conn:
+            conn.close()
 
 def extract_permissions(result_data):
     if not isinstance(result_data, list):
