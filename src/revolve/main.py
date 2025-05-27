@@ -5,10 +5,8 @@ from revolve.data_types import State
 from revolve.functions import check_db
 
 from langgraph.constants import Send
-
-from revolve.nodes.check_user_request import check_user_request
 from revolve.utils_git import *
-from revolve.functions import clone_db
+
 import os
 
 
@@ -19,7 +17,8 @@ from revolve.nodes import (
     generate_api,
     test_node,
     report_node,
-    run_tests
+    run_tests,
+    check_user_request
 )
 
 
@@ -29,7 +28,7 @@ def send_message(message):
 def run_workflow(task=None, db_config=None, send=None):
     if send is None:
         send = send_message
-    test_mode = False
+    test_mode = True if db_config and db_config.get("USE_CLONE_DB", False) else False
     if db_config:
         os.environ["DB_NAME"] = db_config["DB_NAME"]
         os.environ["DB_USER"] = db_config["DB_USER"]
@@ -37,11 +36,6 @@ def run_workflow(task=None, db_config=None, send=None):
         os.environ["DB_HOST"] = db_config["DB_HOST"]
         os.environ["DB_PORT"] = db_config["DB_PORT"]
 
-        if db_config["USE_CLONE_DB"]:
-            test_mode = True
-            clone_db()
-
-    
     db_test_result = check_db(db_user=os.environ["DB_USER"],
                               db_password=os.environ["DB_PASSWORD"],
                               db_host=os.environ["DB_HOST"],
