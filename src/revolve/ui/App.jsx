@@ -144,21 +144,24 @@ const handleSuggestionClick = (text) => {
   }, 100);
 };
 
-  React.useEffect(() => {
-    const fetchFileList = async () => {
-      try {
-        const response = await axios.get('/api/get-file-list');
-        setFileList(response.data.files);
-      } catch (err) {
-        console.error('Failed to fetch file list:', err);
-      }
-    };
+React.useEffect(() => {
+  if (!settings.sourceFolder) return;
 
-      fetchFileList(); // Initial fetch
-      const interval = setInterval(fetchFileList, 10000); // Fetch every 5 seconds
+  const fetchFileList = async () => {
+    try {
+      const url = `/api/get-file-list?source=${encodeURIComponent(settings.sourceFolder)}`;
+      console.log('📦 Now sending sourceFolder:', settings.sourceFolder);
+      const response = await axios.get(url);
+      setFileList(response.data.files);
+    } catch (err) {
+      console.error('Failed to fetch file list:', err);
+    }
+  };
 
-      return () => clearInterval(interval); // Clean up on unmount
-    }, []);
+  fetchFileList();
+  const interval = setInterval(fetchFileList, 10000);
+  return () => clearInterval(interval);
+}, [settings.sourceFolder]);
 
     const handleFileClick = async (fileName) => {
     try {
