@@ -17,7 +17,7 @@ def run_git_command(args, cwd="."):
 def init_or_attach_git_repo():
     git_check = os.environ.get("GIT_PUSH_CHANGES", "false").lower() == "true"
     if git_check:
-        repo_dir = os.environ.get("GIT_REPO_PATH", f"{get_source_folder()}")
+        repo_dir = get_source_folder()
         remote_url = os.environ.get("GIT_REPO_URL", None)
         if not remote_url:
             raise ValueError("GIT_REPO_URL environment variable is not set.")
