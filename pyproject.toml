@@ -7,7 +7,6 @@ requires-python = ">=3.11"
 dependencies = [
     "python-dotenv",
     "langgraph",
-    "psycopg2",
     "pytest",
     "falcon",
     "pytest-json-report>=1.5.0",
@@ -23,7 +22,7 @@ dependencies = [
 revolve-api = "revolve.api:main"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-build-scripts"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
@@ -39,8 +38,17 @@ artifacts = [
 [tool.hatch.build.targets.wheel]
 # Include all Python + resource files
 include = [
-  "src/revolve/**"
+    "src/revolve/**",
+    "dist"
 ]
+
+[[tool.hatch.build.hooks.build-scripts.scripts]]
+commands = [
+    "yarn install",
+    "yarn run build"
+]
+work_dir = "src/revolve/ui"
+artifacts = ["dist"]
 
 [dependency-groups]
 dev = [
