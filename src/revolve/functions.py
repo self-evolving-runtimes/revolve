@@ -197,26 +197,23 @@ def get_table_dependencies():
     """)
     return query_result
 
-def get_schemas_from_db():
 
-    query_result = run_query_on_db("""SELECT jsonb_object_agg(
-            table_name,
-            columns
-        ) AS schema_dict
-    FROM (
-        SELECT
-            table_name,
-            jsonb_agg(
-                jsonb_build_object(
-                    'column_name', column_name,
-                    'data_type', data_type,
-                    'is_nullable', is_nullable
-                )
-            ) AS columns
-        FROM information_schema.columns
-        WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-        GROUP BY table_name
-    ) AS sub;""")
+def get_schemas_from_db():
+    schemas_raw = get_raw_schemas()
+    dependencies_raw = get_table_dependencies()
+
+    schemas = json.loads(schemas_raw)[0][0]
+    dependencies = json.loads(dependencies_raw)[0][0] if json.loads(dependencies_raw)[0][0] is not None else {}
+
+    for table, columns in schemas.items():
+        dep_columns = dependencies.get(table, {})
+        for column in columns:
+            col_name = column.get("column_name")
+            if col_name in dep_columns:
+                # Merge the reltype and links_to_table
+                column.update(dep_columns[col_name])
+
+    return schemas
 
     query_result = run_query_on_db("""
 SELECT jsonb_object_agg(
