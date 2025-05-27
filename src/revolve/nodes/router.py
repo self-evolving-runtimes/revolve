@@ -1,39 +1,22 @@
 from datetime import datetime
 
 from revolve.data_types import State
-from revolve.functions import log, save_state
+from revolve.functions import clone_db, log, save_state
 from revolve.utils_git import init_or_attach_git_repo, create_branch_with_timestamp
 
 
 def router_node(state: State):
-    # ---------------------------------------
-    # ROUTE with LLM Decisions like an Agent, we can use the LLM to decide the next step
-    # messages = [
-    #     {
-    #         "role": "system",
-    #         "content": "Based on user request select the next path to take. The options are: generate_prompt_for_code_generation, do_stuff, do_other_stuff. If none of these options are relevant, return __end__."
-    #     },
-    #     {
-    #         "role": "user",
-    #         "content": state["messages"][-1].content
-    #     }
-    # ]
-
-    # llm_router_response = llm_router.invoke(messages)
-    # return {
-    #     "next_node": llm_router_response.name
-    # }
-    # ---------------------------------------
-
-    # Route placeholder
     next_node = state.get("next_node", None)
     test_status = state.get("test_status", None)
     resources = state.get("resources", None)
     dbSchema = state.get("DBSchema", None)
 
     send = state.get("send")
+    test_mode = state.get("test_mode", False)
 
     if not next_node:
+        if test_mode:
+            clone_db()
 
         init_or_attach_git_repo()
         branch_name = create_branch_with_timestamp()
