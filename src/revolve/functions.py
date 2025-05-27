@@ -35,7 +35,7 @@ def log(description, send=None, level="system"):
             "status":"processing",
             "level":level}
         )
-    _log(method_name, description)
+    _log(method_name, description, level)
     
 
 def save_state(state, state_name="state"):
