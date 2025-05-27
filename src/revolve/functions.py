@@ -629,11 +629,14 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
 
 def get_file_list():
     try:
-        file_list = os.listdir(f"{get_source_folder()}")
+        file_path =  get_source_folder()
+        if file_path and os.path.exists(file_path):
+            return os.listdir(file_path)
+
     except Exception as e:
         log(f"Error getting file list: {e}", level="DEBUG")
         return f"Error getting file list: {e}"
-    return file_list
+    return []
 
 def check_db(
     db_name: str, db_user: str, db_password: str, db_host: str, db_port: str
