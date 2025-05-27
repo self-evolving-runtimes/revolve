@@ -796,61 +796,6 @@ def generate_create_table_sql(table_name: str, columns: List[Dict]) -> str:
 
     return "\n".join(ddl_parts)
 
-def generate_create_table_sql_(table_name: str, columns: List[Dict]) -> str:
-    col_lines = []
-    enum_defs = []
-    requires_uuid_ossp = False
-
-    for col in columns:
-        data_type = col["data_type_s"]
-        column_name = col["column_name"]
-
-        # Handle user-defined enums
-        if data_type == "USER-DEFINED" and col.get("enum_values"):
-            enum_type_name = f"{table_name}_{column_name}_enum"
-            data_type = enum_type_name
-            enum_vals = ', '.join(f"'{v}'" for v in col["enum_values"])
-            enum_defs.append(
-                f"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '{enum_type_name}') "
-                f"THEN CREATE TYPE {enum_type_name} AS ENUM ({enum_vals}); END IF; END $$;"
-            )
-
-        elif data_type == "ARRAY":
-            data_type = "text[]"  # Customize as needed
-
-        # Build column line
-        line = f"  {column_name} {data_type}"
-
-        # Add default value if present (skip if serial type)
-        default_value = col.get("default_value")
-        if default_value and not (data_type.lower() == "serial" and "nextval" in default_value.lower()):
-            line += f" DEFAULT {default_value}"
-            if "uuid_generate_v4()" in default_value:
-                requires_uuid_ossp = True
-
-        # Add NOT NULL constraint
-        if col["is_nullable"] == "NO":
-            line += " NOT NULL"
-
-        col_lines.append(line)
-
-    ddl_parts = []
-
-    # Add CREATE EXTENSION if required
-    if requires_uuid_ossp:
-        ddl_parts.append('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
-
-    # Add ENUM definitions if any
-    ddl_parts.extend(enum_defs)
-
-    # Final CREATE TABLE statement
-    body = ",\n".join(col_lines)
-    ddl_parts.append(f"CREATE TABLE {table_name} (\n{body}\n);")
-
-    return "\n".join(ddl_parts)
-
-
-
 def gen_table_map(map : Dict) -> Dict:
     # Regenerate with fixed function
     fixed_create_table_ddls = {
