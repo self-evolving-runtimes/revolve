@@ -4,6 +4,7 @@ from revolve.nodes.process_table import process_table
 from revolve.nodes.generate_api import generate_api
 from revolve.nodes.report import report_node
 from revolve.nodes.test import test_node
+from revolve.nodes.run_tests import run_tests
 
 __all__ = [
     "router_node",
@@ -11,5 +12,6 @@ __all__ = [
     "process_table",
     "generate_api",
     "test_node",
-    "report_node"
+    "report_node",
+    "run_tests"
 ]
