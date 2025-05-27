@@ -70,49 +70,70 @@ def check_schema_for_unsupported_types(columns: Dict[str, Any]) -> bool:
 def get_raw_schemas():
     schemas_raw = run_query_on_db("""
         SELECT jsonb_object_agg(
-                   table_name,
-                   columns
-               ) AS schema_dict
-        FROM (
-            SELECT
-                c.table_name,
-                jsonb_agg(
-                    jsonb_strip_nulls(
-                        jsonb_build_object(
-                            'column_name', c.column_name,
-                            'data_type', c.data_type,
-                            'is_nullable', c.is_nullable,
-                            'character_max_length', c.character_maximum_length,
-                            'numeric_precision', c.numeric_precision,
-                            'numeric_scale', c.numeric_scale,
-                            'enum_values', ev.enum_values,
-                            'foreign_key', jsonb_build_object(
-                                'foreign_table', ccu.table_name,
-                                'foreign_column', ccu.column_name
-                            )
-                        )
+           table_name,
+           columns
+       ) AS schema_dict
+FROM (
+    SELECT
+        c.table_name,
+        jsonb_agg(
+            jsonb_strip_nulls(
+                jsonb_build_object(
+                    'column_name', c.column_name,
+                    'data_type', c.data_type,
+                    'data_type_s',
+                        CASE
+                            WHEN def.column_default LIKE 'nextval(%' AND pt.typname = 'int4' THEN 'serial'
+                            WHEN def.column_default LIKE 'nextval(%' AND pt.typname = 'int8' THEN 'bigserial'
+                            WHEN c.data_type IN ('character varying', 'varchar') AND c.character_maximum_length IS NOT NULL
+                                THEN 'varchar(' || c.character_maximum_length || ')'
+                            WHEN c.data_type = 'numeric' AND c.numeric_precision IS NOT NULL
+                                THEN 'numeric(' || c.numeric_precision ||
+                                     COALESCE(', ' || c.numeric_scale, '') || ')'
+                            ELSE c.data_type
+                        END,
+                    'is_nullable', c.is_nullable,
+                    'character_max_length', c.character_maximum_length,
+                    'numeric_precision', c.numeric_precision,
+                    'numeric_scale', c.numeric_scale,
+                    'enum_values', ev.enum_values,
+                    'foreign_key', jsonb_build_object(
+                        'foreign_table', ccu.table_name,
+                        'foreign_column', ccu.column_name
                     )
-                ) AS columns
-            FROM information_schema.columns c
-            LEFT JOIN information_schema.key_column_usage kcu
-                ON c.table_name = kcu.table_name
-                AND c.column_name = kcu.column_name
-                AND c.table_schema = kcu.table_schema
-            LEFT JOIN information_schema.table_constraints tc
-                ON kcu.constraint_name = tc.constraint_name
-                AND tc.constraint_type = 'FOREIGN KEY'
-            LEFT JOIN information_schema.constraint_column_usage ccu
-                ON tc.constraint_name = ccu.constraint_name
-            LEFT JOIN LATERAL (
-                SELECT jsonb_agg(e.enumlabel) AS enum_values
-                FROM pg_type t
-                JOIN pg_enum e ON t.oid = e.enumtypid
-                JOIN pg_namespace ns ON ns.oid = t.typnamespace
-                WHERE t.typname = c.udt_name
-            ) ev ON true
-            WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
-            GROUP BY c.table_name
-        ) AS sub;""")
+                )
+            )
+        ) AS columns
+    FROM information_schema.columns c
+    LEFT JOIN information_schema.key_column_usage kcu
+        ON c.table_name = kcu.table_name
+        AND c.column_name = kcu.column_name
+        AND c.table_schema = kcu.table_schema
+    LEFT JOIN information_schema.table_constraints tc
+        ON kcu.constraint_name = tc.constraint_name
+        AND tc.constraint_type = 'FOREIGN KEY'
+    LEFT JOIN information_schema.constraint_column_usage ccu
+        ON tc.constraint_name = ccu.constraint_name
+    LEFT JOIN LATERAL (
+        SELECT jsonb_agg(e.enumlabel) AS enum_values
+        FROM pg_type t
+        JOIN pg_enum e ON t.oid = e.enumtypid
+        JOIN pg_namespace ns ON ns.oid = t.typnamespace
+        WHERE t.typname = c.udt_name
+    ) ev ON true
+    LEFT JOIN LATERAL (
+        SELECT
+            pg_get_expr(ad.adbin, ad.adrelid) AS column_default
+        FROM pg_attribute a
+        JOIN pg_class cls ON cls.oid = a.attrelid
+        JOIN pg_attrdef ad ON ad.adrelid = a.attrelid AND ad.adnum = a.attnum
+        WHERE cls.relname = c.table_name AND a.attname = c.column_name
+        LIMIT 1
+    ) def ON true
+    LEFT JOIN pg_type pt ON pt.typname = c.udt_name
+    WHERE c.table_schema NOT IN ('pg_catalog', 'information_schema')
+    GROUP BY c.table_name
+) AS sub""")
     return schemas_raw
 
 
@@ -646,7 +667,7 @@ def restore_schema_with_psycopg2(
 def generate_create_table_sql(table_name: str, columns: List[Dict]) -> str:
     col_lines = []
     for col in columns:
-        data_type = col["data_type"]
+        data_type = col["data_type_s"]
         # Fix for ARRAY type
         if data_type == "ARRAY":
             data_type = "text[]"  # Default assumption; adjust per actual use-case
