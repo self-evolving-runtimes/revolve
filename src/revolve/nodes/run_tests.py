@@ -31,7 +31,7 @@ def run_tests(state):
     new_trace = {
         "node_name": "run_tests",
         "node_type": "run_tests",
-        "node_input": test_report,
+        "node_input": "test_files",
         "node_output": "place_holder",
         "trace_timestamp": datetime.now(),
         "description": response.content,

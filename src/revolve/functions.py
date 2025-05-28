@@ -89,14 +89,16 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
     log("Running pytest with JSON reporting...")
 
 
-    report_path = Path("report.json")
-
+    report_path = Path(__file__).parent / "report.json"
+    test_file_path = Path(get_source_folder()) / file_name
+    test_file_path = test_file_path.resolve()
+    print("Looking for test file at:", str(test_file_path))
     try:
         # Run pytest with JSON reporting.
         result = subprocess.run(
             [
                 "pytest",
-                f"{get_source_folder()}/{file_name}",
+                str(test_file_path.name),
                 "--json-report",
                 f"--json-report-file={report_path}",
                 "--log-cli-level=DEBUG",
@@ -105,11 +107,11 @@ def run_pytest(file_name="test_api.py") -> List[Dict[str, Any]]:
             ],
             capture_output=True,
             text=True,
-            check=False,  # Allow the process to finish even if tests fail.
+            check=False,
+            cwd=test_file_path.parent
         )
 
-        if not report_path.exists():
-            time.sleep(0.2)
+        time.sleep(0.2)
         if not report_path.exists():
             log("report.json not generated. Pytest might have failed before reporting.")
             return {
