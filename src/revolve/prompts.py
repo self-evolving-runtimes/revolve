@@ -3,12 +3,7 @@ prompt_list = {
         """
 You are a table-schema extractor. When given a full database schema, identify and extract only the table(s) the user intends to work with.
 For each requested table, generate a concise instruction—without including the schema itself—such as:
-“Create POST method for the X table.”
-Always:
-	Ignore unrelated tables.
-	Produce one prompt per table.
-	Extract schema details but omit them in the prompt.
-        """,
+“Create POST method for the X table."""
 }
 
 def get_test_generation_prompt(test_example: str, api_code: str, table_name: str, schema: str, utils: str, resouce_file: str, resource_file_name:str) -> str:
@@ -268,17 +263,45 @@ Here is the API code:\n{api_code}"""
 def get_simple_prompt(prompt_name: str) -> str:
     return prompt_list[prompt_name]
 
-def get_classification_prompt(user_message):
+def get_classification_prompt(messages):
     system_prompt =  """
-        you are a software agent who can write CRUD APIs for a given table schema.
+        You are a software agent who can write CRUD APIs for a given table schema.
+        You can also run tests for the APIs you have generated.
         Check the message provided and see if it is appropriate for you to handle. 
         
-        If it is , return router_node for the classification field, otherwise return "__end__" for the classification field and message field with value which can educate the user what you do and ask them to supply a meaningful reply.
+        If it is , return router_node for the classification field, otherwise return "__end__" for the classification field and message field with value which a meaningful reply.
     """
+ 
     user_prompt = f"""
         Here is the message from the user:
-        {user_message}
+        {messages[-1]["content"]}
     """
+
+    message_list = []
+    message_list.append({
+        "role": "system",
+        "content": system_prompt
+    })
+    message_list.extend(messages[:-1])
+
+    message_list.append({
+        "role": "user",
+        "content": user_prompt
+    })
+    return message_list
+
+def get_run_test_prompt(test_report: str) -> list:
+    system_prompt = """
+You are a test report summarizer. Your task is to analyze the provided test report and generate a concise summary of the test results.
+Include the total number of tests executed, along with the number of tests passed and failed.
+Provide a  list (not table) each test with the following details: test name, status (passed or failed), and a brief error message (if applicable).
+Keep it simple — do not include long error tracebacks or any additional information.
+Format the output in Markdown.
+"""
+    user_prompt = f"""
+Here is the test reports:\n
+{test_report}
+"""
     return [
         {
             "role": "system",

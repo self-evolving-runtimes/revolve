@@ -44,9 +44,9 @@ class DBSchema(TypedDict):
     """Captures a list of tables for which APIs will get generated"""
     tables: list[Table]
 
-class ClassifyUserRequest(TypedDict):
-    """ Classify the user prompt if it is a generate CRUD task or reply with a message """
-    classification: str
+class ClassifyUserRequest(BaseModel):
+    """ Classify the user prompt if it is related creation of a resource "generate_api" or running tests "run_tests" or responding to a user "response_back" And provide a message to the user if response_back is selected """
+    classification: Literal["response_back", "run_tests", "generate_api", "__end__"]
     message: str
 
 class ApiRoute(TypedDict):

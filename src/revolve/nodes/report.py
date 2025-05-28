@@ -2,7 +2,7 @@
 from datetime import datetime
 import os
 from revolve.data_types import Readme, State
-from revolve.functions import read_python_code, save_python_code, log
+from revolve.utils import read_python_code, save_python_code, log
 from revolve.prompts import get_readme_prompt
 from revolve.utils import create_ft_data, create_test_report
 from revolve.external import get_source_folder
@@ -12,7 +12,7 @@ from revolve.llm import invoke_llm
 
 
 def report_node(state: State):
-    task = state["messages"][0].content
+    task = state["messages"][-1]["content"]
     if os.environ.get("FT_SAVE_MODE","false") == "true":
         create_ft_data(state)
     create_test_report(task, state)
@@ -31,6 +31,7 @@ def report_node(state: State):
     db_password = os.environ.get("DB_PASSWORD")
     db_host = os.environ.get("DB_HOST")
     db_port = os.environ.get("DB_PORT")
+    static_dir = os.environ.get("STATIC_DIR", "-")
 
     env_file = open(f"{get_source_folder()}/.env", "w")
     env_file.write(f"DB_NAME={db_name}\n")
@@ -41,7 +42,7 @@ def report_node(state: State):
     env_file.write(f"DB_PASSWORD={db_password}\n")
     env_file.write(f"DB_HOST={db_host}\n")
     env_file.write(f"DB_PORT={db_port}\n")
-
+    env_file.write(f"STATIC_DIR={static_dir}\n")
     env_file.close()
     api_code = read_python_code("api.py")
 

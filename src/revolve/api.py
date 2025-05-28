@@ -7,9 +7,12 @@ import sys
 import os
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
+
+from db import get_adapter
 from revolve.workflow_generator import run_workflow_generator
-from revolve.functions import check_db, get_file_list, read_python_code, check_permissions, get_schemas_from_db
 from revolve.utils import start_process, stop_process
+from revolve.utils import read_python_code
+from revolve.functions import get_file_list
 from wsgiref.simple_server import WSGIRequestHandler
 
 
@@ -30,7 +33,7 @@ class WorkflowResource:
     def on_post(self, req, resp):
         try:
             data = req.media 
-            task = data.get("message", None)
+            messages = data.get("messages", None)
             db_config = data.get("dbConfig", {})
             settings = data.get("settings", {})
 
@@ -41,15 +44,18 @@ class WorkflowResource:
             
             source_folder = settings.get("sourceFolder")
             if not os.path.exists(source_folder):
-                resp.status = falcon.HTTP_400
-                resp.media = {"error": f"Source folder {source_folder} does not exist."}
-                return
+                try:
+                    os.makedirs(source_folder)
+                except Exception:
+                    resp.status = falcon.HTTP_400
+                    resp.media = {"error": f"Source folder {source_folder} does not exist."}
+                    return
             
             #set env vars 
             os.environ["SOURCE_FOLDER"] = source_folder
             os.environ["OPENAI_API_KEY"] = settings.get("openaiKey")
 
-            logger.info("Received task: %s", task)
+            logger.info("Received task: %s", messages[-1]["content"] if messages else "No messages provided")
         except Exception:
             resp.status = falcon.HTTP_400
             resp.media = {"error": "Invalid JSON"}
@@ -59,7 +65,7 @@ class WorkflowResource:
         resp.content_type = 'application/x-ndjson'
 
         def generate():
-            for item in run_workflow_generator(task=task, db_config=db_config):
+            for item in run_workflow_generator(task=messages, db_config=db_config):
                 line = json.dumps(item) + "\n"
                 yield line.encode("utf-8")
 
@@ -135,11 +141,26 @@ class FileResource:
             resp.media = {"error": "Unknown file endpoint"}
 
     def get_file_list(self, req, resp):
-        file_list = get_file_list()
-        file_list = [f for f in file_list if f.endswith(('.py', '.json', '.md'))]
-        file_list.sort()
+        
+        try:
+            file_list = get_file_list()
+            file_list = [f for f in file_list if f.endswith(('.py', '.json', '.md'))]
+            file_list.sort()
+            resp.status = falcon.HTTP_200
+            resp.media = {"files": file_list}
+        except Exception as e:
+            resp.status = falcon.HTTP_500
+            resp.media = {"error": str(e)}
+
+    def get_file(self, req, resp):
+        file_name = req.get_param("name")
+        content = read_python_code(file_name)
+        if file_name.endswith(".py"):
+            content = f"```python\n{content}\n```"
+        elif file_name.endswith(".json"):
+            content = f"```json\n{content}\n```"
         resp.status = falcon.HTTP_200
-        resp.media = {"files": file_list}
+        resp.media = {"content": content}
 
     def get_file(self, req, resp):
         file_name = req.get_param("name")
@@ -171,8 +192,10 @@ class TestDBResource:
                 resp.status = falcon.HTTP_400
                 resp.media = {"error": "Missing database connection parameters."}
                 return
-            
-            result = check_db(
+
+            adapter = get_adapter("postgres")  # change this to read from env / state
+
+            result = adapter.check_db(
                 db_name=db_name,
                 db_user=db_user,
                 db_password=db_password,
@@ -180,13 +203,13 @@ class TestDBResource:
                 db_port=db_port
             )
 
-            permissions = check_permissions()
+            permissions = adapter.check_permissions()
             if permissions["status"]=="error":
                 resp.status = falcon.HTTP_403
                 resp.media = permissions
                 return
 
-            schemas = get_schemas_from_db()
+            schemas = adapter.get_schemas_from_db()
             table_names = list(schemas.keys())
             random.shuffle(table_names)
             
