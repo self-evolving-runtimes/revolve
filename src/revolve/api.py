@@ -181,19 +181,21 @@ class TestDBResource:
             db_password = data.get("DB_PASSWORD", None)
             db_host = data.get("DB_HOST", None)
             db_port = data.get("DB_PORT", None)
+            db_type = data.get("DB_TYPE")
 
             os.environ["DB_NAME"] = db_name
             os.environ["DB_USER"] = db_user
             os.environ["DB_PASSWORD"] = db_password
             os.environ["DB_HOST"] = db_host
             os.environ["DB_PORT"] = db_port
+            os.environ["DB_TYPE"] = db_type
 
             if not all([db_name, db_user, db_password, db_host, db_port]):
                 resp.status = falcon.HTTP_400
                 resp.media = {"error": "Missing database connection parameters."}
                 return
 
-            adapter = get_adapter("postgres")  # change this to read from env / state
+            adapter = get_adapter(db_type)
 
             result = adapter.check_db(
                 db_name=db_name,

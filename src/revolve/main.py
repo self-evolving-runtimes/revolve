@@ -35,8 +35,9 @@ def run_workflow(task=None, db_config=None, send=None):
         os.environ["DB_PASSWORD"] = db_config["DB_PASSWORD"]
         os.environ["DB_HOST"] = db_config["DB_HOST"]
         os.environ["DB_PORT"] = db_config["DB_PORT"]
+        os.environ["DB_TYPE"] = db_config["DB_TYPE"]
 
-    adapter = get_adapter("postgres")
+    adapter = get_adapter(os.environ["DB_TYPE"])
 
     db_test_result = adapter.check_db(db_user=os.environ["DB_USER"],
                               db_password=os.environ["DB_PASSWORD"],
