@@ -7,9 +7,12 @@ import sys
 import os
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
+
+from db import get_adapter
 from revolve.workflow_generator import run_workflow_generator
-from revolve.functions import check_db, get_file_list, read_python_code, check_permissions, get_schemas_from_db
 from revolve.utils import start_process, stop_process
+from revolve.utils import read_python_code
+from revolve.functions import get_file_list
 from wsgiref.simple_server import WSGIRequestHandler
 
 
@@ -43,7 +46,7 @@ class WorkflowResource:
             if not os.path.exists(source_folder):
                 try:
                     os.makedirs(source_folder)
-                except Exception as e:
+                except Exception:
                     resp.status = falcon.HTTP_400
                     resp.media = {"error": f"Source folder {source_folder} does not exist."}
                     return
@@ -192,8 +195,10 @@ class TestDBResource:
                 resp.status = falcon.HTTP_400
                 resp.media = {"error": "Missing database connection parameters."}
                 return
-            
-            result = check_db(
+
+            adapter = get_adapter("postgres")  # change this to read from env / state
+
+            result = adapter.check_db(
                 db_name=db_name,
                 db_user=db_user,
                 db_password=db_password,
@@ -201,13 +206,13 @@ class TestDBResource:
                 db_port=db_port
             )
 
-            permissions = check_permissions()
+            permissions = adapter.check_permissions()
             if permissions["status"]=="error":
                 resp.status = falcon.HTTP_403
                 resp.media = permissions
                 return
 
-            schemas = get_schemas_from_db()
+            schemas = adapter.get_schemas_from_db()
             table_names = list(schemas.keys())
             random.shuffle(table_names)
             

@@ -1,7 +1,8 @@
 from datetime import datetime
 
+from db import get_adapter
 from revolve.data_types import State
-from revolve.functions import clone_db, log, save_state
+from revolve.functions import save_state, log
 from revolve.utils_git import init_or_attach_git_repo, create_branch_with_timestamp
 
 
@@ -13,10 +14,11 @@ def router_node(state: State):
 
     send = state.get("send")
     test_mode = state.get("test_mode", False)
+    adapter = get_adapter("postgres")
 
     if not next_node:
         if test_mode:
-            clone_db()
+            adapter.clone_db()
 
         init_or_attach_git_repo()
         branch_name = create_branch_with_timestamp()

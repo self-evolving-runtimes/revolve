@@ -2,7 +2,7 @@ from langgraph.graph import StateGraph, START, END
 from langchain_core.messages import HumanMessage
 
 from revolve.data_types import State
-from revolve.functions import check_db
+from db import get_adapter
 
 from langgraph.constants import Send
 from revolve.utils_git import *
@@ -36,7 +36,9 @@ def run_workflow(task=None, db_config=None, send=None):
         os.environ["DB_HOST"] = db_config["DB_HOST"]
         os.environ["DB_PORT"] = db_config["DB_PORT"]
 
-    db_test_result = check_db(db_user=os.environ["DB_USER"],
+    adapter = get_adapter("postgres")
+
+    db_test_result = adapter.check_db(db_user=os.environ["DB_USER"],
                               db_password=os.environ["DB_PASSWORD"],
                               db_host=os.environ["DB_HOST"],
                               db_port=os.environ["DB_PORT"],

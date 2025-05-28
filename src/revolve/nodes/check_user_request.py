@@ -15,7 +15,7 @@ def check_user_request(state: State):
     messages = get_classification_prompt(last_message_content)
 
     structured_db_response = invoke_llm(messages, max_attempts=3, validation_class=ClassifyUserRequest, method="function_calling", manual_validation=True)
-    description = "Prompt classifed as a task. Task is in progress." if not structured_db_response.classification in ["__end__", "response_back"] else structured_db_response.message
+    description = "Prompt classifed as a task. Task is in progress." if structured_db_response.classification not in ["__end__", "response_back"] else structured_db_response.message
 
     new_trace = {
         "node_name": "check_user_request",
