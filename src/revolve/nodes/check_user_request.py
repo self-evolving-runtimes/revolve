@@ -1,5 +1,4 @@
 from prompts import get_user_intent_prompt
-from revolve.prompts import get_classification_prompt
 from revolve.functions import log
 from revolve.data_types import State, ClassifyUserRequest
 from datetime import datetime

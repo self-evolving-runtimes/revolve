@@ -17,9 +17,10 @@ from revolve.nodes import (
     generate_api,
     test_node,
     report_node,
-    run_tests,
     check_user_request,
-    tool_handler
+    tool_handler,
+    tool_executor,
+    should_continue_tool_call
 )
 
 
@@ -63,20 +64,23 @@ def run_workflow(task=None, db_config=None, send=None):
     graph.add_node("generate_api", generate_api)
     graph.add_node("test_node", test_node)
     graph.add_node("report_node", report_node)
-    graph.add_node("run_tests", run_tests)
     graph.add_node("tool_handler", tool_handler)
-    
+    graph.add_node("tool_executor", tool_executor)
+
 
 
 
     graph.add_edge(START, "check_user_request")
-    graph.add_conditional_edges("check_user_request", lambda state: state["classification"], {"create_crud_task" : "router_node",  "__end__":END, "respond_back": END, "run_tests": "run_tests", "other_tasks":"tool_handler"})
+    graph.add_conditional_edges("check_user_request", lambda state: state["classification"], {"create_crud_task" : "router_node",  "__end__":END, "respond_back": END, "other_tasks":"tool_handler"})
     graph.add_conditional_edges(
         "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "report_node": "report_node", "__end__":END}
     )
 
-    graph.add_edge("run_tests","__end__")
-    graph.add_edge("tool_handler", "__end__")
+    graph.add_conditional_edges(
+        "tool_handler", should_continue_tool_call, {"tool_executor": "tool_executor", "__end__": END}
+    )
+    graph.add_edge("tool_executor", "tool_handler")
+
 
     graph.add_conditional_edges(
         "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]

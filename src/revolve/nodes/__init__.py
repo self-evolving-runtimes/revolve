@@ -4,9 +4,8 @@ from revolve.nodes.process_table import process_table
 from revolve.nodes.generate_api import generate_api
 from revolve.nodes.report import report_node
 from revolve.nodes.test import test_node
-from revolve.nodes.run_tests import run_tests
 from revolve.nodes.check_user_request import check_user_request
-from revolve.nodes.tool_handler import tool_handler
+from revolve.nodes.tool_handler import tool_handler, should_continue_tool_call, tool_executor
 
 __all__ = [
     "router_node",
@@ -15,7 +14,8 @@ __all__ = [
     "generate_api",
     "test_node",
     "report_node",
-    "run_tests",
     "check_user_request",
-    "tool_handler"
+    "tool_handler",
+    "tool_executor",
+    "should_continue_tool_call"
 ]

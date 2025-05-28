@@ -1,3 +1,6 @@
+
+from external import get_db_type
+
 prompt_list = {
     "table_schema_extractor":
         """
@@ -264,7 +267,7 @@ def get_simple_prompt(prompt_name: str) -> str:
     return prompt_list[prompt_name]
 
 def get_user_intent_prompt(messages):
-    system_prompt = """
+    system_prompt = f"""
 You are a software agent.
 Your capabilities include:
 
@@ -274,7 +277,7 @@ Your capabilities include:
 2. other_tasks:
    You can handle additional tasks such as:
    - Running tests
-   - Running read-only queries on the database
+   - Running read-only queries on the database ({get_db_type()})
    - Accessing files in the repository
    - Reading Python code
    - Writing Python code, but only if explicitly asked to do so
@@ -300,7 +303,6 @@ If the user's intent does not relate to any of the above tasks, respond back to 
     })
     return message_list
 
-def get_classification_prompt(messages):
     system_prompt =  """
         You are a software agent who can write CRUD APIs for a given table schema.
         You can also run tests for the APIs you have generated.
@@ -327,7 +329,6 @@ def get_classification_prompt(messages):
     })
     return message_list
 
-def get_run_test_prompt(test_report: str) -> list:
     system_prompt = """
 You are a test report summarizer. Your task is to analyze the provided test report and generate a concise summary of the test results.
 Include the total number of tests executed, along with the number of tests passed and failed.
