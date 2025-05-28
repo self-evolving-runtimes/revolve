@@ -265,7 +265,8 @@ def get_simple_prompt(prompt_name: str) -> str:
 
 def get_classification_prompt(messages):
     system_prompt =  """
-        you are a software agent who can write CRUD APIs for a given table schema.
+        You are a software agent who can write CRUD APIs for a given table schema.
+        You can also run tests for the APIs you have generated.
         Check the message provided and see if it is appropriate for you to handle. 
         
         If it is , return router_node for the classification field, otherwise return "__end__" for the classification field and message field with value which a meaningful reply.
