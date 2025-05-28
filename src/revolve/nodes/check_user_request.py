@@ -10,9 +10,9 @@ from revolve.llm import invoke_llm
 def check_user_request(state: State):
     send  = state.get("send")
     log("Started", send)
-    last_message_content = state["messages"][-1].content
-
-    messages = get_classification_prompt(last_message_content)
+    
+    last_message_content = state["messages"][-1]["content"]
+    messages = get_classification_prompt(state["messages"])
 
     structured_db_response = invoke_llm(messages, max_attempts=3, validation_class=ClassifyUserRequest, method="function_calling", manual_validation=True)
     description = "Prompt classifed as a task. Task is in progress." if structured_db_response.classification not in ["__end__", "response_back"] else structured_db_response.message

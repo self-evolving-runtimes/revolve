@@ -12,7 +12,7 @@ from revolve.llm import invoke_llm
 
 
 def report_node(state: State):
-    task = state["messages"][0].content
+    task = state["messages"][-1]["content"]
     if os.environ.get("FT_SAVE_MODE","false") == "true":
         create_ft_data(state)
     create_test_report(task, state)

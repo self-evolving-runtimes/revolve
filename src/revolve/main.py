@@ -87,9 +87,14 @@ def run_workflow(task=None, db_config=None, send=None):
 
     if not task:
         #task = "Created crud operations for passes, satellites, ground stations and orbits"
-        task = "Created crud operations for orbits"
+        task = [
+            {
+                "role": "user",
+                "content": "Create CRUD operations for passes, satellites, ground stations and orbits."
+            }
+        ]
 
-    for event in workflow.stream({"messages": [HumanMessage(task)], "send":send,"test_mode": test_mode}):
+    for event in workflow.stream({"messages": task, "send":send,"test_mode": test_mode}):
         name = ""
         text = ""
         key = list(event.keys())[0]

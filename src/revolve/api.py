@@ -33,7 +33,7 @@ class WorkflowResource:
     def on_post(self, req, resp):
         try:
             data = req.media 
-            task = data.get("message", None)
+            messages = data.get("messages", None)
             db_config = data.get("dbConfig", {})
             settings = data.get("settings", {})
 
@@ -55,7 +55,7 @@ class WorkflowResource:
             os.environ["SOURCE_FOLDER"] = source_folder
             os.environ["OPENAI_API_KEY"] = settings.get("openaiKey")
 
-            logger.info("Received task: %s", task)
+            logger.info("Received task: %s", messages[-1]["content"] if messages else "No messages provided")
         except Exception:
             resp.status = falcon.HTTP_400
             resp.media = {"error": "Invalid JSON"}
@@ -65,7 +65,7 @@ class WorkflowResource:
         resp.content_type = 'application/x-ndjson'
 
         def generate():
-            for item in run_workflow_generator(task=task, db_config=db_config):
+            for item in run_workflow_generator(task=messages, db_config=db_config):
                 line = json.dumps(item) + "\n"
                 yield line.encode("utf-8")
 

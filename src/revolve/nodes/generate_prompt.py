@@ -9,7 +9,7 @@ from revolve.llm import invoke_llm
 def generate_prompt_for_code_generation(state: State):
     send  = state.get("send")
     log("Started", send)
-    last_message_content = state["messages"][-1].content
+    last_message_content = state["messages"][-1]["content"]
     adapter = get_adapter("postgres")# change this to read from env / state
     schemas = str(adapter.get_schemas_from_db())
 

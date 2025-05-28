@@ -288,8 +288,9 @@ const handleSendMessage = async (message) => {
   }
 
   const newMessage = { role: 'user', content: message };
-  setChatMessages((prev) => [...prev, newMessage]);
-  setIsLoading(true); // Start spinner
+  const updatedChat = [...chatMessages, newMessage];
+  setChatMessages(updatedChat);
+  setIsLoading(true);
 
   try {
     const response = await fetch('/api/chat', {
@@ -298,7 +299,7 @@ const handleSendMessage = async (message) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        message,
+        messages: updatedChat,
         dbConfig,
         settings
       })
@@ -377,7 +378,7 @@ const handleSendMessage = async (message) => {
       description: error.message || 'An unknown error occurred.'
     });
   } finally {
-    setIsLoading(false); // Stop spinner
+    setIsLoading(false);
   }
 };
 
