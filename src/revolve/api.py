@@ -141,10 +141,7 @@ class FileResource:
             resp.media = {"error": "Unknown file endpoint"}
 
     def get_file_list(self, req, resp):
-        source_folder = req.get_param("source", default=None)
-        if source_folder:
-            os.environ["SOURCE_FOLDER"] = source_folder
-
+        
         try:
             file_list = get_file_list()
             file_list = [f for f in file_list if f.endswith(('.py', '.json', '.md'))]

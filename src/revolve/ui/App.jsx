@@ -110,6 +110,7 @@ const [showServerControls, setShowServerControls] = React.useState(false);
 
 const [isConfigComplete, setIsConfigComplete] = React.useState(false);
 const [activePanels, setActivePanels] = React.useState(['1']); 
+const [hasSentMessage, setHasSentMessage] = React.useState(false);
 
 const getFileIcon = (filename) => {
   if (filename.endsWith('.py')) return <FileTextOutlined />;
@@ -275,6 +276,17 @@ const handleTestConnection = async () => {
   };
 
 const handleSendMessage = async (message) => {
+  if (!message.trim()) return;
+
+  if (!hasSentMessage) {
+    setHasSentMessage(true);
+    setActivePanels((prev) => {
+      const updated = new Set(prev);
+      updated.add('3'); // Expand the "Generated Resources" panel
+      return Array.from(updated);
+    });
+  }
+
   const newMessage = { role: 'user', content: message };
   setChatMessages((prev) => [...prev, newMessage]);
   setIsLoading(true); // Start spinner
@@ -293,7 +305,7 @@ const handleSendMessage = async (message) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json(); // <-- get error message
+      const errorData = await response.json();
       notification.error({
         message: 'Failed',
         description: errorData?.error || `Server error: ${response.status}`
@@ -303,7 +315,6 @@ const handleSendMessage = async (message) => {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let assistantReply = '';
 
     while (true) {
       const { done, value } = await reader.read();
@@ -321,30 +332,34 @@ const handleSendMessage = async (message) => {
           continue;
         }
 
-       
-      switch (parsed.level) {
-        case 'system':
-          setSystemMessages(prev => [...prev, { name: parsed.name, text: parsed.text, level: parsed.level }]);
-          break;
+        switch (parsed.level) {
+          case 'system':
+            setSystemMessages(prev => [...prev, {
+              name: parsed.name,
+              text: parsed.text,
+              level: parsed.level
+            }]);
+            break;
 
-        case 'workflow':
-          setChatMessages(prev => [
-            ...prev,
-            { role: 'assistant', content: parsed.text || '' }
-          ]);
-          break;
+          case 'workflow':
+            setChatMessages(prev => [
+              ...prev,
+              { role: 'assistant', content: parsed.text || '' }
+            ]);
+            break;
 
-        case 'notification':
-          notification.info({
-            message: parsed.name || 'Notification',
-            description: parsed.text || '',
-          });
-          break;
+          case 'notification':
+            notification.info({
+              message: parsed.name || 'Notification',
+              description: parsed.text || '',
+            });
+            break;
 
-        default:
-          console.warn('Unknown message level:', parsed.level);
-      }
-      if (parsed.text?.includes('APIs are generated.') && !showServerControls) {
+          default:
+            console.warn('Unknown message level:', parsed.level);
+        }
+
+        if (parsed.text?.includes('APIs are generated.') && !showServerControls) {
           setShowServerControls(true);
           setSidePanelKeys((prev) => {
             const updated = new Set(prev);
@@ -352,16 +367,7 @@ const handleSendMessage = async (message) => {
             return Array.from(updated);
           });
         }
-        }
-    
-        
-
-      
-    }
-
-    if (assistantReply) {
-      const reply = { role: 'assistant', content: assistantReply };
-      setChatMessages((prev) => [...prev, reply]);
+      }
     }
 
   } catch (error) {
@@ -588,7 +594,8 @@ const handleSendMessage = async (message) => {
                         </Button>
                     )}
                   </Space>
-                </Panel>     
+                </Panel>  
+                {hasSentMessage && (   
                 <Panel header="Generated Resources" key="3">
                   {fileList.length === 0 ? (
                     <Text type="secondary">No files generated yet.</Text>
@@ -621,7 +628,7 @@ const handleSendMessage = async (message) => {
                     </Row>
                   )}
                 
-                </Panel>
+                </Panel>)}
               </Collapse>
             </Col>
 
