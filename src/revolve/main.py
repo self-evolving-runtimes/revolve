@@ -1,5 +1,4 @@
 from langgraph.graph import StateGraph, START, END
-from langchain_core.messages import HumanMessage
 
 from revolve.data_types import State
 from db import get_adapter
