@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from revolve.data_types import Resource, Table
-from revolve.functions import log, read_python_code_template, save_python_code
+from revolve.utils import log, save_python_code, read_python_code_template
 from revolve.prompts import get_process_table_prompt
 from revolve.llm import invoke_llm
 
