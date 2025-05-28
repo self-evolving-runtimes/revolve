@@ -42,12 +42,12 @@ include = [
     "dist"
 ]
 
-[[tool.hatch.build.hooks.build-scripts.scripts]]
+[[tool.hatch.build.targets.wheel.hooks.build-scripts.scripts]]
 commands = [
-    "rm -rf node_modules",
-    "rm -rf dist",
-    "rm -rf package-lock.json",
-    "rm -rf yarn.lock",
+    "rm -rf node_modules || true",
+    "rm -rf dist || true",
+    "rm -rf package-lock.json || true",
+    "rm -rf yarn.lock || true",
     "npm install",
     "npm run build"
 ]
