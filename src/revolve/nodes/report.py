@@ -2,7 +2,7 @@
 from datetime import datetime
 import os
 from revolve.data_types import Readme, State
-from revolve.functions import read_python_code, save_python_code, log
+from revolve.utils import read_python_code, save_python_code, log
 from revolve.prompts import get_readme_prompt
 from revolve.utils import create_ft_data, create_test_report
 from revolve.external import get_source_folder

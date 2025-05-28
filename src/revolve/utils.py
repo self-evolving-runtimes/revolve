@@ -1,13 +1,18 @@
+import inspect
 import json
 import random
 import subprocess
+import sys
 import time
 import os
 
 from revolve.data_types import State
 from revolve.external import get_source_folder
-from revolve.functions import read_python_code, read_python_code_template, save_python_code
 
+from loguru import logger
+
+logger.remove()
+logger.add(sys.stdout, level="INFO", format="{time} | {level} | {message}")
 def make_serializable(obj):
     if hasattr(obj, '__dict__'):
         return {k: make_serializable(v) for k, v in obj.__dict__.items()}
@@ -151,3 +156,81 @@ def stop_process():
             return {"error": f"Failed to stop process: {e}"}
     else:
         return {"message": "No process is running"}
+
+
+def save_python_code(python_code: str, file_name: str) -> str:
+    """
+    This functions saves the generated python code.
+    Args:
+        python_code (str): Python code to be saved.
+        file_name (str): The name of the file to be saved.
+    """
+
+    # create the directory if it doesn't exist
+    os.makedirs(f"{get_source_folder()}", exist_ok=True)
+
+    # log("save_python_code", f"Saving python code to file: {file_name}")
+    python_code = python_code.encode("utf-8").decode("unicode_escape")
+    try:
+        with open(f"{get_source_folder()}/{file_name}", "w") as f:
+            f.write(python_code)
+    except Exception as e:
+        log(f"Error saving python code: {e}")
+        return f"Error saving python code: {e}"
+
+    log(f"Python code saved successfully to {file_name}.")
+    return f"Python code saved to {file_name} successfully."
+
+
+def read_python_code(file_name: str) -> str:
+    """
+    This function returns the generated python code from the given file name.
+    Args:
+        file_name (str): The name of the file to be read.
+    """
+    # log("get_python_code", f"Getting python code from file: {file_name}")
+    try:
+        with open(f"{get_source_folder()}/{file_name}", "r") as f:
+            python_code = f.read()
+    except Exception as e:
+        log(f"Error getting python code: {e}")
+        return f"Error getting python code: {e}"
+
+    # log("get_python_code", f"Python code retrieved successfully.")
+    return python_code
+
+
+def read_python_code_template(file_name: str) -> str:
+    """
+    " This function reads the template python code from the given file name.
+     Args:
+         file_path (str): The path to the template file.
+    """
+    # log("read_python_code_template", f"Getting python code from file: {file_name}")
+    try:
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "source_template", file_name)
+
+        with open(file_path, "r") as f:
+            python_code = f.read()
+    except Exception as e:
+        log(f"Error getting python code: {e}")
+        return f"Error getting python code: {e}"
+
+    # log("read_python_code_template", f"Python code retrieved successfully.")
+    return python_code
+
+
+def _log(method_name, description, level="INFO"):
+    logger.log(level, f"{method_name:<20} - {description:<30}")
+
+
+def log(description, send=None, level="system"):
+    method_name = inspect.currentframe().f_back.f_code.co_name
+    if send:
+        send({
+            "name": method_name,
+            "text": description,
+            "status": "processing",
+            "level": level}
+        )
+    _log(method_name, description)
