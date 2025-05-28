@@ -31,6 +31,7 @@ def report_node(state: State):
     db_password = os.environ.get("DB_PASSWORD")
     db_host = os.environ.get("DB_HOST")
     db_port = os.environ.get("DB_PORT")
+    static_dir = os.environ.get("STATIC_DIR", "-")
 
     env_file = open(f"{get_source_folder()}/.env", "w")
     env_file.write(f"DB_NAME={db_name}\n")
@@ -41,7 +42,7 @@ def report_node(state: State):
     env_file.write(f"DB_PASSWORD={db_password}\n")
     env_file.write(f"DB_HOST={db_host}\n")
     env_file.write(f"DB_PORT={db_port}\n")
-
+    env_file.write(f"STATIC_DIR={static_dir}\n")
     env_file.close()
     api_code = read_python_code("api.py")
 
