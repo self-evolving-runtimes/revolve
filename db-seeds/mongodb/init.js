@@ -334,3 +334,235 @@ db.createCollection("passes", {
     }
   }
 });
+
+// Helpers
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    var r = (Math.random() * 16) | 0,
+        v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+let _idCounter = 1000;
+function getNextIntId() {
+  return _idCounter++;
+}
+
+// USERS
+const userId = generateUUID();
+db.users.insertOne({
+  _id: userId,
+  email: "user@example.com",
+  username: "user1",
+  password_hash: "hashed_pass",
+  full_name: "Test User",
+  phone_number: "1234567890",
+  is_active: true,
+  email_verified: true,
+  roles: ["admin"],
+  metadata: {},
+  created_at: new Date(),
+  updated_at: new Date(),
+});
+
+// CUSTOMERS
+db.customers.insertOne({
+  _id: generateUUID(),
+  email: "customer@example.com",
+  username: "cust123",
+  password_hash: "secure123",
+  full_name: "Customer One",
+  phone_number: "9876543210",
+  is_active: true,
+  email_verified: true,
+  preferences: {},
+  created_at: new Date(),
+  updated_at: new Date(),
+});
+
+// POSTS
+db.posts.insertOne({
+  _id: generateUUID(),
+  user_id: userId,
+  title: "First Post",
+  content: "Hello world!",
+  tags: ["intro", "welcome"],
+  is_published: true,
+  metadata: {},
+  created_at: new Date(),
+  updated_at: new Date(),
+});
+
+// MOVIES
+const movieId = generateUUID();
+db.movies.insertOne({
+  _id: movieId,
+  title: "Gravity Redux",
+  description: "Sci-fi drama",
+  genre: ["Drama", "Sci-Fi"],
+  release_year: 2023,
+  duration_minutes: 130,
+  rating: 7.8,
+  metadata: {},
+  created_at: new Date(),
+  updated_at: new Date(),
+});
+
+// WATCH HISTORY
+db.watch_history.insertOne({
+  _id: generateUUID(),
+  customer_id: generateUUID(),
+  movie_id: movieId,
+  watched_at: new Date(),
+  device: "mobile",
+  progress_percent: 75,
+  metadata: {},
+  created_at: new Date(),
+  updated_at: new Date()
+});
+
+// STUDENTS
+db.students.insertOne({
+  _id: generateUUID(),
+  email: "student@example.com",
+  full_name: "Student One",
+  username: "sone",
+  password_hash: "pass123",
+  phone_number: "8888888888",
+  is_active: true,
+  email_verified: true,
+  student_type: "full_time",
+  metadata: {},
+  created_at: new Date(),
+  updated_at: new Date(),
+});
+
+// COURSES
+db.courses.insertOne({
+  _id: generateUUID(),
+  instructor_id: userId,
+  title: "Intro to AI",
+  description: "Learn the basics of artificial intelligence.",
+  tags: ["ai", "beginner"],
+  is_published: true,
+  metadata: {},
+  created_at: new Date(),
+  updated_at: new Date(),
+});
+
+// PATIENTS
+db.patients.insertOne({
+  _id: generateUUID(),
+  email: "patient@example.com",
+  full_name: "Jane Doe",
+  date_of_birth: new Date("1990-01-01"),
+  phone_number: "1112223333",
+  address: "123 Main St",
+  gender: "female",
+  emergency_contact: { name: "John Doe", phone: "4445556666" },
+  metadata: {},
+  created_at: new Date(),
+  updated_at: new Date(),
+});
+
+// DOCTORS
+const doctorId = generateUUID();
+db.doctors.insertOne({
+  _id: doctorId,
+  full_name: "Dr. John Smith",
+  specialty: "Cardiology",
+  email: "drsmith@example.com",
+  phone_number: "7778889999",
+  office_location: "Clinic 101",
+  is_active: true,
+  metadata: {},
+  created_at: new Date(),
+  updated_at: new Date(),
+});
+
+// APPOINTMENTS
+db.appointments.insertOne({
+  _id: generateUUID(),
+  patient_id: generateUUID(),
+  doctor_id: doctorId,
+  appointment_time: new Date(),
+  status: "confirmed",
+  notes: "Follow-up visit",
+  metadata: {},
+  created_at: new Date(),
+  updated_at: new Date(),
+});
+
+// OWNERS
+const ownerId = generateUUID();
+db.owners.insertOne({
+  _id: ownerId,
+  email: "owner@example.com",
+  username: "owner001",
+  password_hash: "securepass",
+  full_name: "Pet Owner",
+  phone_number: "3334445555",
+  address: "456 Park Ave",
+  is_active: true,
+  email_verified: true,
+  metadata: {},
+  created_at: new Date(),
+  updated_at: new Date(),
+});
+
+// PETS
+db.pets.insertOne({
+  _id: generateUUID(),
+  owner_id: ownerId,
+  name: "Buddy",
+  species: "Dog",
+  breed: "Labrador",
+  date_of_birth: new Date("2020-06-15"),
+  gender: "male",
+  weight: 25.5,
+  microchip_id: "MC123456",
+  medical_notes: "Healthy",
+  metadata: {},
+  created_at: new Date(),
+  updated_at: new Date(),
+});
+
+// ORBITS
+const orbitId = getNextIntId();
+db.orbits.insertOne({
+  _id: orbitId,
+  name: "LEO",
+  altitude_km: 2000,
+  inclination_deg: 98
+});
+
+// SATELLITES
+const satelliteId = getNextIntId();
+db.satellites.insertOne({
+  _id: satelliteId,
+  name: "SatOne",
+  launch_date: new Date("2022-05-01"),
+  orbit_id: orbitId
+});
+
+// GROUND STATIONS
+const stationId = getNextIntId();
+db.ground_stations.insertOne({
+  _id: stationId,
+  name: "Ground Alpha",
+  latitude: "45.0N",
+  longitude: "93.0W"
+});
+
+// PASSES
+db.passes.insertOne({
+  _id: getNextIntId(),
+  satellite_id: satelliteId,
+  ground_station_id: stationId,
+  start_time: new Date(),
+  end_time: new Date(Date.now() + 10 * 60 * 1000)
+});
+
+
+
