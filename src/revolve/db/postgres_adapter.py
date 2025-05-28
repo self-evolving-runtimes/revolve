@@ -3,7 +3,7 @@ import decimal
 import json
 import os
 import sys
-from collections import OrderedDict, defaultdict, deque
+from collections import defaultdict, deque
 from pathlib import Path
 from typing import Dict, List, Any
 import uuid
@@ -11,7 +11,6 @@ import uuid
 import psycopg2
 import sqlparse
 from psycopg2 import sql, errors
-from psycopg2.extras import RealDictCursor
 
 # Add parent directory to sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
