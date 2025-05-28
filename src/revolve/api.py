@@ -146,7 +146,7 @@ class FileResource:
             os.environ["SOURCE_FOLDER"] = source_folder
 
         try:
-            file_list = get_file_list(),
+            file_list = get_file_list()
             file_list = [f for f in file_list if f.endswith(('.py', '.json', '.md'))]
             file_list.sort()
             resp.status = falcon.HTTP_200
