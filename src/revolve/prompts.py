@@ -263,6 +263,34 @@ Here is the API code:\n{api_code}"""
 def get_simple_prompt(prompt_name: str) -> str:
     return prompt_list[prompt_name]
 
+def get_user_intent_prompt(messages):
+    system_prompt = """
+        You are a software agent who can write CRUD APIs for a given table schema.
+        You can also run tests for the APIs you have generated.
+        Check the message provided and see if it is appropriate for you to handle. 
+        
+        If the intent is valid, return true for the intent_valid, the next_node based on the classification field. 
+        If not, return false for the intent_valid and "__end__" for the classification field and message field with value which a meaningful reply.
+    """
+
+    user_prompt = f"""
+        Here is the message from the user:
+        {messages[-1]["content"]}
+    """
+
+    message_list = []
+    message_list.append({
+        "role": "system",
+        "content": system_prompt
+    })
+    message_list.extend(messages[:-1])
+
+    message_list.append({
+        "role": "user",
+        "content": user_prompt
+    })
+    return message_list
+
 def get_classification_prompt(messages):
     system_prompt =  """
         You are a software agent who can write CRUD APIs for a given table schema.

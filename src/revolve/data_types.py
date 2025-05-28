@@ -46,8 +46,12 @@ class DBSchema(TypedDict):
 
 class ClassifyUserRequest(BaseModel):
     """ Classify the user prompt if it is related creation of a resource "generate_api" or running tests "run_tests" or responding to a user "response_back" And provide a message to the user if response_back is selected """
-    classification: Literal["response_back", "run_tests", "generate_api", "__end__"]
+    classification: Literal["get_schema_details", "response_back", "run_tests", "generate_api", "__end__"]
+    intent_valid: bool = Field(
+        default=True, description="Indicates if the user intent is valid for the current workflow"
+    )
     message: str
+
 
 class ApiRoute(TypedDict):
     uri: str
