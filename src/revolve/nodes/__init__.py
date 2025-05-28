@@ -6,6 +6,7 @@ from revolve.nodes.report import report_node
 from revolve.nodes.test import test_node
 from revolve.nodes.run_tests import run_tests
 from revolve.nodes.check_user_request import check_user_request
+from revolve.nodes.tool_handler import tool_handler
 
 __all__ = [
     "router_node",
@@ -15,5 +16,6 @@ __all__ = [
     "test_node",
     "report_node",
     "run_tests",
-    "check_user_request"
+    "check_user_request",
+    "tool_handler"
 ]

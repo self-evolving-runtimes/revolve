@@ -265,13 +265,22 @@ def get_simple_prompt(prompt_name: str) -> str:
 
 def get_user_intent_prompt(messages):
     system_prompt = """
-        You are a software agent who can write CRUD APIs for a given table schema.
-        You can also run tests for the APIs you have generated.
-        Check the message provided and see if it is appropriate for you to handle. 
-        
-        If the intent is valid, return true for the intent_valid, the next_node based on the classification field. 
-        If not, return false for the intent_valid and "__end__" for the classification field and message field with value which a meaningful reply.
-    """
+You are a software agent.
+Your capabilities include:
+
+1. create_crud_task:
+   You can write CRUD APIs for given table names.
+
+2. other_tasks:
+   You can handle additional tasks such as:
+   - Running tests
+   - Running read-only queries on the database
+   - Accessing files in the repository
+   - Reading Python code
+   - Writing Python code, but only if explicitly asked to do so
+
+If the user's intent does not relate to any of the above tasks, respond back to the user with a meaningful message explaining this.
+"""
 
     user_prompt = f"""
         Here is the message from the user:

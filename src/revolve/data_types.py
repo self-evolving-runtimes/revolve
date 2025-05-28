@@ -45,11 +45,8 @@ class DBSchema(TypedDict):
     tables: list[Table]
 
 class ClassifyUserRequest(BaseModel):
-    """ Classify the user prompt if it is related creation of a resource "generate_api" or running tests "run_tests" or responding to a user "response_back" And provide a message to the user if response_back is selected """
-    classification: Literal["get_schema_details", "response_back", "run_tests", "generate_api", "__end__"]
-    intent_valid: bool = Field(
-        default=True, description="Indicates if the user intent is valid for the current workflow"
-    )
+    """ Classify the user prompt. if user request is a valid tasks use "create_crud_task" or "other_tasks". If it is not use "response_back" and provide a proper message to the user. """
+    classification: Literal["respond_back", "create_crud_task", "other_tasks"]
     message: str
 
 

@@ -16,28 +16,8 @@ def check_user_request(state: State):
     last_message_content = state["messages"][-1]["content"]
 
     messages = get_user_intent_prompt(state["messages"])
-    # structured_user_response = invoke_llm(messages, max_attempts=3, validation_class=ClassifyUserRequest, method="function_calling", manual_validation=True)
-    # if not structured_user_response.intent_valid:
-    #     description = "User intent is not valid. Please try again."
-    #     log(description, send, level="workflow")
-    #     new_trace = {
-    #         "node_name": "check_user_request",
-    #         "node_type": "classify_user_request",
-    #         "node_input": last_message_content,
-    #         "node_output": "place_holder",
-    #         "trace_timestamp": datetime.now(),
-    #         "description": "User intent is not valid. Please try again.",
-    #     }
-    #     return {
-    #         "classification": "__end__",
-    #         "trace": [new_trace],
-    #     }
-
-
-    messages = get_classification_prompt(state["messages"])
-
     structured_db_response = invoke_llm(messages, max_attempts=3, validation_class=ClassifyUserRequest, method="function_calling", manual_validation=True)
-    description = "Prompt classifed as a task. Task is in progress." if structured_db_response.classification not in ["__end__", "response_back"] else structured_db_response.message
+    description = "Prompt classifed as a task. Task is in progress." if structured_db_response.classification not in ["respond_back"] else structured_db_response.message
 
     last_message_content = state["messages"][-1]["content"]
     new_trace = {
@@ -49,7 +29,7 @@ def check_user_request(state: State):
         "description": description,
     }
 
-    if structured_db_response.classification in ["__end__", "response_back"]:
+    if structured_db_response.classification in ["respond_back"]:
         log(description, send=send, level="workflow")
 
     return {
