@@ -45,7 +45,7 @@ class DBSchema(TypedDict):
     tables: list[Table]
 
 class ClassifyUserRequest(BaseModel):
-    """ Classify the user prompt. if user request is a valid tasks use "create_crud_task" or "other_tasks". If it is not use "response_back" and provide a proper message to the user. """
+    """ Classify the user prompt. if user request is a valid tasks use "create_crud_task" or "other_tasks". If not use "respond_back" and provide a proper message to the user. """
     classification: Literal["respond_back", "create_crud_task", "other_tasks"]
     message: str
 
