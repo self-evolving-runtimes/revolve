@@ -14,7 +14,7 @@ from psycopg2 import sql, errors
 
 # Add parent directory to sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from  revolve.utils import log
+from revolve.utils import log
 from revolve.db.adapter import DatabaseAdapter, db_tool
 
 
