@@ -1,5 +1,5 @@
 import importlib
-from db.adapter import DatabaseAdapter
+from revolve.db.adapter import DatabaseAdapter
 
 def get_adapter(db_type: str = "postgres") -> DatabaseAdapter:
     module_name = f"db.{db_type}_adapter"
