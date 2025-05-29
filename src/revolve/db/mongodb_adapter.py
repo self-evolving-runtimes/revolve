@@ -117,7 +117,8 @@ class MongodbAdapter(ABC):
         Clone an existing MongoDB database by copying all collections and documents.
         """
         new_dbname = f"{self.db_name}_test"
-        new_db = self.client[new_dbname]
+        self.client.drop_database(new_dbname) 
+        new_db = self.client[new_dbname] # Drop the new database if it exists
         for collection_name in self.db.list_collection_names():
             documents = list(self.db[collection_name].find())
             if documents:
