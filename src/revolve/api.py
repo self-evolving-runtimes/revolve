@@ -123,6 +123,7 @@ class EnvResource:
                 "DB_PASSWORD": os.environ.get("DB_PASSWORD", ""),
                 "DB_HOST": os.environ.get("DB_HOST", ""),
                 "DB_PORT": os.environ.get("DB_PORT", ""),
+                "DB_TYPE": os.environ.get("DB_TYPE", ""),
             }
         resp.status = falcon.HTTP_200
         resp.media = env_vars

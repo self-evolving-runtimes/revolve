@@ -493,6 +493,7 @@ const handleSendMessage = async (message) => {
                           onChange={(value) => updateDbField('DB_TYPE', value)}
                         >
                           <Select.Option value="postgres">Postgres</Select.Option>
+                          <Select.Option value="mongodb">MongoDB</Select.Option>
                         </Select>
                       </List.Item>
                     </List>
