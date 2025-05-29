@@ -17,8 +17,10 @@ from revolve.nodes import (
     generate_api,
     test_node,
     report_node,
-    run_tests,
-    check_user_request
+    check_user_request,
+    tool_handler,
+    tool_executor,
+    should_continue_tool_call
 )
 
 
@@ -62,17 +64,23 @@ def run_workflow(task=None, db_config=None, send=None):
     graph.add_node("generate_api", generate_api)
     graph.add_node("test_node", test_node)
     graph.add_node("report_node", report_node)
-    graph.add_node("run_tests", run_tests)
+    graph.add_node("tool_handler", tool_handler)
+    graph.add_node("tool_executor", tool_executor)
+
 
 
 
     graph.add_edge(START, "check_user_request")
-    graph.add_conditional_edges("check_user_request", lambda state: state["classification"], {"generate_api" : "router_node",  "__end__":END, "response_back": END, "run_tests": "run_tests"})
+    graph.add_conditional_edges("check_user_request", lambda state: state["classification"], {"create_crud_task" : "router_node",  "__end__":END, "respond_back": END, "other_tasks":"tool_handler"})
     graph.add_conditional_edges(
         "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "report_node": "report_node", "__end__":END}
     )
 
-    graph.add_edge("run_tests","__end__")
+    graph.add_conditional_edges(
+        "tool_handler", should_continue_tool_call, {"tool_executor": "tool_executor", "__end__": END}
+    )
+    graph.add_edge("tool_executor", "tool_handler")
+
 
     graph.add_conditional_edges(
         "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
@@ -98,17 +106,18 @@ def run_workflow(task=None, db_config=None, send=None):
         name = ""
         text = ""
         key = list(event.keys())[0]
-        if "trace" in event[key]:
-            if "description" in event[key]["trace"][-1]:
-                name = event[key]["trace"][-1]["node_name"]
-                text = event[key]["trace"][-1]["description"]
-                level = "workflow" if name in ["report_node","run_tests"] else "system"
-                send({
-                    "status":"processing",
-                    "text":text,
-                    "name":name,
-                    "level":level
-                })
+        if event[key]:
+            if "trace" in event[key]:
+                if "description" in event[key]["trace"][-1]:
+                    name = event[key]["trace"][-1]["node_name"]
+                    text = event[key]["trace"][-1]["description"]
+                    level = "workflow" if name in ["report_node","run_tests"] else "system"
+                    send({
+                        "status":"processing",
+                        "text":text,
+                        "name":name,
+                        "level":level
+                    })
     # send({
     #     "status":"done",
     #     "text":"Task completed.",

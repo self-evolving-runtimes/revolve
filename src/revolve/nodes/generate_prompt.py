@@ -3,6 +3,7 @@ from revolve.prompts import get_simple_prompt
 from utils import log
 from revolve.data_types import DBSchema, State
 from datetime import datetime
+from external import get_db_type
 
 from revolve.llm import invoke_llm
 
@@ -10,7 +11,7 @@ def generate_prompt_for_code_generation(state: State):
     send  = state.get("send")
     log("Started", send)
     last_message_content = state["messages"][-1]["content"]
-    adapter = get_adapter("postgres")# change this to read from env / state
+    adapter = get_adapter(get_db_type())
     schemas = str(adapter.get_schemas_from_db())
 
     messages = [

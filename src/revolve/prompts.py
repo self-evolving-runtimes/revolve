@@ -1,3 +1,6 @@
+
+from external import get_db_type
+
 prompt_list = {
     "table_schema_extractor":
         """
@@ -263,15 +266,25 @@ Here is the API code:\n{api_code}"""
 def get_simple_prompt(prompt_name: str) -> str:
     return prompt_list[prompt_name]
 
-def get_classification_prompt(messages):
-    system_prompt =  """
-        You are a software agent who can write CRUD APIs for a given table schema.
-        You can also run tests for the APIs you have generated.
-        Check the message provided and see if it is appropriate for you to handle. 
-        
-        If it is , return router_node for the classification field, otherwise return "__end__" for the classification field and message field with value which a meaningful reply.
-    """
- 
+def get_user_intent_prompt(messages):
+    system_prompt = f"""
+You are a software agent.
+Your capabilities include:
+
+1. create_crud_task:
+   You can write CRUD APIs for given table names.
+
+2. other_tasks:
+   You can handle additional tasks such as:
+   - Running tests
+   - Running read-only queries on the database ({get_db_type()})
+   - Accessing files in the repository
+   - Reading Python code
+   - Writing Python code, but only if explicitly asked to do so
+
+If the user's intent does not relate to any of the above tasks, respond back to the user with a meaningful message explaining this.
+"""
+
     user_prompt = f"""
         Here is the message from the user:
         {messages[-1]["content"]}
@@ -289,26 +302,4 @@ def get_classification_prompt(messages):
         "content": user_prompt
     })
     return message_list
-
-def get_run_test_prompt(test_report: str) -> list:
-    system_prompt = """
-You are a test report summarizer. Your task is to analyze the provided test report and generate a concise summary of the test results.
-Include the total number of tests executed, along with the number of tests passed and failed.
-Provide a  list (not table) each test with the following details: test name, status (passed or failed), and a brief error message (if applicable).
-Keep it simple — do not include long error tracebacks or any additional information.
-Format the output in Markdown.
-"""
-    user_prompt = f"""
-Here is the test reports:\n
-{test_report}
-"""
-    return [
-        {
-            "role": "system",
-            "content": system_prompt
-        },
-        {
-            "role": "user",
-            "content": user_prompt
-        }
-    ]
+    

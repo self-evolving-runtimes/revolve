@@ -1,9 +1,12 @@
+import datetime
+import decimal
 import json
 import os
 import sys
 from collections import defaultdict, deque
 from pathlib import Path
 from typing import Dict, List, Any
+import uuid
 
 import psycopg2
 import sqlparse
@@ -336,9 +339,7 @@ class PostgresAdapter(DatabaseAdapter):
             log(f"Error running query: {e}")
             return f"Error running query: {e}"
 
-        # log("run_query_on_db", f"Query executed successfully.")
-        # log("run_query_on_db", f"Result: {result}")
-        return json.dumps(result)
+        return json.dumps(result, default=default_serializer)
 
 
     def check_db(
@@ -666,3 +667,9 @@ class PostgresAdapter(DatabaseAdapter):
                          f"SQL statements to grant the required permissions:<pre style={{ whiteSpace: 'pre-wrap', "
                          f"background: '#f6f8fa', padding: 10, borderRadius: 4 }}>{suggested_queries_str}</pre>",
             }
+
+
+def default_serializer(obj):
+    if isinstance(obj, (datetime.date, datetime.datetime)):
+        return obj.isoformat()
+    return obj
