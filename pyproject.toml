@@ -42,6 +42,9 @@ include = [
     "dist"
 ]
 
+[tool.hatch.build.targets.sdist.hooks.build-scripts]
+enable-by-default = false
+
 [[tool.hatch.build.targets.wheel.hooks.build-scripts.scripts]]
 commands = [
     "rm -rf node_modules || true",
