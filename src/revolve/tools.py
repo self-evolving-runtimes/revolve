@@ -46,12 +46,12 @@ def get_tools():
     ]
 
     for method in methods:
-        new_tools = StructuredTool.from_function(
+        tool = StructuredTool.from_function(
             method,
             name=method.__name__,
             description=method.__doc__ or "No description available.",
         )
-        tool_methods.append(new_tools)
+        tool_methods.append(tool)
 
     return tool_methods
 
