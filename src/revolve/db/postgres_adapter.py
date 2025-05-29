@@ -316,7 +316,7 @@ class PostgresAdapter(DatabaseAdapter):
     @db_tool
     def run_query_on_db(self, query: str) -> str:
         """
-        This function runs the given query on the database.
+        This function runs the given query on the postgres database.
         Args:
             query (str): The query to be run.
         """

@@ -4,6 +4,8 @@ from db import get_adapter
 from external import get_db_type
 
 from langchain_core.tools import tool, Tool
+from langchain_core.tools.structured import StructuredTool
+
 
 
 
@@ -23,25 +25,6 @@ def _read_file(file_name: str) -> str:
 
     return read_python_code(file_name)
 
-@tool
-def _run_query_on_db(query: str) -> str:
-    """Run a query on the database."""
-    adapter = get_adapter(get_db_type())
-
-    if not adapter:
-        return "Database adapter is not available."
-    
-    try:
-        result = adapter.run_query_on_db(query)
-        return result
-    except Exception as e:
-        return f"Error running query: {e}"
-
-# Dynamically generate description
-db_type = get_db_type()
-description = f"Run a query on the database. The database type is {db_type}."
-
-
 
 @tool
 def _run_test(test_file: str) -> str:
@@ -54,8 +37,8 @@ def _run_test(test_file: str) -> str:
 
 def get_tools():
     """Get the list of tools."""
-    db_type = get_adapter(get_db_type())
-    methods = get_functions(db_type)
+    adapter = get_adapter(get_db_type())
+    methods = get_functions(adapter)
     tool_methods = [
         _get_file_list,
         _read_file,
@@ -63,12 +46,13 @@ def get_tools():
     ]
 
     for method in methods:
-        tool = Tool(
-            name=method["name"],
-            func=getattr(db_type, method["name"]),
-            description=method["doc"] if method["doc"] else "No description available."
+        new_tools = StructuredTool.from_function(
+            method,
+            name=method.__name__,
+            description=method.__doc__ or "No description available.",
         )
-        tool_methods.append(tool)
+        tool_methods.append(new_tools)
+
     return tool_methods
 
 def get_functions(adapter):
@@ -84,13 +68,10 @@ def get_functions(adapter):
         attr = getattr(adapter, m)
         if not callable(attr):
             continue
-
+        
         if not getattr(attr, "_db_tool", False):
             continue
 
-        methods.append({
-            "name": m,
-            "doc": attr.__doc__
-        })
+        methods.append(attr)
 
     return methods
