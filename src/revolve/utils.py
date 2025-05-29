@@ -7,7 +7,7 @@ import time
 import os
 
 from revolve.data_types import State
-from revolve.external import get_source_folder
+from revolve.external import get_source_folder, get_db_type
 
 from loguru import logger
 
@@ -207,8 +207,12 @@ def read_python_code_template(file_name: str) -> str:
          file_path (str): The path to the template file.
     """
     # log("read_python_code_template", f"Getting python code from file: {file_name}")
+    db_dependent_files = ["service.py","utils.py"]
     try:
-        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "source_template", file_name)
+        if file_name in db_dependent_files:
+            file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "source_template", get_db_type(), file_name)
+        else:
+            file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "source_template", file_name)
 
         with open(file_path, "r") as f:
             python_code = f.read()
