@@ -15,7 +15,8 @@ from psycopg2 import sql, errors
 # Add parent directory to sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from  revolve.utils import log
-from revolve.db.adapter import DatabaseAdapter
+from revolve.db.adapter import DatabaseAdapter, db_tool
+
 
 class PostgresAdapter(DatabaseAdapter):
     def __init__(self):
@@ -309,7 +310,10 @@ class PostgresAdapter(DatabaseAdapter):
 
         return sorted_tables
 
+    def get_tables(self) -> List[Dict[str, Any]]:
+        raise RuntimeError("get_tables is not supported")
 
+    @db_tool
     def run_query_on_db(self, query: str) -> str:
         """
         This function runs the given query on the database.

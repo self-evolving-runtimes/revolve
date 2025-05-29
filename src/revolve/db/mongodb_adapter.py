@@ -5,6 +5,9 @@ from pymongo.errors import ConnectionFailure
 import os
 import json
 
+from revolve.db.adapter import db_tool
+
+
 class MongodbAdapter(ABC):
     """
     MongoDB adapter for interacting with MongoDB databases.
@@ -57,16 +60,20 @@ class MongodbAdapter(ABC):
         """
         return sorted(dependencies.keys())
 
-    def run_query_on_db(self, query: Dict) -> List[Dict]:
+    @db_tool
+    def get_tables(self) -> List[Dict[str, Any]]:
+        """
+        Retrieve the collections  and their info in the MongoDB database.
+        """
+        return list(self.db.list_collections())
+
+    def run_query_on_db(self, query: str) -> str:
         """
         Execute a query on a MongoDB collection.
         Args:
             query (Dict): A dictionary containing the collection name and query parameters.
         """
-        collection_name = query.get("collection")
-        filter_query = query.get("filter", {})
-        collection = self.db[collection_name]
-        return list(collection.find(filter_query))
+        raise RuntimeError("run_query_on_db is not supported")
 
     def check_db(self, db_name: str, db_user: str, db_password: str, db_host: str, db_port: str) -> bool:
         """

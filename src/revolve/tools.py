@@ -54,14 +54,43 @@ def _run_test(test_file: str) -> str:
 
 def get_tools():
     """Get the list of tools."""
-    _run_query = Tool(
-    name="_run_query",
-    func=_run_query_on_db,
-    description=description
-    )
-    return [
+    db_type = get_adapter(get_db_type())
+    methods = get_functions(db_type)
+    tool_methods = [
         _get_file_list,
         _read_file,
-        _run_query,
         _run_test
     ]
+
+    for method in methods:
+        tool = Tool(
+            name=method["name"],
+            func=getattr(db_type, method["name"]),
+            description=method["doc"] if method["doc"] else "No description available."
+        )
+        tool_methods.append(tool)
+    return tool_methods
+
+def get_functions(adapter):
+    """
+    Retrieve a list of functions of the adapter
+    """
+    methods = []
+
+    for m in dir(adapter):
+        if m.startswith("__"):
+            continue
+
+        attr = getattr(adapter, m)
+        if not callable(attr):
+            continue
+
+        if not getattr(attr, "_db_tool", False):
+            continue
+
+        methods.append({
+            "name": m,
+            "doc": attr.__doc__
+        })
+
+    return methods

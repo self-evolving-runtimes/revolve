@@ -1,6 +1,13 @@
 from typing import Dict, Any, List
 from abc import ABC, abstractmethod
 
+
+def db_tool(fn):
+    """Marks a method to be included for tools."""
+    fn._db_tool = True
+    return fn
+
+
 class DatabaseAdapter(ABC):
     """
     Abstract base class for database adapters. This class defines methods for interacting with databases
@@ -45,6 +52,10 @@ class DatabaseAdapter(ABC):
         Perform a topological sort on table dependencies.
         This is essential for generating SQL scripts that respect dependency order in other dialects.
         """
+        pass
+
+    @abstractmethod
+    def get_tables(self) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
