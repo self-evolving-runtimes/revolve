@@ -1,9 +1,9 @@
-from db import get_adapter
+from revolve.db import get_adapter
 from revolve.prompts import get_simple_prompt
-from utils import log
+from revolve.utils import log
 from revolve.data_types import DBSchema, State
 from datetime import datetime
-from external import get_db_type
+from revolve.external import get_db_type
 
 from revolve.llm import invoke_llm
 

@@ -42,7 +42,7 @@ app.set_error_serializer(debug_error_serializer)
 
 # Instantiate StaticResource with the static directory
 if os.environ.get("STATIC_DIR") != "-":
-    static_resource = StaticResource(os.environ.get("STATIC_DIR"))
+    static_resource = StaticResource(os.environ.get("STATIC_DIR")   )
     # Route handling:
     app.add_route("/{filepath:path}", static_resource)
     app.add_route("/", static_resource)

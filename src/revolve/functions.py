@@ -10,7 +10,7 @@ import pickle
 
 import json
 from revolve.external import get_source_folder
-from utils import log
+from revolve.utils import log
 
 
 
