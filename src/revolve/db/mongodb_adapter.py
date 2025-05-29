@@ -5,7 +5,7 @@ from pymongo.errors import ConnectionFailure
 import os
 import json
 
-class MongoDBAdapter(ABC):
+class MongodbAdapter(ABC):
     """
     MongoDB adapter for interacting with MongoDB databases.
     Implements methods for schema retrieval, dependency management, and CRUD operations.
