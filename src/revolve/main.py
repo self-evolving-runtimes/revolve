@@ -22,6 +22,8 @@ from revolve.nodes import (
     should_continue_tool_call
 )
 
+from src.revolve.external import get_db_type
+
 
 def send_message(message):
     print(f"{message}")
@@ -38,7 +40,7 @@ def run_workflow(task=None, db_config=None, send=None):
         os.environ["DB_PORT"] = db_config["DB_PORT"]
         os.environ["DB_TYPE"] = db_config["DB_TYPE"]
 
-    adapter = get_adapter(os.environ["DB_TYPE"])
+    adapter = get_adapter(get_db_type())
 
     db_test_result = adapter.check_db(db_user=os.environ["DB_USER"],
                               db_password=os.environ["DB_PASSWORD"],
