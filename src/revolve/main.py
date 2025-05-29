@@ -22,7 +22,7 @@ from revolve.nodes import (
     should_continue_tool_call
 )
 
-from src.revolve.external import get_db_type
+from revolve.external import get_db_type
 
 
 def send_message(message):
