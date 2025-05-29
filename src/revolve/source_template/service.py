@@ -3,7 +3,7 @@ import psycopg2
 import psycopg2.extras
 from datetime import datetime, date
 import json
-from utils import get_db_connection, json_serial
+from revolve.utils import get_db_connection, json_serial
 
 class HelloDBResource:
     def on_get(self, req, resp):

@@ -1,7 +1,7 @@
 from revolve.utils import read_python_code
 from revolve.functions import get_file_list, run_pytest
-from db import get_adapter
-from external import get_db_type
+from revolve.db import get_adapter
+from revolve.external import get_db_type
 
 from langchain_core.tools import tool, Tool
 
