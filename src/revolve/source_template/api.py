@@ -5,14 +5,11 @@ from wsgiref.simple_server import make_server, WSGIServer
 import traceback
 import json
 import falcon
-import falcon_cors
+
+from cors import set_cors
 from static import StaticResource
 
-cors = falcon_cors.CORS(
-    allow_all_origins=True,
-    allow_all_headers=True,
-    allow_all_methods=True
-)
+cors = set_cors()
 
 ###IMPORTS###
 #from hellodb import HelloDBResource (just an example, not implemented)
