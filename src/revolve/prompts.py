@@ -1,14 +1,12 @@
+
+from external import get_db_type
+
 prompt_list = {
     "table_schema_extractor":
         """
 You are a table-schema extractor. When given a full database schema, identify and extract only the table(s) the user intends to work with.
 For each requested table, generate a concise instruction—without including the schema itself—such as:
-“Create POST method for the X table.”
-Always:
-	Ignore unrelated tables.
-	Produce one prompt per table.
-	Extract schema details but omit them in the prompt.
-        """,
+“Create POST method for the X table."""
 }
 
 def get_test_generation_prompt(test_example: str, api_code: str, table_name: str, schema: str, utils: str, resouce_file: str, resource_file_name:str) -> str:
@@ -268,24 +266,40 @@ Here is the API code:\n{api_code}"""
 def get_simple_prompt(prompt_name: str) -> str:
     return prompt_list[prompt_name]
 
-def get_classification_prompt(user_message):
-    system_prompt =  """
-        you are a software agent who can write CRUD APIs for a given table schema.
-        Check the message provided and see if it is appropriate for you to handle. 
-        
-        If it is , return router_node for the classification field, otherwise return "__end__" for the classification field and message field with value which can educate the user what you do and ask them to supply a meaningful reply.
-    """
+def get_user_intent_prompt(messages):
+    system_prompt = f"""
+You are a software agent.
+Your capabilities include:
+
+1. create_crud_task:
+   You can write CRUD APIs for given table names.
+
+2. other_tasks:
+   You can handle additional tasks such as:
+   - Running tests
+   - Running read-only queries on the database ({get_db_type()})
+   - Accessing files in the repository
+   - Reading Python code
+   - Writing Python code, but only if explicitly asked to do so
+
+If the user's intent does not relate to any of the above tasks, respond back to the user with a meaningful message explaining this.
+"""
+
     user_prompt = f"""
         Here is the message from the user:
-        {user_message}
+        {messages[-1]["content"]}
     """
-    return [
-        {
-            "role": "system",
-            "content": system_prompt
-        },
-        {
-            "role": "user",
-            "content": user_prompt
-        }
-    ]
+
+    message_list = []
+    message_list.append({
+        "role": "system",
+        "content": system_prompt
+    })
+    message_list.extend(messages[:-1])
+
+    message_list.append({
+        "role": "user",
+        "content": user_prompt
+    })
+    return message_list
+    

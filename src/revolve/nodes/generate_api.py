@@ -1,7 +1,7 @@
 
 from datetime import datetime
 from revolve.data_types import State
-from revolve.functions import log, read_python_code_template, save_python_code
+from revolve.utils import log, read_python_code_template, save_python_code
 from revolve.utils import create_schemas_endpoint
 from revolve.utils_git import commit_and_push_changes
 

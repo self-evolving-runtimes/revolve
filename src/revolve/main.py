@@ -2,13 +2,11 @@ from langgraph.graph import StateGraph, START, END
 from langchain_core.messages import HumanMessage
 
 from revolve.data_types import State
-from revolve.functions import check_db
+from db import get_adapter
 
 from langgraph.constants import Send
-
-from revolve.nodes.check_user_request import check_user_request
 from revolve.utils_git import *
-from revolve.functions import clone_db
+
 import os
 
 
@@ -18,7 +16,11 @@ from revolve.nodes import (
     process_table,
     generate_api,
     test_node,
-    report_node
+    report_node,
+    check_user_request,
+    tool_handler,
+    tool_executor,
+    should_continue_tool_call
 )
 
 
@@ -28,7 +30,7 @@ def send_message(message):
 def run_workflow(task=None, db_config=None, send=None):
     if send is None:
         send = send_message
-    test_mode = False
+    test_mode = True if db_config and db_config.get("USE_CLONE_DB", False) else False
     if db_config:
         os.environ["DB_NAME"] = db_config["DB_NAME"]
         os.environ["DB_USER"] = db_config["DB_USER"]
@@ -36,12 +38,9 @@ def run_workflow(task=None, db_config=None, send=None):
         os.environ["DB_HOST"] = db_config["DB_HOST"]
         os.environ["DB_PORT"] = db_config["DB_PORT"]
 
-        if db_config["USE_CLONE_DB"]:
-            test_mode = True
-            clone_db()
+    adapter = get_adapter("postgres")
 
-    
-    db_test_result = check_db(db_user=os.environ["DB_USER"],
+    db_test_result = adapter.check_db(db_user=os.environ["DB_USER"],
                               db_password=os.environ["DB_PASSWORD"],
                               db_host=os.environ["DB_HOST"],
                               db_port=os.environ["DB_PORT"],
@@ -65,14 +64,23 @@ def run_workflow(task=None, db_config=None, send=None):
     graph.add_node("generate_api", generate_api)
     graph.add_node("test_node", test_node)
     graph.add_node("report_node", report_node)
+    graph.add_node("tool_handler", tool_handler)
+    graph.add_node("tool_executor", tool_executor)
+
 
 
 
     graph.add_edge(START, "check_user_request")
-    graph.add_conditional_edges("check_user_request", lambda state: state["classification"], {"router_node" : "router_node",  "__end__":END})
+    graph.add_conditional_edges("check_user_request", lambda state: state["classification"], {"create_crud_task" : "router_node",  "__end__":END, "respond_back": END, "other_tasks":"tool_handler"})
     graph.add_conditional_edges(
         "router_node", lambda state: state["next_node"], {"generate_prompt_for_code_generation":"generate_prompt_for_code_generation", "test_node": "test_node", "report_node": "report_node", "__end__":END}
     )
+
+    graph.add_conditional_edges(
+        "tool_handler", should_continue_tool_call, {"tool_executor": "tool_executor", "__end__": END}
+    )
+    graph.add_edge("tool_executor", "tool_handler")
+
 
     graph.add_conditional_edges(
         "generate_prompt_for_code_generation", lambda state: [Send("process_table", s) for s in state["DBSchema"]["tables"]], ["process_table"]
@@ -87,23 +95,29 @@ def run_workflow(task=None, db_config=None, send=None):
 
     if not task:
         #task = "Created crud operations for passes, satellites, ground stations and orbits"
-        task = "Created crud operations for orbits"
+        task = [
+            {
+                "role": "user",
+                "content": "Create CRUD operations for passes, satellites, ground stations and orbits."
+            }
+        ]
 
-    for event in workflow.stream({"messages": [HumanMessage(task)], "send":send,"test_mode": test_mode}):
+    for event in workflow.stream({"messages": task, "send":send,"test_mode": test_mode}):
         name = ""
         text = ""
         key = list(event.keys())[0]
-        if "trace" in event[key]:
-            if "description" in event[key]["trace"][-1]:
-                name = event[key]["trace"][-1]["node_name"]
-                text = event[key]["trace"][-1]["description"]
-                level = "workflow" if name == "report_node" else "system"
-                send({
-                    "status":"processing",
-                    "text":text,
-                    "name":name,
-                    "level":level
-                })
+        if event[key]:
+            if "trace" in event[key]:
+                if "description" in event[key]["trace"][-1]:
+                    name = event[key]["trace"][-1]["node_name"]
+                    text = event[key]["trace"][-1]["description"]
+                    level = "workflow" if name in ["report_node","run_tests"] else "system"
+                    send({
+                        "status":"processing",
+                        "text":text,
+                        "name":name,
+                        "level":level
+                    })
     # send({
     #     "status":"done",
     #     "text":"Task completed.",

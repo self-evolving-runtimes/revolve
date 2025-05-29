@@ -1,7 +1,8 @@
 
 from datetime import datetime
 from revolve.data_types import CodeHistoryMessage, GeneratedCode, State
-from revolve.functions import check_schema_for_unsupported_types, log, read_python_code, read_python_code_template, run_pytest, save_python_code
+from revolve.utils import log, read_python_code, read_python_code_template, save_python_code
+from revolve.functions import check_schema_for_unsupported_types, run_pytest
 from revolve.prompts import get_test_generation_prompt, get_test_generation_prompt_ft, get_test_revising_prompt, get_test_revising_prompt_ft
 from revolve.llm import invoke_llm
 from revolve.utils import create_report_json
