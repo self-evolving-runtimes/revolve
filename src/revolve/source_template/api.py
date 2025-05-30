@@ -9,11 +9,11 @@ import falcon
 from cors import set_cors
 from static import StaticResource
 
-cors = set_cors()
-
 ###IMPORTS###
 #from hellodb import HelloDBResource (just an example, not implemented)
 #from hellodb import HelloDBSchemaResource (just an example, not implemented)
+
+cors = set_cors()
 
 def debug_error_serializer(req, resp, exception):
     resp.content_type = falcon.MEDIA_JSON
@@ -44,13 +44,9 @@ if os.environ.get("STATIC_DIR") != "-":
     app.add_route("/{filepath:path}", static_resource)
     app.add_route("/", static_resource)
 
-
 ###ENDPOINTS###
 #app.add_route("/hello_db", HelloDBResource()) (just an example, not implemented)
 #app.add_route/"hello_db/schema", HelloDBSchemaResource()) (just an example, not implemented)
-
-
-
 
 class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
     pass

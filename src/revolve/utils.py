@@ -223,6 +223,13 @@ def read_python_code_template(file_name: str) -> str:
     # log("read_python_code_template", f"Python code retrieved successfully.")
     return python_code
 
+def copy_template_files_to_source_folder(file_names):
+    """
+    This function copies the files from the template folder to the source folder.
+    """
+    for file_name in file_names:
+        file_content = read_python_code_template(file_name)
+        save_python_code(file_content, file_name)
 
 def _log(method_name, description, level="INFO"):
     logger.log(level, f"{method_name:<20} - {description:<30}")
