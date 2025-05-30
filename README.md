@@ -46,13 +46,13 @@ python src/revolve/api.py
 
 ### Roadmap
 
-- Authz and Authn configuration
-- Support for other databases
-- Support foreign key testing 
-- Enhance UI to support lookups for foreign keys and editing json elegantly
-- Support for enums while editing via the discovery apis
-- Multi-turn conversations 
-- Add fine-tuned Qwen 3 support in addition to paid model support.
+- [ ] Authz and Authn configuration
+- [ ] Support for other databases
+- [ ] Support foreign key testing 
+- [ ]Enhance UI to support lookups for foreign keys and editing json elegantly
+- [ ]Support for enums validation while editing via the discovery apis
+- [X] Multi-turn conversations 
+- [ ] Add fine-tuned Qwen 3 support in addition to paid model support.
 
 
 ### License
