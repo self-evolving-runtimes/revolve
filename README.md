@@ -16,9 +16,9 @@
 - Teams managing complex data without dedicated frontend resources  
 - AI engineers who want database UIs without full-stack work  
 
-**Supported Databases**  
-✅ MongoDB • ✅ PostgreSQL • 🔜 MySQL • 🔜 Redis  
-⚪ Cassandra • ⚪ DynamoDB • ⚪ ClickHouse
+#### Supported Databases  
+✅ MongoDB • ✅ PostgreSQL • 🔜 MySQL • 🔜 Redis • 🔜 Cassandra  
+ • ⚪ DynamoDB
 ---
 ![Revolve](./screenshots/animated.gif)
 
