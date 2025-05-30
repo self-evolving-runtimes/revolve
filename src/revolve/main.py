@@ -1,7 +1,7 @@
 from langgraph.graph import StateGraph, START, END
 
 from revolve.data_types import State
-from db import get_adapter
+from revolve.db import get_adapter
 
 from langgraph.constants import Send
 from revolve.utils_git import *

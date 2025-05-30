@@ -7,7 +7,6 @@ requires-python = ">=3.11"
 dependencies = [
     "python-dotenv",
     "langgraph",
-    "psycopg2",
     "pytest",
     "falcon",
     "pytest-json-report>=1.5.0",
@@ -24,7 +23,7 @@ dependencies = [
 revolve-api = "revolve.api:main"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-build-scripts"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
@@ -40,8 +39,24 @@ artifacts = [
 [tool.hatch.build.targets.wheel]
 # Include all Python + resource files
 include = [
-  "src/revolve/**"
+    "src/revolve/**",
+    "dist"
 ]
+
+[tool.hatch.build.targets.sdist.hooks.build-scripts]
+enable-by-default = false
+
+[[tool.hatch.build.targets.wheel.hooks.build-scripts.scripts]]
+commands = [
+    "rm -rf node_modules || true",
+    "rm -rf dist || true",
+    "rm -rf package-lock.json || true",
+    "rm -rf yarn.lock || true",
+    "npm install",
+    "npm run build"
+]
+work_dir = "src/revolve/ui"
+artifacts = ["dist"]
 
 [dependency-groups]
 dev = [

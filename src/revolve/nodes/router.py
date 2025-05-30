@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from db import get_adapter
+from revolve.db import get_adapter
 from revolve.data_types import State
 from revolve.functions import save_state, log
 from revolve.utils_git import init_or_attach_git_repo, create_branch_with_timestamp

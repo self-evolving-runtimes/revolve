@@ -8,7 +8,7 @@ import os
 from wsgiref.simple_server import make_server, WSGIServer
 from socketserver import ThreadingMixIn
 
-from db import get_adapter
+from revolve.db import get_adapter
 from revolve.workflow_generator import run_workflow_generator
 from revolve.utils import start_process, stop_process
 from revolve.utils import read_python_code

@@ -1,5 +1,5 @@
 
-from external import get_db_type
+from revolve.external import get_db_type
 
 prompt_list = {
     "table_schema_extractor":
@@ -46,7 +46,7 @@ Here is my api code for the endpoints.
 {api_code}
 Here are the schema of the table ({table_name}) is used in the api:
 {schema}
-Here is the utils file (import methods from utils if needed):
+Here is the utils file (import methods from revolve.utils if needed):
 {utils}
 Write test methods foreach function in the resource code:
 {resouce_file}"""
@@ -138,7 +138,7 @@ Here is the test code:
 {test_code}
 The api and routes are here:
 {api_code}
-The utils file is here (import methods from utils if needed):
+The utils file is here (import methods from revolve.utils if needed):
 {utils}
 The schema of the related {table_name} table is:
 {schema}
@@ -214,7 +214,7 @@ While creating List functionality, provide functionality to sort, order by and f
 key columns as well as skip , limit and total for pagination support. If the search filter is a date field, provide functionality to match greater than,
 less than and equal to date. Filter may not be specified - handle those cases as well.
 There could be multiple endpoints for the same resource.
-Use methods from utils if needed. Here is the utils.py file:
+Use methods from revolve.utils if needed. Here is the utils.py file:
 {utils_template}
 Here are the templates for the generation:
 for the example api route 'app.add_route("/hello_db", HelloDBResource())'

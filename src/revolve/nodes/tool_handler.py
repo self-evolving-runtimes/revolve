@@ -3,7 +3,7 @@
 import json
 
 from langchain_openai import ChatOpenAI
-from data_types import State
+from revolve.data_types import State
 from revolve.tools import get_tools
 from langchain_core.messages import ToolMessage
 from revolve.functions import log
