@@ -2,7 +2,7 @@ import falcon
 import psycopg2
 import psycopg2.extras
 from datetime import datetime, date
-from utils import get_db_connection, json_serial
+from db_utils import get_db_connection, json_serial
 
 class HelloDBResource:
     def on_get(self, req, resp):
