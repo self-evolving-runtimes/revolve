@@ -1,4 +1,4 @@
-## 🚀 **AI-Powered Database CRUD & UI Generator**  
+## 🚀 **AI-Powered Database CRUD API & UI Generator**  
 #### _Instantly generate full-stack admin panels, APIs, and UI from your database schema—powered by AI agents & LLMs_
 
 **⚡ Automate 80% of your boilerplate code** – Say goodbye to manual CRUD coding! Let AI generate clean, production-ready database interfaces in seconds.  
@@ -17,8 +17,8 @@
 - AI engineers who want database UIs without full-stack work  
 
 #### Supported Databases  
-✅ MongoDB • ✅ PostgreSQL • 🔜 MySQL • 🔜 Redis • 🔜 Cassandra  
- • ⚪ DynamoDB
+✅ MongoDB • ✅ PostgreSQL • 🔜 MySQL • 🔜 Redis • 🔜 Cassandra  ⚪ DynamoDB
+
 ---
 ![Revolve](./screenshots/animated.gif)
 
