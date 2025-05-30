@@ -1,6 +1,5 @@
 
 
-import json
 
 from langchain_openai import ChatOpenAI
 from revolve.data_types import State

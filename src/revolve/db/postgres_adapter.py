@@ -1,12 +1,10 @@
 import datetime
-import decimal
 import json
 import os
 import sys
 from collections import defaultdict, deque
 from pathlib import Path
 from typing import Dict, List, Any
-import uuid
 
 import psycopg2
 import sqlparse

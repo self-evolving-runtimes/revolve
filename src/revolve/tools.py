@@ -3,7 +3,7 @@ from revolve.functions import get_file_list, run_pytest
 from revolve.db import get_adapter
 from revolve.external import get_db_type
 
-from langchain_core.tools import tool, Tool
+from langchain_core.tools import tool
 from langchain_core.tools.structured import StructuredTool
 
 
