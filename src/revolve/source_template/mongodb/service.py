@@ -2,7 +2,7 @@
 import falcon
 from datetime import datetime, date
 from bson import ObjectId
-from utils import get_db_connection
+from db_utils import get_db_connection
 
 def mongo_serial(obj):
     if isinstance(obj, (datetime, date)):

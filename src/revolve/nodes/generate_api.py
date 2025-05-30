@@ -33,7 +33,7 @@ def generate_api(state:State):
 
     template_files = [
         "static.py",
-        "utils.py",
+        "db_utils.py",
         "cors.py"
     ]
     copy_template_files_to_source_folder(template_files)

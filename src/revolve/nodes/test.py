@@ -13,7 +13,7 @@ def test_node(state: State):
     send = state.get("send")
     MAX_TEST_ITERATIONS = 3
     test_example = read_python_code_template("test_api.py")
-    utils = read_python_code_template("utils.py")
+    utils = read_python_code_template("db_utils.py")
     api_code = read_python_code("api.py")
     for test_item in state["test_status"]:
         is_unsupported_type_exist = check_schema_for_unsupported_types(test_item["table"]["columns"])

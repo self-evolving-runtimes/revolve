@@ -46,7 +46,7 @@ Here is my api code for the endpoints.
 {api_code}
 Here are the schema of the table ({table_name}) is used in the api:
 {schema}
-Here is the utils file (import methods from revolve.utils if needed):
+Here is the db_utils file (import methods from db_utils.py if needed):
 {utils}
 Write test methods foreach function in the resource code:
 {resouce_file}"""
@@ -100,7 +100,7 @@ Write test methods foreach function in the resource code:
 {api_code}
 #### Schema for ({table_name}) table ####
 {schema}
-#### Utils (util.py) ####
+#### db_utils (db_utils.py) ####
 {utils}
 #### Resource Code ({resource_file_name}) ####
 {resouce_file}"""
@@ -138,7 +138,7 @@ Here is the test code:
 {test_code}
 The api and routes are here:
 {api_code}
-The utils file is here (import methods from revolve.utils if needed):
+The db_utils file is here (import methods from db_utils.py if needed):
 {utils}
 The schema of the related {table_name} table is:
 {schema}
@@ -181,7 +181,7 @@ I only need the code, do not add any other comments or explanations.
 {test_code}
 #### Api Code (api.py) ####
 {api_code}
-#### Utils (util.py, in case you need to import) ####
+#### db_utils (db_utils.py, in case you need to import) ####
 {utils}
 #### Schema for ({table_name}) table ####
 {schema}
@@ -214,7 +214,7 @@ While creating List functionality, provide functionality to sort, order by and f
 key columns as well as skip , limit and total for pagination support. If the search filter is a date field, provide functionality to match greater than,
 less than and equal to date. Filter may not be specified - handle those cases as well.
 There could be multiple endpoints for the same resource.
-Use methods from revolve.utils if needed. Here is the utils.py file:
+Use methods from db_utils if needed. Here is the db_utils.py file:
 {utils_template}
 Here are the templates for the generation:
 for the example api route 'app.add_route("/hello_db", HelloDBResource())'
