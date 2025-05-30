@@ -2,7 +2,7 @@ import importlib
 from revolve.db.adapter import DatabaseAdapter
 
 def get_adapter(db_type: str = "postgres") -> DatabaseAdapter:
-    module_name = f"db.{db_type}_adapter"
+    module_name = f"revolve.db.{db_type}_adapter"
     class_name = f"{db_type.capitalize()}Adapter"
 
     try:
