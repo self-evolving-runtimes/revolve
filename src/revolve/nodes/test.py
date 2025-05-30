@@ -17,7 +17,7 @@ def test_node(state: State):
     api_code = read_python_code("api.py")
     for test_item in state["test_status"]:
         is_unsupported_type_exist = check_schema_for_unsupported_types(test_item["table"]["columns"])
-        if is_unsupported_type_exist or state["test_mode"]==False:
+        if is_unsupported_type_exist or not state["test_mode"]:
             log(f"Skipping test generation for {test_item['resource_file_name']}", send)
             test_item["status"] = "skipped"
             continue

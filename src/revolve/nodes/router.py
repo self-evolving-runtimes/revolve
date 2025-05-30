@@ -4,6 +4,7 @@ from revolve.db import get_adapter
 from revolve.data_types import State
 from revolve.functions import save_state, log
 from revolve.utils_git import init_or_attach_git_repo, create_branch_with_timestamp
+from revolve.external import get_db_type
 
 
 def router_node(state: State):
@@ -14,7 +15,7 @@ def router_node(state: State):
 
     send = state.get("send")
     test_mode = state.get("test_mode", False)
-    adapter = get_adapter("postgres")
+    adapter = get_adapter(get_db_type())
 
     if not next_node:
         if test_mode:

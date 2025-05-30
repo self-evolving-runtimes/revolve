@@ -1,7 +1,7 @@
 
 from datetime import datetime
 from revolve.data_types import State
-from revolve.utils import log, read_python_code_template, save_python_code
+from revolve.utils import log, read_python_code_template, save_python_code, copy_template_files_to_source_folder
 from revolve.utils import create_schemas_endpoint
 from revolve.utils_git import commit_and_push_changes
 
@@ -31,11 +31,13 @@ def generate_api(state:State):
         "api.py"
     )
 
-    #somehow do this once
-    static = read_python_code_template("static.py")
-    utils = read_python_code_template("utils.py")
-    save_python_code(static, "static.py")
-    save_python_code(utils, "utils.py")
+    template_files = [
+        "static.py",
+        "utils.py",
+        "cors.py"
+    ]
+    copy_template_files_to_source_folder(template_files)
+
     create_schemas_endpoint(state)
     commit_and_push_changes(
         message="Codes and api generated."

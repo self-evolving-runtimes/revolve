@@ -1,6 +1,5 @@
 
 
-import json
 
 from langchain_openai import ChatOpenAI
 from revolve.data_types import State
@@ -52,11 +51,9 @@ class BasicToolNode:
             )
             outputs.append(
                 ToolMessage(
-                    content=json.dumps(tool_result),
+                    content=str(tool_result),
                     name=tool_call["name"],
                     tool_call_id=tool_call["id"],
                 )
             )
         return {"messages": outputs}
-
-tool_executor = BasicToolNode(tools=get_tools())

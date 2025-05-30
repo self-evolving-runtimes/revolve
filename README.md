@@ -1,4 +1,4 @@
-## 🚀 **AI-Powered Database CRUD & UI Generator**  
+## 🚀 **AI-Powered Database CRUD API & UI Generator**  
 #### _Instantly generate full-stack admin panels, APIs, and UI from your database schema—powered by AI agents & LLMs_
 
 **⚡ Automate 80% of your boilerplate code** – Say goodbye to manual CRUD coding! Let AI generate clean, production-ready database interfaces in seconds.  
@@ -15,6 +15,9 @@
 - Devs tired of writing repetitive CRUD code  
 - Teams managing complex data without dedicated frontend resources  
 - AI engineers who want database UIs without full-stack work  
+
+#### Supported Databases  
+✅ MongoDB • ✅ PostgreSQL • 🔜 MySQL • 🔜 Redis • 🔜 Cassandra  ⚪ DynamoDB
 
 ---
 ![Revolve](./screenshots/animated.gif)
@@ -43,13 +46,13 @@ python src/revolve/api.py
 
 ### Roadmap
 
-- Authz and Authn configuration
-- Support for other databases
-- Support foreign key testing 
-- Enhance UI to support lookups for foreign keys and editing json elegantly
-- Support for enums while editing via the discovery apis
-- Multi-turn conversations 
-- Add fine-tuned Qwen 3 support in addition to paid model support.
+- [ ] Authz and Authn configuration
+- [ ] Support for other databases
+- [ ] Support foreign key testing 
+- [ ]Enhance UI to support lookups for foreign keys and editing json elegantly
+- [ ]Support for enums validation while editing via the discovery apis
+- [X] Multi-turn conversations 
+- [ ] Add fine-tuned Qwen 3 support in addition to paid model support.
 
 
 ### License

@@ -55,7 +55,7 @@ const App = () => {
   DB_HOST: 'localhost',
   DB_PORT: '5432',
   USE_CLONE_DB: true,
-  DB_TYPE: 'Postgres',
+  DB_TYPE: 'postgres',
 });
 
 const [promptItems, setPromptItems] = React.useState([]);
@@ -492,7 +492,8 @@ const handleSendMessage = async (message) => {
                           style={{ width: '70%' }}
                           onChange={(value) => updateDbField('DB_TYPE', value)}
                         >
-                          <Select.Option value="Postgres">Postgres</Select.Option>
+                          <Select.Option value="postgres">Postgres</Select.Option>
+                          <Select.Option value="mongodb">MongoDB</Select.Option>
                         </Select>
                       </List.Item>
                     </List>

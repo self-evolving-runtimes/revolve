@@ -1,5 +1,4 @@
 from langgraph.graph import StateGraph, START, END
-from langchain_core.messages import HumanMessage
 
 from revolve.data_types import State
 from revolve.db import get_adapter
@@ -19,9 +18,12 @@ from revolve.nodes import (
     report_node,
     check_user_request,
     tool_handler,
-    tool_executor,
+    BasicToolNode,
     should_continue_tool_call
 )
+
+from revolve.external import get_db_type
+from tools import get_tools
 
 
 def send_message(message):
@@ -37,8 +39,9 @@ def run_workflow(task=None, db_config=None, send=None):
         os.environ["DB_PASSWORD"] = db_config["DB_PASSWORD"]
         os.environ["DB_HOST"] = db_config["DB_HOST"]
         os.environ["DB_PORT"] = db_config["DB_PORT"]
+        os.environ["DB_TYPE"] = db_config["DB_TYPE"]
 
-    adapter = get_adapter("postgres")
+    adapter = get_adapter(get_db_type())
 
     db_test_result = adapter.check_db(db_user=os.environ["DB_USER"],
                               db_password=os.environ["DB_PASSWORD"],
@@ -65,8 +68,9 @@ def run_workflow(task=None, db_config=None, send=None):
     graph.add_node("test_node", test_node)
     graph.add_node("report_node", report_node)
     graph.add_node("tool_handler", tool_handler)
-    graph.add_node("tool_executor", tool_executor)
 
+    tool_executor = BasicToolNode(tools=get_tools())
+    graph.add_node("tool_executor", tool_executor)
 
 
 
