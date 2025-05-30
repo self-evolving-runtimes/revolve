@@ -18,11 +18,12 @@ from revolve.nodes import (
     report_node,
     check_user_request,
     tool_handler,
-    tool_executor,
+    BasicToolNode,
     should_continue_tool_call
 )
 
 from revolve.external import get_db_type
+from tools import get_tools
 
 
 def send_message(message):
@@ -67,8 +68,9 @@ def run_workflow(task=None, db_config=None, send=None):
     graph.add_node("test_node", test_node)
     graph.add_node("report_node", report_node)
     graph.add_node("tool_handler", tool_handler)
-    graph.add_node("tool_executor", tool_executor)
 
+    tool_executor = BasicToolNode(tools=get_tools())
+    graph.add_node("tool_executor", tool_executor)
 
 
 

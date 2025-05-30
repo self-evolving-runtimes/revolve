@@ -57,5 +57,3 @@ class BasicToolNode:
                 )
             )
         return {"messages": outputs}
-
-tool_executor = BasicToolNode(tools=get_tools())
