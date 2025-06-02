@@ -24,6 +24,8 @@ jobs:
         run: |
           uv sync
           uv build --wheel
+          rm -rf dist/assets
+          rm -rf index.html
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
