@@ -46,8 +46,8 @@ def test_node(state: State):
             resource_file_name = test_item["resource_file_name"]
         )
 
-        structured_test_response = invoke_llm(messages, max_attempts=3, validation_class=GeneratedCode, method="function_calling")
-        full_test_code = structured_test_response["full_test_code"]
+        structured_test_response = invoke_llm(messages, max_attempts=3, validation_class=GeneratedCode, method="function_calling", manual_validation=True)
+        full_test_code = structured_test_response.full_test_code
 
         assistan_response_ft = f"""
 ### ASSISTANT ###
@@ -63,10 +63,10 @@ def test_node(state: State):
         )
 
 
-        test_item["test_code"] = structured_test_response["full_test_code"]
+        test_item["test_code"] = structured_test_response.full_test_code
         test_item["test_file_name"] = test_file_name
         save_python_code(
-            structured_test_response["full_test_code"],
+            structured_test_response.full_test_code,
             test_file_name
         )
         commit_and_push_changes(
