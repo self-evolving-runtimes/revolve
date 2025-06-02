@@ -20,7 +20,7 @@
 ✅ MongoDB • ✅ PostgreSQL • 🔜 MySQL • 🔜 Redis • 🔜 Cassandra  ⚪ DynamoDB
 
 ---
-![Revolve](./screenshots/animated.gif)
+![Revolve](https://raw.githubusercontent.com/self-evolving-runtimes/revolve/refs/heads/main/screenshots/animated.gif)
 
 ---
 ### Pre-requisites
