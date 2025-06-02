@@ -1,0 +1,22 @@
+name: Build and test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@4
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          activate-environment: true
+
+      - name: Install deps and build
+        run: |
+          uv sync
+          uv build --wheel
