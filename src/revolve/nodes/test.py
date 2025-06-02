@@ -49,16 +49,11 @@ def test_node(state: State):
         structured_test_response = invoke_llm(messages, max_attempts=3, validation_class=GeneratedCode, method="function_calling", manual_validation=True)
         full_test_code = structured_test_response.full_test_code
 
-        assistan_response_ft = f"""
-### ASSISTANT ###
-#### Test Code ({test_file_name}) ####
-{full_test_code}
-"""
 
         messages_ft.append(
             {
                 "role": "assistant",
-                "content": assistan_response_ft
+                "content": structured_test_response.json(),
             }
         )
 
@@ -151,11 +146,7 @@ What is fixed: {new_test_code_response.what_is_fixed}
                 new_messages_ft.append(
                     {
                         "role": "assistant",
-                        "content": f"""
-### ASSISTANT ###
-#### New Code ({file_name_to_revise}) ####
-{new_test_code_response.new_code}
-"""
+                        "content": new_test_code_response.json(),
                     }
                 )
 

@@ -1,5 +1,7 @@
 
 from revolve.external import get_db_type
+from revolve.data_types import GeneratedCode, CodeHistoryMessage
+import json
 
 prompt_list = {
     "table_schema_extractor":
@@ -62,6 +64,10 @@ Write test methods foreach function in the resource code:
     ]
 
 def get_test_generation_prompt_ft(test_example: str, api_code: str, table_name: str, schema: str, utils: str, resouce_file: str, resource_file_name: str) -> str:
+    
+    raw_output_structure = CodeHistoryMessage.model_json_schema()
+    output_structure = json.dumps(raw_output_structure, indent=2)
+    
     system_prompt = f"""
 ### SYSTEM ###
 Generate comprehensive test cases (max:10) for a Python API that implements CRUD (Create, Read, Update, Delete) and LIST operations based on the provided schema. The schema may include unique constraints, data types (e.g., UUID, JSONB, timestamps), and nullable fields. The tests must adhere to the following guidelines:
@@ -91,7 +97,13 @@ For fields like created_at / updated_at that are determined by the database / se
 When sending data to simulate use json.dumps to convert py objects into valid json
 Pay attention to datatypes such as text array when making payloads and send the right form of it.
 #### Example Test File ####
-{test_example}"""
+{test_example}
+#### Instructions for Output ####
+Return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{output_structure}
+</tool_call>
+"""
 
     user_message = f"""
 ### USER ###
@@ -103,7 +115,8 @@ Write test methods foreach function in the resource code:
 #### db_utils (db_utils.py) ####
 {utils}
 #### Resource Code ({resource_file_name}) ####
-{resouce_file}"""
+{resouce_file}
+"""
     return [
         {
             "role": "system",
@@ -156,6 +169,9 @@ And Here is the report of the failing tests:
     ]
 
 def get_test_revising_prompt_ft(individual_prompt: str, source_code: str, example_resource_code: str, test_code: str, api_code: str, table_name: str, schema: str, utils: str, pytest_response: str, resource_file_name:str) -> str:
+    raw_output_structure = CodeHistoryMessage.model_json_schema()
+    output_structure = json.dumps(raw_output_structure, indent=2)
+    
     new_system_message = """
 ### SYSTEM ###
 You are responsible for fixing the errors.
@@ -165,7 +181,13 @@ Do not add any external libraries.
 Always print the response content in the test for better debugging.
 Be careful with non-nullable columns when generating tests.
 Don't assume any id is already in the database.
-Do not use placeholder values, everything should be ready to use."""
+Do not use placeholder values, everything should be ready to use.
+#### Instructions for Output ####
+Return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{output_structure}
+</tool_call>
+"""
     
     new_user_message = f"""
 ### USER ###
