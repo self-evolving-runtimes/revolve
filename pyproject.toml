@@ -1,9 +1,19 @@
 [project]
-name = "revolve"
-version = "0.1.0"
-description = "AI rest"
+name = "selfrevolve"
+version = "0.1.1.dev1"
+description = "A project for generating RESTful apis given a database"
 readme = "README.md"
 requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Database :: Front-Ends",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
     "python-dotenv",
     "langgraph",
@@ -18,6 +28,10 @@ dependencies = [
     "loguru>=0.7.3",
     "pymongo>=4.13.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/self-evolving-runtimes/revolve"
+Issues = "https://github.com/self-evolving-runtimes/revolve/issues"
 
 [project.scripts]
 revolve-api = "revolve.api:main"
