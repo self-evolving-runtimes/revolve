@@ -13,7 +13,7 @@ def process_table(table_state:Table):
     columns = table_state["columns"]
 
     code_template = read_python_code_template("service.py")
-    utils_template = read_python_code_template("utils.py")
+    utils_template = read_python_code_template("db_utils.py")
     individual_prompt = table_state["individual_prompt"]
     schemas = str(columns)
 

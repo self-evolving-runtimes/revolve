@@ -1,5 +1,7 @@
 
 from revolve.external import get_db_type
+from revolve.data_types import GeneratedCode, CodeHistoryMessage
+import json
 
 prompt_list = {
     "table_schema_extractor":
@@ -46,7 +48,7 @@ Here is my api code for the endpoints.
 {api_code}
 Here are the schema of the table ({table_name}) is used in the api:
 {schema}
-Here is the utils file (import methods from revolve.utils if needed):
+Here is the db_utils file (import methods from db_utils.py if needed):
 {utils}
 Write test methods foreach function in the resource code:
 {resouce_file}"""
@@ -62,6 +64,10 @@ Write test methods foreach function in the resource code:
     ]
 
 def get_test_generation_prompt_ft(test_example: str, api_code: str, table_name: str, schema: str, utils: str, resouce_file: str, resource_file_name: str) -> str:
+    
+    raw_output_structure = CodeHistoryMessage.model_json_schema()
+    output_structure = json.dumps(raw_output_structure, indent=2)
+    
     system_prompt = f"""
 ### SYSTEM ###
 Generate comprehensive test cases (max:10) for a Python API that implements CRUD (Create, Read, Update, Delete) and LIST operations based on the provided schema. The schema may include unique constraints, data types (e.g., UUID, JSONB, timestamps), and nullable fields. The tests must adhere to the following guidelines:
@@ -91,7 +97,13 @@ For fields like created_at / updated_at that are determined by the database / se
 When sending data to simulate use json.dumps to convert py objects into valid json
 Pay attention to datatypes such as text array when making payloads and send the right form of it.
 #### Example Test File ####
-{test_example}"""
+{test_example}
+#### Instructions for Output ####
+Return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{output_structure}
+</tool_call>
+"""
 
     user_message = f"""
 ### USER ###
@@ -100,10 +112,11 @@ Write test methods foreach function in the resource code:
 {api_code}
 #### Schema for ({table_name}) table ####
 {schema}
-#### Utils (util.py) ####
+#### db_utils (db_utils.py) ####
 {utils}
 #### Resource Code ({resource_file_name}) ####
-{resouce_file}"""
+{resouce_file}
+"""
     return [
         {
             "role": "system",
@@ -138,7 +151,7 @@ Here is the test code:
 {test_code}
 The api and routes are here:
 {api_code}
-The utils file is here (import methods from revolve.utils if needed):
+The db_utils file is here (import methods from db_utils.py if needed):
 {utils}
 The schema of the related {table_name} table is:
 {schema}
@@ -156,6 +169,9 @@ And Here is the report of the failing tests:
     ]
 
 def get_test_revising_prompt_ft(individual_prompt: str, source_code: str, example_resource_code: str, test_code: str, api_code: str, table_name: str, schema: str, utils: str, pytest_response: str, resource_file_name:str) -> str:
+    raw_output_structure = CodeHistoryMessage.model_json_schema()
+    output_structure = json.dumps(raw_output_structure, indent=2)
+    
     new_system_message = """
 ### SYSTEM ###
 You are responsible for fixing the errors.
@@ -165,7 +181,13 @@ Do not add any external libraries.
 Always print the response content in the test for better debugging.
 Be careful with non-nullable columns when generating tests.
 Don't assume any id is already in the database.
-Do not use placeholder values, everything should be ready to use."""
+Do not use placeholder values, everything should be ready to use.
+#### Instructions for Output ####
+Return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{output_structure}
+</tool_call>
+"""
     
     new_user_message = f"""
 ### USER ###
@@ -181,7 +203,7 @@ I only need the code, do not add any other comments or explanations.
 {test_code}
 #### Api Code (api.py) ####
 {api_code}
-#### Utils (util.py, in case you need to import) ####
+#### db_utils (db_utils.py, in case you need to import) ####
 {utils}
 #### Schema for ({table_name}) table ####
 {schema}
@@ -214,7 +236,7 @@ While creating List functionality, provide functionality to sort, order by and f
 key columns as well as skip , limit and total for pagination support. If the search filter is a date field, provide functionality to match greater than,
 less than and equal to date. Filter may not be specified - handle those cases as well.
 There could be multiple endpoints for the same resource.
-Use methods from revolve.utils if needed. Here is the utils.py file:
+Use methods from db_utils if needed. Here is the db_utils.py file:
 {utils_template}
 Here are the templates for the generation:
 for the example api route 'app.add_route("/hello_db", HelloDBResource())'

@@ -13,7 +13,7 @@ def test_node(state: State):
     send = state.get("send")
     MAX_TEST_ITERATIONS = 3
     test_example = read_python_code_template("test_api.py")
-    utils = read_python_code_template("utils.py")
+    utils = read_python_code_template("db_utils.py")
     api_code = read_python_code("api.py")
     for test_item in state["test_status"]:
         is_unsupported_type_exist = check_schema_for_unsupported_types(test_item["table"]["columns"])
@@ -46,27 +46,22 @@ def test_node(state: State):
             resource_file_name = test_item["resource_file_name"]
         )
 
-        structured_test_response = invoke_llm(messages, max_attempts=3, validation_class=GeneratedCode, method="function_calling")
-        full_test_code = structured_test_response["full_test_code"]
+        structured_test_response = invoke_llm(messages, max_attempts=3, validation_class=GeneratedCode, method="function_calling", manual_validation=True)
+        full_test_code = structured_test_response.full_test_code
 
-        assistan_response_ft = f"""
-### ASSISTANT ###
-#### Test Code ({test_file_name}) ####
-{full_test_code}
-"""
 
         messages_ft.append(
             {
                 "role": "assistant",
-                "content": assistan_response_ft
+                "content": structured_test_response.json(),
             }
         )
 
 
-        test_item["test_code"] = structured_test_response["full_test_code"]
+        test_item["test_code"] = structured_test_response.full_test_code
         test_item["test_file_name"] = test_file_name
         save_python_code(
-            structured_test_response["full_test_code"],
+            structured_test_response.full_test_code,
             test_file_name
         )
         commit_and_push_changes(
@@ -151,11 +146,7 @@ What is fixed: {new_test_code_response.what_is_fixed}
                 new_messages_ft.append(
                     {
                         "role": "assistant",
-                        "content": f"""
-### ASSISTANT ###
-#### New Code ({file_name_to_revise}) ####
-{new_test_code_response.new_code}
-"""
+                        "content": new_test_code_response.json(),
                     }
                 )
 
