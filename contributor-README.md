@@ -22,6 +22,13 @@ It uses the generated apps in a modern react UI to enable CRUD operations on tab
 
 ---
 
+## Pre-requisites
+- Python 3.11
+- OPENAI API Key
+- PostgreSQL database with tables
+
+---
+
 ## Quick Start
 
 ### 1. Install Dependencies

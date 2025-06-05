@@ -23,25 +23,21 @@
 ![Revolve](https://raw.githubusercontent.com/self-evolving-runtimes/revolve/refs/heads/main/screenshots/animated.gif)
 
 ---
-### Pre-requisites
-- Python 3.11
-- OPENAI API Key
-- PostgreSQL database with tables
+### Installation
 
-### Quick Start
-
-#### 1. Install Dependencies
+Install the package from PyPI:
 
 ```sh
-brew install uv
-uv sync
+pip install selfrevolve
 ```
 
-#### 2. Start
+Run the API and UI:
 
 ```sh
-python src/revolve/api.py
+revolve-api
 ```
+
+For local development instructions, see [contributor-README.md](contributor-README.md).
 
 
 ### Roadmap
