@@ -46,29 +46,53 @@ def create_schemas_endpoint(state: State):
         "api.py"
     )
 
-
 def create_ft_data(state):
     test_status = state.get("test_status", {})
+    ft_user_requests = state.get("custom_ft_data", [])
     samples = []
-    samples_json = []
+
+    for ft_request in ft_user_requests:
+        samples.append(ft_request)
+
     for test_sample in test_status:
         if test_sample["status"] == "success":
-            if test_sample["iteration_count"]==0:
+            if test_sample["iteration_count"] == 0:
                 samples.append(test_sample["test_generation_input_prompt"])
             else:
                 samples.append(test_sample["code_history"][-1]["test_revising_input_prompt"])
 
-    if len(samples)>0:
+    if len(samples) > 0:
         samples_json = make_serializable(samples)
-        with open(f"{get_source_folder()}/ft_data.json", "w") as f:
-            json.dump(samples_json, f, indent=4)
         
-        if os.path.exists("ft"):        
-            file_name_with_time = f"ft/ft_data_{int(time.time())}.json"
-            with open(file_name_with_time, "w") as f:
-                json.dump(samples_json, f, indent=4)
-        
-    return samples, samples_json
+        # Ensure samples are unique
+        def serialize(item):
+            return json.dumps(item, sort_keys=True)
+
+        # Use a set to deduplicate
+        new_set = {serialize(item): item for item in samples_json}
+
+        file_path = f"{get_source_folder()}/ft_data.json"
+
+        if os.path.exists(file_path):
+            with open(file_path, "r") as f:
+                try:
+                    existing_data = json.load(f)
+                    existing_set = {serialize(item): item for item in existing_data}
+                except json.JSONDecodeError:
+                    existing_set = {}
+        else:
+            existing_set = {}
+
+        # Merge without duplicates
+        combined_set = {**existing_set, **new_set}
+        combined_data = list(combined_set.values())
+
+        with open(file_path, "w") as f:
+            json.dump(combined_data, f, indent=4)
+
+        return samples, combined_data
+
+    return samples, []
 
 
 def create_report_json(state):

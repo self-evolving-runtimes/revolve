@@ -1,6 +1,6 @@
 
 from revolve.external import get_db_type
-from revolve.data_types import GeneratedCode, CodeHistoryMessage
+from revolve.data_types import ClassifyUserRequest, GeneratedCode, CodeHistoryMessage
 import json
 
 prompt_list = {
@@ -172,7 +172,7 @@ def get_test_revising_prompt_ft(individual_prompt: str, source_code: str, exampl
     raw_output_structure = CodeHistoryMessage.model_json_schema()
     output_structure = json.dumps(raw_output_structure, indent=2)
     
-    new_system_message = """
+    new_system_message = f"""
 ### SYSTEM ###
 You are responsible for fixing the errors.
 Fix the test or the source code according to the test report provided by user.
@@ -307,10 +307,7 @@ Your capabilities include:
 If the user's intent does not relate to any of the above tasks, respond back to the user with a meaningful message explaining this.
 """
 
-    user_prompt = f"""
-        Here is the message from the user:
-        {messages[-1]["content"]}
-    """
+    user_prompt = f"{messages[-1]["content"]}"
 
     message_list = []
     message_list.append({
@@ -324,4 +321,42 @@ If the user's intent does not relate to any of the above tasks, respond back to 
         "content": user_prompt
     })
     return message_list
-    
+
+def get_user_intent_prompt_ft(messages):
+    raw_output_structure = ClassifyUserRequest.model_json_schema()
+    output_structure = json.dumps(raw_output_structure, indent=2)
+    system_prompt = f"""
+You are a software agent.
+Your capabilities include:
+
+1. create_crud_task:
+   You can write CRUD APIs for given table names.
+
+2. other_tasks:
+   You can handle additional tasks such as:
+   - Running tests
+   - Running read-only queries on the database ({get_db_type()})
+   - Accessing files in the repository
+   - Reading Python code
+   - Writing Python code, but only if explicitly asked to do so
+
+If the user's intent does not relate to any of the above tasks, respond back to the user with a meaningful message explaining this.
+Return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{output_structure}
+</tool_call>
+"""
+
+    user_prompt = f"{messages[-1]["content"]}"
+
+    message_list = []
+    message_list.append({
+        "role": "system",
+        "content": system_prompt
+    })
+    message_list.append({
+        "role": "user",
+        "content": user_prompt
+    })
+    return message_list
+
