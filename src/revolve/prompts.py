@@ -1,15 +1,7 @@
 
 from revolve.external import get_db_type
-from revolve.data_types import ClassifyUserRequest, GeneratedCode, CodeHistoryMessage
+from revolve.data_types import ClassifyUserRequest, GeneratedCode, CodeHistoryMessage, DBSchema, typed_dict_dump_schema_json
 import json
-
-prompt_list = {
-    "table_schema_extractor":
-        """
-You are a table-schema extractor. When given a full database schema, identify and extract only the table(s) the user intends to work with.
-For each requested table, generate a concise instruction—without including the schema itself—such as:
-“Create POST method for the X table."""
-}
 
 def get_test_generation_prompt(test_example: str, api_code: str, table_name: str, schema: str, utils: str, resouce_file: str, resource_file_name:str) -> str:
     system_prompt = f"""
@@ -285,9 +277,6 @@ Here is the API code:\n{api_code}"""
             ]
     return messages
 
-def get_simple_prompt(prompt_name: str) -> str:
-    return prompt_list[prompt_name]
-
 def get_user_intent_prompt(messages):
     system_prompt = f"""
 You are a software agent.
@@ -307,7 +296,7 @@ Your capabilities include:
 If the user's intent does not relate to any of the above tasks, respond back to the user with a meaningful message explaining this.
 """
 
-    user_prompt = f"{messages[-1]["content"]}"
+    user_prompt = f"{messages[-1]['content']}"
 
     message_list = []
     message_list.append({
@@ -347,7 +336,7 @@ Return a json object with function name and arguments within <tool_call></tool_c
 </tool_call>
 """
 
-    user_prompt = f"{messages[-1]["content"]}"
+    user_prompt = f"{messages[-1]['content']}"
 
     message_list = []
     message_list.append({
@@ -360,3 +349,46 @@ Return a json object with function name and arguments within <tool_call></tool_c
     })
     return message_list
 
+def get_table_schema_extractor_prompt(last_message_content, schemas) -> list:
+    system_prompt = f"""
+You are a table-schema extractor. When given a full database schema, identify and extract only the table(s) the user intends to work with.
+For each requested table, generate a concise instruction—without including the schema itself—such as:
+“Create POST method for the X table.”
+"""
+    user_prompt = f"{last_message_content}\n\nHere are the full schema of the database:\n{schemas}"
+
+    message_list = []
+    message_list.append({
+        "role": "system",
+        "content": system_prompt
+    })
+    message_list.append({
+        "role": "user",
+        "content": user_prompt
+    })
+    return message_list
+
+def get_table_schema_extractor_prompt_ft(last_message_content, schemas) -> list:
+    raw_output_structure = typed_dict_dump_schema_json(DBSchema)
+    output_structure = json.dumps(raw_output_structure, indent=2)
+    system_prompt = f"""
+You are a table-schema extractor. When given a full database schema, identify and extract only the table(s) the user intends to work with.
+For each requested table, generate a concise instruction—without including the schema itself—such as:
+“Create POST method for the X table.”
+Return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{output_structure}
+</tool_call>
+"""
+    user_prompt = f"{last_message_content}\n\nHere are the full schema of the database:\n{schemas}"
+
+    message_list = []
+    message_list.append({
+        "role": "system",
+        "content": system_prompt
+    })
+    message_list.append({
+        "role": "user",
+        "content": user_prompt
+    })
+    return message_list

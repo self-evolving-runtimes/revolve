@@ -6,6 +6,7 @@ from revolve.utils import create_ft_data
 
 from datetime import datetime
 import json
+import os
 
 from utils_git import init_or_attach_git_repo, create_branch_with_timestamp
 
@@ -26,7 +27,6 @@ def check_user_request(state: State):
     last_message_content = state["messages"][-1]["content"]
 
     messages = get_user_intent_prompt(state["messages"])
-    messages_ft = get_user_intent_prompt_ft(state["messages"])
     structured_db_response = invoke_llm(messages, max_attempts=3, validation_class=ClassifyUserRequest, method="function_calling", manual_validation=True)
     description = "Prompt classifed as a task. Task is in progress." if structured_db_response.classification not in ["respond_back"] else structured_db_response.message
 
@@ -40,12 +40,14 @@ def check_user_request(state: State):
         "description": description,
     }
 
-    messages_ft.append({
-        "role": "assistant",
-        "content": structured_db_response.model_dump_json(),
-    })
-    temp_state = {"custom_ft_data":[messages_ft]}
-    create_ft_data(temp_state) 
+    if os.environ.get("FT_SAVE_MODE","false") == "true":
+        messages_ft = get_user_intent_prompt_ft(state["messages"])
+        messages_ft.append({
+            "role": "assistant",
+            "content": structured_db_response.model_dump_json(),
+        })
+        temp_state = {"custom_ft_data":[messages_ft]}
+        create_ft_data(temp_state) 
 
     if structured_db_response.classification in ["respond_back"]:
         log(description, send=send, level="workflow")
