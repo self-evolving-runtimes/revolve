@@ -1,6 +1,6 @@
 
 from revolve.external import get_db_type
-from revolve.data_types import ClassifyUserRequest, GeneratedCode, CodeHistoryMessage, DBSchema, typed_dict_dump_schema_json
+from revolve.data_types import ClassifyUserRequest, GeneratedCode, CodeHistoryMessage, DBSchema, Resource, typed_dict_dump_schema_json
 import json
 
 def get_test_generation_prompt(test_example: str, api_code: str, table_name: str, schema: str, utils: str, resouce_file: str, resource_file_name:str) -> str:
@@ -258,6 +258,62 @@ Schema : {schemas}
         }
     ]
     return messages
+
+def get_process_table_prompt_ft(utils_template: str, code_template: str, table_name: str, schemas: str, individual_prompt: str) -> list:
+
+    raw_output_structure = typed_dict_dump_schema_json(Resource)
+    output_structure = json.dumps(raw_output_structure, indent=2)
+    
+    system_prompt = f"""
+Generate resource code according to the user request.
+Make sure that you write production quality code that can be maintained by developers.
+Include a /<resource>/schema endpoint to get the schema of the resource so that we can auto generate ui forms.
+We are using falcon 4.02 for http - so only use parameters available from that version 
+Requests should be trackable with logs in INFO mode. Double check the imports.
+when using default values to sanitize input pl used `default` keyword in the method req.get_param('order',default='asc').lower()
+Make sure that you check whether data is serializable and convert data when needed.
+Guard against SQL injection attacks. Always sanitize inputs before sending it to database.
+While creating List functionality, provide functionality to sort, order by and filter based on
+key columns as well as skip , limit and total for pagination support. If the search filter is a date field, provide functionality to match greater than,
+less than and equal to date. Filter may not be specified - handle those cases as well.
+There could be multiple endpoints for the same resource.
+Use methods from db_utils if needed.
+#### db_utils (db_utils.py, in case you need to import) ####
+{utils_template}
+#### Here are the templates for the generation ####
+for the example api route 'app.add_route("/hello_db", HelloDBResource())'
+output should be like this:
+uri: /hello_db
+resource_object: HelloDBResource()
+resource_file_name: hellodb.py
+#### Resource Code Template ####
+{code_template} 
+Return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{output_structure}
+</tool_call>
+"""
+    
+
+    # add schemas and individual prompt to the user prompt
+    user_prompt = f"""
+Task : {individual_prompt}
+Table Name : {table_name}
+Schema : {schemas}
+"""
+
+    messages = [
+        {
+            "role": "system",
+            "content": system_prompt
+        },
+        {
+            "role": "user",
+            "content": user_prompt
+        }
+    ]
+    return messages
+
 
 def get_readme_prompt(api_code: str) -> list:
     messages =  [
