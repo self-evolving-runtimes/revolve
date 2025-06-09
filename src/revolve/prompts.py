@@ -57,7 +57,7 @@ Write test methods foreach function in the resource code:
 
 def get_test_generation_prompt_ft(test_example: str, api_code: str, table_name: str, schema: str, utils: str, resouce_file: str, resource_file_name: str) -> str:
     
-    raw_output_structure = CodeHistoryMessage.model_json_schema()
+    raw_output_structure = GeneratedCode.model_json_schema()
     output_structure = json.dumps(raw_output_structure, indent=2)
     
     system_prompt = f"""
