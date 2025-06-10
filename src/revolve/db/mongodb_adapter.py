@@ -24,17 +24,33 @@ class MongodbAdapter(ABC):
         self.db_name = os.getenv("DB_NAME")
         self.db = self.client[self.db_name]
 
-    def get_raw_schemas(self):
+    def get_raw_schemas(self) -> Dict[str, Any]:
         """
-        Retrieve raw schema information from MongoDB collections.
+        Retrieve detailed JSON schema validator information from MongoDB collections.
         """
-        collections = self.db.list_collection_names()
-        schemas = {}
+        schema_info = {}
+        collections = self.db.command("listCollections")["cursor"]["firstBatch"]
+
         for collection in collections:
-            sample_doc = self.db[collection].find_one()
-            if sample_doc:
-                schemas[collection] = {key: type(value).__name__ for key, value in sample_doc.items()}
-        return schemas
+            name = collection["name"]
+            options = collection.get("options", {})
+            validator = options.get("validator", {})
+            json_schema = validator.get("$jsonSchema", {})
+
+            if json_schema:
+                schema_info[name] = json_schema
+            else:
+                # Fall back to simple type extraction from a sample doc if no validator exists
+                sample_doc = self.db[name].find_one()
+                if sample_doc:
+                    schema_info[name] = {
+                        "bsonType": "object",
+                        "properties": {
+                            k: {"bsonType": type(v).__name__} for k, v in sample_doc.items()
+                        }
+                    }
+
+        return schema_info
 
     def get_table_dependencies(self):
         """
