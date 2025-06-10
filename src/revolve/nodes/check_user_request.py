@@ -8,7 +8,7 @@ from datetime import datetime
 import json
 import os
 
-from utils_git import init_or_attach_git_repo, create_branch_with_timestamp
+from revolve.utils_git import init_or_attach_git_repo, create_branch_with_timestamp
 
 
 
