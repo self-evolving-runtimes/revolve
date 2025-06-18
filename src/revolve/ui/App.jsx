@@ -583,7 +583,9 @@ const handleSendMessage = async (message) => {
                                 }
                               />
                             </List.Item>
-                            <List.Item>
+                          </>
+                        )}
+                                                    <List.Item>
                               <Text strong style={{ marginRight: 8 }}>Model Name:</Text>
                               <Input
                                 style={{ width: '70%' }}
@@ -596,9 +598,6 @@ const handleSendMessage = async (message) => {
                                 }
                               />
                             </List.Item>
-                          </>
-                        )}
-
                         <List.Item>
                           <Text strong style={{ marginRight: 8 }}>Source Folder:</Text>
                           <Input
