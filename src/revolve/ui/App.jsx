@@ -555,6 +555,7 @@ const handleSendMessage = async (message) => {
                           <List.Item>
                             <Text strong style={{ marginRight: 8 }}>OpenAI Key:</Text>
                             <Input.Password
+                            placeholder='Enter your OpenAI API key sk-...'
                               ref={openAiKeyRef}
                               style={{ width: '70%' }}
                               value={settings.openaiKey}
@@ -572,7 +573,9 @@ const handleSendMessage = async (message) => {
                           <>
                             <List.Item>
                               <Text strong style={{ marginRight: 8 }}>Base URL:</Text>
+
                               <Input
+                                placeholder="e.g., http://localhost:8000/v1/"
                                 style={{ width: '70%' }}
                                 value={settings.baseUrl}
                                 onChange={(e) =>
@@ -588,6 +591,7 @@ const handleSendMessage = async (message) => {
                                                     <List.Item>
                               <Text strong style={{ marginRight: 8 }}>Model Name:</Text>
                               <Input
+                                placeholder="e.g., gpt-4o or hosted_vllm/kramster/evolve-mistral - see for instructions https://huggingface.co/kramster/evolve-mistral/"
                                 style={{ width: '70%' }}
                                 value={settings.modelName}
                                 onChange={(e) =>
@@ -601,6 +605,7 @@ const handleSendMessage = async (message) => {
                         <List.Item>
                           <Text strong style={{ marginRight: 8 }}>Source Folder:</Text>
                           <Input
+                            placeholder="e.g., /home/user/desktop/generated_code/"
                             style={{ width: '70%' }}
                             value={settings.sourceFolder}
                             onChange={(e) =>
