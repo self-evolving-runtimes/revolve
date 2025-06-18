@@ -124,8 +124,75 @@ class State(TypedDict):
 class Readme(TypedDict):
     md_content:str
 
+
+import json
+import typing
+from typing import TypedDict, get_type_hints
+
+
+def is_typed_dict(cls: type) -> bool:
+    return isinstance(cls, type) and hasattr(cls, '__annotations__') and hasattr(cls, '__total__')
+
+
+def typed_dict_to_json_schema(typed_dict_cls: type) -> dict:
+    if not is_typed_dict(typed_dict_cls):
+        raise TypeError("Expected a TypedDict class")
+
+    annotations = get_type_hints(typed_dict_cls)
+    required_keys = getattr(typed_dict_cls, '__required_keys__', set())
+
+    def python_type_to_json_type(tp):
+        origin = typing.get_origin(tp)
+        args = typing.get_args(tp)
+
+        if origin is list:
+            item_type = args[0] if args else typing.Any
+            return {
+                "type": "array",
+                "items": python_type_to_json_type(item_type)
+            }
+
+        if origin is dict:
+            return {"type": "object"}
+
+        if is_typed_dict(tp):
+            return typed_dict_to_json_schema(tp)
+
+        if isinstance(tp, type):
+            if issubclass(tp, str):
+                return {"type": "string"}
+            elif issubclass(tp, int):
+                return {"type": "integer"}
+            elif issubclass(tp, float):
+                return {"type": "number"}
+            elif issubclass(tp, bool):
+                return {"type": "boolean"}
+
+        return {"type": "string"}
+
+    schema = {
+        "type": "object",
+        "properties": {},
+    }
+
+    required = []
+    for key, tp in annotations.items():
+        schema["properties"][key] = python_type_to_json_type(tp)
+        if key in required_keys:
+            required.append(key)
+
+    if required:
+        schema["required"] = required
+
+    return schema
+
+
+def typed_dict_dump_schema_json(typed_dict_cls: type, **json_kwargs) -> str:
+    schema = typed_dict_to_json_schema(typed_dict_cls)
+    return json.dumps(schema, **json_kwargs)
+
+
 if __name__ == "__main__":
-    schema = CodeHistoryMessage.model_json_schema()
-    print(json.dumps(schema, indent=2))
+    print(typed_dict_dump_schema_json(DBSchema, indent=2))
 
 

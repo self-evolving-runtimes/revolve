@@ -47,13 +47,11 @@ def test_node(state: State):
         )
 
         structured_test_response = invoke_llm(messages, max_attempts=3, validation_class=GeneratedCode, method="function_calling", manual_validation=True)
-        full_test_code = structured_test_response.full_test_code
-
-
+        
         messages_ft.append(
             {
                 "role": "assistant",
-                "content": structured_test_response.json(),
+                "content": structured_test_response.model_dump_json(),
             }
         )
 

@@ -1,10 +1,14 @@
 
 from datetime import datetime
+import os
+import json
 
 from revolve.data_types import Resource, Table
 from revolve.utils import log, save_python_code, read_python_code_template
-from revolve.prompts import get_process_table_prompt
+from revolve.prompts import get_process_table_prompt, get_process_table_prompt_ft
 from revolve.llm import invoke_llm
+from revolve.utils import create_ft_data
+
 
 
 def process_table(table_state:Table):
@@ -37,6 +41,21 @@ def process_table(table_state:Table):
         "description": f"Resource code generated for {table_name}."
     }
 
+    if os.environ.get("FT_SAVE_MODE","false") == "true":
+        messages_ft = get_process_table_prompt_ft(
+            utils_template=utils_template, 
+            code_template=code_template, 
+            table_name=table_name, 
+            schemas=schemas, 
+            individual_prompt=individual_prompt
+        )
+        messages_ft.append({
+            "role": "assistant",
+            "content": json.dumps(structured_resource_response, indent=2)
+        })
+        temp_state = {"custom_ft_data":[messages_ft]}
+        create_ft_data(temp_state)
+        
     return {
         "resources": [structured_resource_response],
         "trace": [new_trace]

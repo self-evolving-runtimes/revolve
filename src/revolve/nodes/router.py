@@ -3,7 +3,6 @@ from datetime import datetime
 from revolve.db import get_adapter
 from revolve.data_types import State
 from revolve.functions import save_state, log
-from revolve.utils_git import init_or_attach_git_repo, create_branch_with_timestamp
 from revolve.external import get_db_type
 
 
@@ -21,9 +20,7 @@ def router_node(state: State):
         if test_mode:
             adapter.clone_db()
 
-        init_or_attach_git_repo()
-        branch_name = create_branch_with_timestamp()
-        log(f"Branch created: {branch_name}", send)
+
         log("defaulting to generate_prompt_for_code_generation", send)
         new_trace = {
             "node_name": "router_node",
