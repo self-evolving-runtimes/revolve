@@ -67,10 +67,14 @@ React.useEffect(() => {
     try {
       const response = await axios.get('/api/env/settings');
       if (response.data) {
+        const data = response.data;
         setSettings((prev) => ({
           ...prev,
-          openaiKey: response.data.OPENAI_API_KEY || '',
-          sourceFolder: response.data.SOURCE_FOLDER || '',
+            openaiKey: data.OPENAI_API_KEY || '',
+            sourceFolder: data.SOURCE_FOLDER || '',
+            provider: data.PROVIDER || 'openai',
+            baseUrl: data.BASE_URL || '',
+            modelName: data.MODEL_NAME || '',
         }));
       }
     } catch (error) {
@@ -120,8 +124,11 @@ const getFileIcon = (filename) => {
 };
 const [currentStep, setCurrentStep] = React.useState(0);
 const [settings, setSettings] = React.useState({
-  openaiKey: '',
-  sourceFolder: '',
+  provider: 'openai',       
+  openaiKey: '',            
+  baseUrl: '',            
+  modelName: '',           
+  sourceFolder: '',          
 });
 const [isDbValid, setIsDbValid] = React.useState(false); 
 const [suggestions, setSuggestions] = React.useState([
@@ -531,20 +538,78 @@ const handleSendMessage = async (message) => {
                     <>
                       <List>
                         <List.Item>
-                          <Text strong style={{ marginRight: 8 }}>OpenAI Key:</Text>
-                          <Input.Password
-                            ref={openAiKeyRef}
+                          <Text strong style={{ marginRight: 8 }}>Provider:</Text>
+                          <Select
+                            value={settings.provider}
                             style={{ width: '70%' }}
-                            value={settings.openaiKey}
-                            onChange={(e) => setSettings(prev => ({ ...prev, openaiKey: e.target.value }))}
-                          />
+                            onChange={(value) =>
+                              setSettings((prev) => ({ ...prev, provider: value }))
+                            }
+                          >
+                            <Select.Option value="openai">OpenAI</Select.Option>
+                            <Select.Option value="opensource">OpenSource</Select.Option>
+                          </Select>
                         </List.Item>
+
+                        {settings.provider === 'openai' && (
+                          <List.Item>
+                            <Text strong style={{ marginRight: 8 }}>OpenAI Key:</Text>
+                            <Input.Password
+                              ref={openAiKeyRef}
+                              style={{ width: '70%' }}
+                              value={settings.openaiKey}
+                              onChange={(e) =>
+                                setSettings((prev) => ({
+                                  ...prev,
+                                  openaiKey: e.target.value,
+                                }))
+                              }
+                            />
+                          </List.Item>
+                        )}
+
+                        {settings.provider === 'opensource' && (
+                          <>
+                            <List.Item>
+                              <Text strong style={{ marginRight: 8 }}>Base URL:</Text>
+                              <Input
+                                style={{ width: '70%' }}
+                                value={settings.baseUrl}
+                                onChange={(e) =>
+                                  setSettings((prev) => ({
+                                    ...prev,
+                                    baseUrl: e.target.value,
+                                  }))
+                                }
+                              />
+                            </List.Item>
+                            <List.Item>
+                              <Text strong style={{ marginRight: 8 }}>Model Name:</Text>
+                              <Input
+                                style={{ width: '70%' }}
+                                value={settings.modelName}
+                                onChange={(e) =>
+                                  setSettings((prev) => ({
+                                    ...prev,
+                                    modelName: e.target.value,
+                                  }))
+                                }
+                              />
+                            </List.Item>
+                          </>
+                        )}
+
                         <List.Item>
                           <Text strong style={{ marginRight: 8 }}>Source Folder:</Text>
                           <Input
                             style={{ width: '70%' }}
                             value={settings.sourceFolder}
-                            onChange={(e) => setSettings(prev => ({ ...prev, sourceFolder: e.target.value }))}
+                            onChange={(e) =>
+                              setSettings((prev) => ({
+                                ...prev,
+                                sourceFolder: e.target.value,
+                              }))
+                            }
                           />
                         </List.Item>
                       </List>
@@ -579,21 +644,24 @@ const handleSendMessage = async (message) => {
                         </Button>
                     )}
                     {currentStep === 1 && (
-                        <Button
-                          type="primary"
-                          disabled={!settings.openaiKey || !settings.sourceFolder}
-                          onClick={() => {
-                            setIsConfigComplete(true);
-                            setActivePanels((prev) => prev.filter((key) => key !== '2'));
+                      <Button
+                        type="primary"
+                        disabled={
+                          settings.provider === 'openai'
+                            ? !settings.openaiKey
+                            : !settings.baseUrl || !settings.modelName
+                        }
+                        onClick={() => {
+                          setIsConfigComplete(true);
+                          setActivePanels((prev) => prev.filter((key) => key !== '2'));
 
-                            // Focus chat input after short delay
-                            setTimeout(() => {
-                                  senderRef.current?.focus?.();
-                                }, 300);
-                          }}
-                        >
-                          Finish
-                        </Button>
+                          setTimeout(() => {
+                            senderRef.current?.focus?.();
+                          }, 300);
+                        }}
+                      >
+                        Finish
+                      </Button>
                     )}
                   </Space>
                 </Panel>  

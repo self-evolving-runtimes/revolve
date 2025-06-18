@@ -115,6 +115,9 @@ class EnvResource:
             env_vars = {
             "SOURCE_FOLDER": os.environ.get("SOURCE_FOLDER", ""),
             "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
+            "PROVIDER": os.environ.get("PROVIDER", "openai"),
+            "BASE_URL": os.environ.get("BASE_URL", ""),
+            "MODEL_NAME": os.environ.get("MODEL_NAME", "")
         }
         elif req.path.endswith('/db'):
             env_vars = {
