@@ -47,7 +47,10 @@ def test_node(state: State):
         )
 
         structured_test_response = invoke_llm(messages, max_attempts=3, validation_class=GeneratedCode, method="function_calling", manual_validation=True)
-        
+        if not structured_test_response:
+            log("No valid response from LLM, skipping test generation.", send)
+            test_item["status"] = "skipped"
+            continue
         messages_ft.append(
             {
                 "role": "assistant",
@@ -126,13 +129,18 @@ def test_node(state: State):
                 
                 new_test_code_response = invoke_llm(new_messages, max_attempts=3, validation_class=CodeHistoryMessage, method="function_calling", manual_validation=True)
                 test_item["iteration_count"] += 1
-
+                if not new_test_code_response:
+                    log("No valid response from LLM, stopping the iteration.", send)
+                    break
                 if new_test_code_response.code_type == "resource":
                     file_name_to_revise = test_item["resource_file_name"]
                 elif new_test_code_response.code_type == "test":
                     file_name_to_revise = test_file_name
-                else:
+                elif new_test_code_response.code_type == "api":
                     file_name_to_revise = "api.py"
+                else:
+                    log(f"Unknown code type: {new_test_code_response.code_type}", send)
+                    file_name_to_revise = f"temp_{test_item['resource_file_name']}"
 
                 save_python_code(
                     new_test_code_response.new_code,

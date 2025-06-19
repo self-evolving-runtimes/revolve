@@ -27,6 +27,7 @@ dependencies = [
     "sqlparse>=0.5.3",
     "loguru>=0.7.3",
     "pymongo>=4.13.0",
+    "litellm>=1.72.6.post1",
 ]
 
 [project.urls]

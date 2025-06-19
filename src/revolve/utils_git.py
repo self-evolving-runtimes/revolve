@@ -10,7 +10,7 @@ def run_git_command(args, cwd="."):
     result = subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"Git error: {result.stderr.strip()}")
-        raise RuntimeError(result.stderr.strip())
+        
     return result.stdout.strip()
 
 

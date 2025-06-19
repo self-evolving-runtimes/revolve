@@ -37,10 +37,21 @@ class WorkflowResource:
             db_config = data.get("dbConfig", {})
             settings = data.get("settings", {})
 
-            if not all([settings.get("openaiKey"), settings.get("sourceFolder")]):
+            if not settings.get("sourceFolder"):
                 resp.status = falcon.HTTP_400
-                resp.media = {"error": "Missing settings parameters."}
+                resp.media = {"error": "Missing settings parameters - Source folder is required."}
                 return
+            
+            if settings.get("provider") == "openai":
+                if not settings.get("openaiKey") or not settings.get("modelName"):
+                    resp.status = falcon.HTTP_400
+                    resp.media = {"error": "Missing settings parameters - OpenAI API key and Model name are required for OpenAI provider."}
+                    return
+            elif settings.get("provider") == "opensource":
+                if not settings.get("modelName") or not settings.get("baseUrl"):
+                    resp.status = falcon.HTTP_400
+                    resp.media = {"error": "Missing settings parameters - Model name and Base URL are required for open source provider."}
+                    return
             
             source_folder = settings.get("sourceFolder")
             if not os.path.exists(source_folder):
@@ -54,6 +65,10 @@ class WorkflowResource:
             #set env vars 
             os.environ["SOURCE_FOLDER"] = source_folder
             os.environ["OPENAI_API_KEY"] = settings.get("openaiKey")
+            os.environ["LLM_PROVIDER"] = settings.get("provider")
+            os.environ["BASE_URL"] = settings.get("baseUrl", "")
+            os.environ["MODEL_NAME"] = settings.get("modelName", "")
+            
 
             logger.info("Received task: %s", messages[-1]["content"] if messages else "No messages provided")
         except Exception:
@@ -115,6 +130,9 @@ class EnvResource:
             env_vars = {
             "SOURCE_FOLDER": os.environ.get("SOURCE_FOLDER", ""),
             "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
+            "PROVIDER": os.environ.get("PROVIDER", "openai"),
+            "BASE_URL": os.environ.get("BASE_URL", ""),
+            "MODEL_NAME": os.environ.get("MODEL_NAME", "")
         }
         elif req.path.endswith('/db'):
             env_vars = {

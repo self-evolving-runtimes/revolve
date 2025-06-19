@@ -37,7 +37,7 @@ Run the API and UI:
 revolve-api
 ```
 
-For local development instructions, see [contributor-README.md](contributor-README.md).
+For local development instructions, see [contributor-README.md](https://huggingface.co/kramster/evolve-mistral).
 
 
 ### Roadmap
@@ -48,7 +48,7 @@ For local development instructions, see [contributor-README.md](contributor-READ
 - [ ] Enhance UI to support lookups for foreign keys and editing json elegantly
 - [X] Support for enums validation while editing via the discovery apis
 - [X] Multi-turn conversations 
-- [ ] Add fine-tuned Qwen 3 support in addition to paid model support.
+- [X] Fine-tuned model integration alongside support for the paid LLM APIs – see [kramster/evolve-mistral](https://huggingface.co/kramster/evolve-mistral) on Hugging Face for details.
 
 
 ### License
