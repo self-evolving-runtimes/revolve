@@ -18,8 +18,8 @@
 
 ---
 
-### 🧠 New: Open-Source Model Support (Mixtral)  
-We now support a fine-tuned **Mixtral-based open model**, delivering performance **on par with GPT‑4.1** — tailored for Revolve use cases.
+### 🌟 New: Open-Source Model Support (Mixtral)  
+We now support a fine-tuned **Mixtral-based open model**, delivering performance almost at **on par with GPT‑4.1** —for Revolve use cases.
 
 ✅ Open weights, self-hostable  
 ✅ No OpenAI keys or API fees  
