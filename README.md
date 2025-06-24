@@ -11,7 +11,8 @@
 **⚡ Automate 80% of your boilerplate code** – Say goodbye to manual CRUD coding! Let AI generate clean, production-ready database interfaces in seconds.
 
 - **✨ AI Agents** analyze your schema and generate optimized REST APIs  
-- **🖥️ Auto-generated Admin UI** with filters, search, and CRUD operations  
+- **🖥️ Auto-generated Admin UI** with filters, search, and CRUD operations
+- **🖥️ Auto Regressively tests and fixes the generated code** Testing node runs tests (unit and end-end tests) and acts as a verifier 
 - **🔌 Multi-DB Support** (SQL & NoSQL) with intelligent schema detection  
 - **🎨 Customizable Templates** (React + MUI DataGrid)  
 - **📦 One-Codebase Export** for easy integration  
